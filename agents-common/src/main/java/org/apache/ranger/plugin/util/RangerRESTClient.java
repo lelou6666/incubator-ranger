@@ -83,12 +83,11 @@ public class RangerRESTClient {
 	public static final String RANGER_SSL_TRUSTMANAGER_ALGO_TYPE				 = "SunX509" ;
 	public static final String RANGER_SSL_CONTEXT_ALGO_TYPE					     = "SSL" ;
 
-
-	private String  mUrl               = null;
-	private String  mSslConfigFileName = null;
-	private String  mUsername          = null;
-	private String  mPassword          = null;
-	private boolean mIsSSL             = false;
+	private String  mUrl                 = null;
+	private String  mSslConfigFileName   = null;
+	private String  mUsername            = null;
+	private String  mPassword            = null;
+	private boolean mIsSSL               = false;
 
 	private String mKeyStoreURL     = null;
 	private String mKeyStoreAlias   = null;
@@ -99,8 +98,11 @@ public class RangerRESTClient {
 	private String mTrustStoreFile  = null;
 	private String mTrustStoreType  = null;
 
-	private Gson   gsonBuilder = null;
-	private Client client      = null;
+	private Gson   gsonBuilder 		= null;
+	private volatile Client client  = null;
+
+	private int  mRestClientConnTimeOutMs;
+	private int  mRestClientReadTimeOutMs;
 
 	public RangerRESTClient() {
 		this(RangerConfiguration.getInstance().get(RANGER_PROP_POLICYMGR_URL),
@@ -130,6 +132,22 @@ public class RangerRESTClient {
 		return mPassword;
 	}
 
+	public int getRestClientConnTimeOutMs() {
+		return mRestClientConnTimeOutMs;
+	}
+
+	public void setRestClientConnTimeOutMs(int mRestClientConnTimeOutMs) {
+		this.mRestClientConnTimeOutMs = mRestClientConnTimeOutMs;
+	}
+
+	public int getRestClientReadTimeOutMs() {
+		return mRestClientReadTimeOutMs;
+	}
+
+	public void setRestClientReadTimeOutMs(int mRestClientReadTimeOutMs) {
+		this.mRestClientReadTimeOutMs = mRestClientReadTimeOutMs;
+	}
+
 	public void setBasicAuthInfo(String username, String password) {
 		mUsername = username;
 		mPassword = password;
@@ -150,15 +168,18 @@ public class RangerRESTClient {
 	}
 
 	public Client getClient() {
-		if(client == null) {
+        // result saves on access time when client is built at the time of the call
+        Client result = client;
+		if(result == null) {
 			synchronized(this) {
-				if(client == null) {
-					client = buildClient();
+                result = client;
+				if(result == null) {
+					client = result = buildClient();
 				}
 			}
 		}
 
-		return client;
+		return result;
 	}
 
 	private Client buildClient() {
@@ -191,10 +212,13 @@ public class RangerRESTClient {
 			client = Client.create(config);
 		}
 
-		// TODO: for testing only
-		if(!StringUtils.isEmpty(mUsername) || !StringUtils.isEmpty(mPassword)) {
+		if(!StringUtils.isEmpty(mUsername) && !StringUtils.isEmpty(mPassword)) {
 			client.addFilter(new HTTPBasicAuthFilter(mUsername, mPassword)); 
 		}
+
+		// Set Connection Timeout and ReadTime for the PolicyRefresh
+		client.setConnectTimeout(mRestClientConnTimeOutMs);
+		client.setReadTimeout(mRestClientReadTimeOutMs);
 
 		return client;
 	}

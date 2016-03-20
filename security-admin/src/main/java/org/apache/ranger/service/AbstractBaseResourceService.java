@@ -37,6 +37,7 @@ import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 import org.apache.ranger.biz.RangerBizUtil;
@@ -233,12 +234,12 @@ public abstract class AbstractBaseResourceService<T extends XXDBBase, V extends 
 		}
 
 		// Get total count of the rows which meet the search criteria
-		countQueryStr = "SELECT COUNT(obj) FROM " + tEntityClass.getName()
+		countQueryStr = "SELECT COUNT(obj) FROM " + className
 				+ " obj ";
 		queryStr = "SELECT obj FROM " + className + " obj ";
 
 		distinctCountQueryStr = "SELECT COUNT(distinct obj.id) FROM "
-				+ tEntityClass.getName() + " obj ";
+				+ className + " obj ";
 		distinctQueryStr = "SELECT distinct obj FROM " + className + " obj ";
 		sortFields.add(new SortField("id", "obj.id",true,SORT_ORDER.ASC));
 		registerService(this);
@@ -318,10 +319,10 @@ public abstract class AbstractBaseResourceService<T extends XXDBBase, V extends 
 
 		T resource = getDao().getById(id);
 		if (resource == null) {
-			// Returns code 400 with DATA_NOT_FOUND as the error message
+			// Returns code 404 with DATA_NOT_FOUND as the error message
 			throw restErrorUtil.createRESTException(getResourceName()
 					+ " not found", MessageEnums.DATA_NOT_FOUND, id, null,
-					"preRead: " + id + " not found.");
+					"preRead: " + id + " not found.",HttpServletResponse.SC_NOT_FOUND);
 		}
 
 		V viewBean = readResource(resource);

@@ -43,9 +43,11 @@ public abstract class XGroupServiceBase<T extends XXGroup, V extends VXGroup>
 	@Override
 	protected XXGroup mapViewToEntityBean(VXGroup vObj, XXGroup mObj, int OPERATION_CONTEXT) {
 		mObj.setName( vObj.getName());
+		mObj.setIsVisible(vObj.getIsVisible());
 		mObj.setDescription( vObj.getDescription());
 		mObj.setGroupType( vObj.getGroupType());
 		mObj.setCredStoreId( vObj.getCredStoreId());
+		mObj.setGroupSource(vObj.getGroupSource());
 		return mObj;
 	}
 
@@ -53,9 +55,11 @@ public abstract class XGroupServiceBase<T extends XXGroup, V extends VXGroup>
 	@Override
 	protected VXGroup mapEntityToViewBean(VXGroup vObj, XXGroup mObj) {
 		vObj.setName( mObj.getName());
+		vObj.setIsVisible( mObj.getIsVisible());
 		vObj.setDescription( mObj.getDescription());
 		vObj.setGroupType( mObj.getGroupType());
 		vObj.setCredStoreId( mObj.getCredStoreId());
+		vObj.setGroupSource(mObj.getGroupSource());
 		return vObj;
 	}
 

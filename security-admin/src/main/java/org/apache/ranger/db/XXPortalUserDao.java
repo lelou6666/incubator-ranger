@@ -17,10 +17,11 @@
  * under the License.
  */
 
- package org.apache.ranger.db;
-
+package org.apache.ranger.db;
 
 import java.util.List;
+
+import javax.persistence.NoResultException;
 
 import org.apache.ranger.common.db.BaseDao;
 import org.apache.ranger.entity.XXPortalUser;
@@ -76,4 +77,41 @@ public class XXPortalUserDao extends BaseDao<XXPortalUser> {
     			.getResultList();
     }
 
+	public XXPortalUser findByXUserId(Long xUserId) {
+		if (xUserId == null) {
+			return null;
+		}
+		try {
+			return getEntityManager().createNamedQuery("XXPortalUser.findByXUserId", tClass)
+					.setParameter("id", xUserId).getSingleResult();
+		} catch (NoResultException e) {
+			return null;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<XXPortalUser> findAllXPortalUser() {
+
+		try {
+			return getEntityManager().createNamedQuery(
+					"XXPortalUser.findAllXPortalUser").getResultList();
+
+		} catch (Exception e) {
+			return null;
+		}
+
+	}
+	@SuppressWarnings("unchecked")
+	public List<String> findXPortalUserRolebyXPortalUserId(Long userId)
+	{
+		try {
+			return getEntityManager()
+					.createNativeQuery("select user_role from x_portal_user_role where user_id="+userId+"")
+					.getResultList();
+
+		} catch (Exception e) {
+			return null;
+		}
+
+	}
 }

@@ -20,21 +20,25 @@
 package org.apache.ranger.plugin.policyevaluator;
 
 
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ranger.plugin.model.RangerPolicy;
 import org.apache.ranger.plugin.model.RangerServiceDef;
-
+import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
+import org.apache.ranger.plugin.policyengine.RangerPolicyEngineOptions;
 
 public abstract class RangerAbstractPolicyEvaluator implements RangerPolicyEvaluator {
 	private static final Log LOG = LogFactory.getLog(RangerAbstractPolicyEvaluator.class);
 
 	private RangerPolicy     policy     = null;
 	private RangerServiceDef serviceDef = null;
+	private int              evalOrder  = 0;
 
 
 	@Override
-	public void init(RangerPolicy policy, RangerServiceDef serviceDef) {
+	public void init(RangerPolicy policy, RangerServiceDef serviceDef, RangerPolicyEngineOptions options) {
 		if(LOG.isDebugEnabled()) {
 			LOG.debug("==> RangerAbstractPolicyEvaluator.init(" + policy + ", " + serviceDef + ")");
 		}
@@ -55,6 +59,47 @@ public abstract class RangerAbstractPolicyEvaluator implements RangerPolicyEvalu
 	@Override
 	public RangerServiceDef getServiceDef() {
 		return serviceDef;
+	}
+
+	public boolean hasAllow() {
+		return policy != null && CollectionUtils.isNotEmpty(policy.getPolicyItems());
+	}
+
+	protected boolean hasMatchablePolicyItem(RangerAccessRequest request) {
+		return hasAllow() || hasDeny();
+	}
+
+	public boolean hasDeny() {
+		return policy != null && CollectionUtils.isNotEmpty(policy.getDenyPolicyItems());
+	}
+
+	@Override
+	public int getEvalOrder() {
+		return evalOrder;
+	}
+
+	@Override
+	public boolean isAuditEnabled() {
+		return policy != null && policy.getIsAuditEnabled();
+	}
+
+	@Override
+	public int compareTo(RangerPolicyEvaluator other) {
+		if(LOG.isDebugEnabled()) {
+		LOG.debug("==> RangerAbstractPolicyEvaluator.compareTo()");
+		}
+
+		int result = Integer.compare(this.getEvalOrder(), other.getEvalOrder());
+
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("<== RangerAbstractPolicyEvaluator.compareTo(), result:" + result);
+		}
+
+		return result;
+	}
+
+	public void setEvalOrder(int evalOrder) {
+		this.evalOrder = evalOrder;
 	}
 
 	@Override

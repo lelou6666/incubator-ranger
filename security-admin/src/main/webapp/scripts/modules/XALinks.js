@@ -50,7 +50,12 @@ define(function(require) {
 				title: 'h.repositoryManager'
 			},
 			ServiceManager :{
-				href : '#!/policymanager', 
+				href : '#!/policymanager/resource', 
+				text : 'h.serviceManager',
+				title: 'h.serviceManager'
+			},
+			TagBasedServiceManager :{
+				href : '#!/policymanager/tag', 
 				text : 'h.serviceManager',
 				title: 'h.serviceManager'
 			},
@@ -64,10 +69,25 @@ define(function(require) {
 				text : 'h.usersOrGroups',
 				title: 'h.usersOrGroups'
 			},
-			Configs: { 
-				href : '#!/configs',
-				text : 'h.configs',
-				title: 'h.configs'
+			Kms : { 
+				href : '#!/kms/keys/new/manage/service',
+				text : 'h.kms',
+				title: 'h.kms'
+			},
+			KmsKeyCreate : { 
+				href : 'javascript:void(0);',
+				text : 'h.keyCreate',
+				title: 'h.keyCreate'
+			},
+			KmsKeyEdit : { 
+				href : 'javascript:void(0);',
+				text : 'h.keyEdit',
+				title: 'h.keyEdit'
+			},
+			KmsKeyForService : { 
+				href : 'javascript:void(0);',
+				text : 'KMS_TEST1',
+				title: 'KMS_TEST1'
 			},
 			ManageTables: { 
 				href : '#!/managetables',
@@ -95,12 +115,12 @@ define(function(require) {
 				title: 'h.managePolices'
 			},
 			PolicyCreate: { 
-				href : '#!/policy/create',
+				href : 'javascript:void(0);',
 				text: 'h.createPolicy',
 				title: 'h.createPolicy'
 			},
 			PolicyEdit: { 
-				href : '#!/policy/create',
+				href : 'javascript:void(0);',
 				text: 'h.editPolicy',
 				title: 'h.editPolicy'
 			},
@@ -162,42 +182,10 @@ define(function(require) {
 				href : '#!/reports/audit/loginSession',
 				text : 'lbl.sessionDetail'
 			},
-			AssetCreate : function(options){
-				var href = '#!/asset/create';
-				if(_.has(options,'model')){
-					href =  '#!/asset/create/'+options.model.get('assetType');
-				}
-				return {
-					href : href,
-					text : 'lbl.createAsset',
-					title: 'lbl.createAsset'
-				};
-			},
-			AssetEdit : function(options){
-				var href = "javascript:void(0);";
-				if(_.has(options,'model')){
-					href =  '#!/asset/'+options.model.get('id');
-				}
-				if(_.has(options,'id')){
-					href =  '#!/asset/'+options.id;
-				}
-				return {
-					href : href,
-					text : 'lbl.editAsset',
-					title: 'lbl.editAsset'
-				};
-			},
-
-			ServiceCreate : function(options){
-				var href = '#!/service/create';
-				if(_.has(options,'model')){
-					href =  '#!/service/create/'+options.model.get('assetType');
-				}
-				return {
-					href : href,
-					text : 'lbl.createAsset',
-					title: 'lbl.createAsset'
-				};
+			ServiceCreate : {
+				href : "javascript:void(0);",
+				text : 'lbl.createService',
+				title: 'lbl.createService'
 			},
 			ServiceEdit : function(options){
 				var href = "javascript:void(0);";
@@ -209,8 +197,8 @@ define(function(require) {
 				}
 				return {
 					href : href,
-					text : 'lbl.editAsset',
-					title: 'lbl.editAsset'
+					text : 'lbl.editService',
+					title: 'lbl.editService'
 				};
 			},
 			ManagePolicies : function(options){
@@ -266,6 +254,44 @@ define(function(require) {
                     href : href,
                     text : options.model.get('name') +' Policies',
                     title: options.model.get('name') +' Policies'
+                };
+			},
+			ModulePermissions :{
+				href : '#!/permissions',
+				text : 'h.permissions',
+				title: 'h.permissions'
+			},
+			ModulePermissionEdit : function(options){
+                var href = "javascript:void(0);";
+                if(_.has(options,'model')){
+                    href =  '#!/permissions/'+options.model.id+"/edit";
+                }
+                return {
+                    href : href,
+                    text : options.model.get('module'),
+                    title: options.model.get('module')
+                };
+			},
+			KmsServiceForKey : function(options) {
+				var href = "javascript:void(0);";
+				if(_.has(options,'kmsServiceDefModel') && _.has(options,'kmsService')){
+                    href =  '#!/service/'+options.kmsServiceDefModel.id+"/edit/"+options.kmsService.id;
+                }
+				return {
+                    href : href,
+                    text : options.kmsService.get('name'),
+                    title: options.kmsService.get('name')
+                };
+			},
+			KmsManage : function(options) {
+				var href = "javascript:void(0);";
+				if(_.has(options,'kmsService')){
+                    href =  '#!/kms/keys/edit/manage/'+options.kmsService;
+                }
+				return {
+                    href : href,
+                    text : 'h.kms',
+                    title: 'h.kms'
                 };
 			}
 	};      

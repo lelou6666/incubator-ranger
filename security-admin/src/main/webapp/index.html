@@ -37,7 +37,7 @@
 		<link href="libs/bower/backgrid-paginator/css/backgrid-paginator.css" media="all" rel="stylesheet" type="text/css" >
 		<link href="libs/bower/backgrid-filter/css/backgrid-filter.css" media="all" rel="stylesheet" type="text/css" >
 		<link href="libs/bower/select2/select2.css" media="all" rel="stylesheet" type="text/css" >
-		<link href="libs/bower/pines-notify/css/jquery.pnotify.default.css" rel="stylesheet">
+		<link href="libs/bower/bootstrap-notify/css/bootstrap-notify.css" rel="stylesheet">
 		<link href="libs/bower/tag-it/css/jquery.tagit.css" rel="stylesheet">
 		<link href="libs/other/datepicker/css/datepicker.css" media="all" rel="stylesheet" type="text/css">
 		<link href="libs/bower/x-editable/css/bootstrap-editable.css" media="all" rel="stylesheet" type="text/css">
@@ -73,14 +73,9 @@
 			<section id="r_breadcrumbs" class="row-fluid">
 				
 			</section>
-			
+			<div class='notifications top-right ranger-notifications'></div>
 			<section id="r_content" class="row-fluid" style="min-height: 450px;">
-
-
-				<!-- <img src="images/loading-blue.gif" style="margin-left: 43%;margin-top: 1%;width:4%;" /> -->
-
 				<div class="loading-img">
-
 					<div id="center">
 						<div class="letter_container_1">
 							<span>L</span>
@@ -127,7 +122,7 @@
 
 
 		<!-- build:js scripts/main.js -->
-		<script data-main="scripts/Init" src="libs/bower/requirejs/js/require.js"></script>
+		<script data-main="scripts/Init.js?ver=build.version" src="libs/bower/requirejs/js/require.js"></script>
 		<!-- endbuild -->
 		<script type="text/javascript">
 			require.config({

@@ -18,32 +18,64 @@
 
 package org.apache.ranger.authorization.hadoop.utils;
 
-import java.io.File;
-import java.util.List;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.After;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.lang.reflect.Field;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.alias.CredentialShell;
 import org.apache.hadoop.security.alias.CredentialProvider;
-import org.apache.ranger.authorization.hadoop.utils.RangerCredentialProvider;
+import org.apache.hadoop.security.alias.CredentialShell;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class RangerCredentialProviderTest {
-	private final String keystoreFile = new File(System.getProperty("user.home")+"/testkeystore.jceks").toURI().getPath();
+	
+	private final File ksFile =  new File(System.getProperty("user.home")+"/testkeystore.jceks") ;
+	private final String keystoreFile = ksFile.toURI().getPath();
 	private String[] argsCreate = {"create", "TestCredential001", "-value", "PassworD123", "-provider", "jceks://file@/" + keystoreFile};
 	private String[] argsDelete = {"delete", "TestCredential001", "-provider", "jceks://file@/" + keystoreFile};
 	private String url = "jceks://file@/" + keystoreFile;
 	RangerCredentialProvider cp = null;
 	List<CredentialProvider> providers = null;
 	
+	
+	public RangerCredentialProviderTest() {
+		if ( isCredentialShellInteractiveEnabled() ) {
+			argsCreate = new String[] {"create", "TestCredential001", "-f",  "-value", "PassworD123", "-provider", "jceks://file@/" + keystoreFile};
+			argsDelete = new String[] {"delete", "TestCredential001", "-f" , "-provider", "jceks://file@/" + keystoreFile};
+		}
+	}
+	
+	
 	@Before
 	public void setup() throws Exception {
 		int ret;
+		//
+		// adding a delete before creating a keystore
+		//
+		try {
+			if (ksFile != null) {
+				if (ksFile.exists()) {
+					System.out.println("Keystore File [" + ksFile.getAbsolutePath() + "] is available - and deleting") ;
+					ksFile.delete() ;
+					System.out.println("Keystore File [" + ksFile.getAbsolutePath() + "] is deleted.") ;
+				}
+				else {
+					System.out.println("Keystore File [" + ksFile.getAbsolutePath() + "] is not available") ;
+				}
+			}
+			else {
+				System.out.println("Keystore File is NULL") ;
+			}
+		}
+		catch(Throwable t) {
+			t.printStackTrace();
+		}
+		
 		Configuration conf = new Configuration();
 		CredentialShell cs = new CredentialShell();
 		cs.setConf(conf);
@@ -53,7 +85,9 @@ public class RangerCredentialProviderTest {
 			throw e;
 		}
 		assertEquals(0,ret);
-	}
+		System.out.println("(1) Number of active Threads : " + Thread.activeCount() ) ;
+		listThreads() ;
+	} 
 	
 	@Test
 	public void testCredentialProvider() {
@@ -63,6 +97,8 @@ public class RangerCredentialProviderTest {
 		if (providers != null) {
 			assertTrue(url.equals(providers.get(0).toString()));
 		}
+		System.out.println("(2) Number of active Threads : " + Thread.activeCount() ) ;
+		listThreads() ;
 	}
 	
 	@Test
@@ -73,11 +109,14 @@ public class RangerCredentialProviderTest {
 		if (providers != null) {
 			assertTrue("PassworD123".equals(new String(cp.getCredentialString(url,"TestCredential001"))));
 		}
+		System.out.println("(3) Number of active Threads : " + Thread.activeCount() ) ;
+		listThreads() ;
 	}
 
 	
 	@After
 	public void teardown() throws Exception {
+		System.out.println("In teardown : Number of active Threads : " + Thread.activeCount() ) ;
 		int ret;
 		Configuration conf = new Configuration();
 		CredentialShell cs = new CredentialShell();
@@ -88,6 +127,45 @@ public class RangerCredentialProviderTest {
 			throw e;
 		}
 		assertEquals(0,ret);	
+		listThreads() ;
 	}
+	
+	private static void 		listThreads() {
+		int ac = Thread.activeCount() ;
+		if (ac > 0) {
+			Thread[] tlist = new Thread[ac] ;
+			Thread.enumerate(tlist) ;
+			for(Thread t : tlist) {
+				System.out.println("Thread [" + t + "] => {" + t.getClass().getName() + "}") ;
+			}
+		}
+	}
+	
+	private static boolean isCredentialShellInteractiveEnabled() {
+		boolean ret = false ;
+		
+		String fieldName = "interactive" ;
+		
+		CredentialShell cs = new CredentialShell() ;
+		
+		try {
+			Field interactiveField = cs.getClass().getDeclaredField(fieldName) ;
+			
+			if (interactiveField != null) {
+				interactiveField.setAccessible(true);
+				ret = interactiveField.getBoolean(cs) ;
+				System.out.println("FOUND value of [" + fieldName + "] field in the Class [" + cs.getClass().getName() + "] = [" + ret + "]") ;
+			}
+		} catch (Throwable e) {
+			System.out.println("Unable to find the value of [" + fieldName + "] field in the Class [" + cs.getClass().getName() + "]. Skiping -f option") ;
+			e.printStackTrace();
+			ret = false;
+		}
+		
+		return ret ;
+		
+		
+	}
+
 }
 

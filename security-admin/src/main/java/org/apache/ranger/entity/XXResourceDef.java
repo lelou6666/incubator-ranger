@@ -49,6 +49,15 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 	protected Long defId;
 
 	/**
+	 * itemId of the XXResourceDef
+	 * <ul>
+	 * </ul>
+	 *
+	 */
+	@Column(name = "item_id")
+	protected Long itemId;
+
+	/**
 	 * name of the XXResourceDef
 	 * <ul>
 	 * </ul>
@@ -72,7 +81,7 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 	 * </ul>
 	 *
 	 */
-	@Column(name = "level")
+	@Column(name = "res_level")
 	protected Integer level;
 
 	/**
@@ -139,6 +148,33 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 	protected String matcherOptions;
 
 	/**
+	 * validationRegEx of the XXResourceDef
+	 * <ul>
+	 * </ul>
+	 *
+	 */
+	@Column(name = "validation_reg_ex")
+	protected String validationRegEx;
+
+	/**
+	 * validationMessage of the XXResourceDef
+	 * <ul>
+	 * </ul>
+	 *
+	 */
+	@Column(name = "validation_message")
+	protected String validationMessage;
+
+	/**
+	 * uiHint of the XXResourceDef
+	 * <ul>
+	 * </ul>
+	 *
+	 */
+	@Column(name = "ui_hint")
+	protected String uiHint;
+
+	/**
 	 * label of the XXResourceDef
 	 * <ul>
 	 * </ul>
@@ -173,6 +209,15 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 	 */
 	@Column(name = "rb_key_description")
 	protected String rbKeyDescription;
+
+	/**
+	 * rbKeyValidationMessage of the XXResourceDef
+	 * <ul>
+	 * </ul>
+	 *
+	 */
+	@Column(name = "rb_key_validation_message")
+	protected String rbKeyValidationMessage;
 
 	/**
 	 * order of the XXResourceDef
@@ -212,6 +257,26 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 	 */
 	public void setDefid(Long defId) {
 		this.defId = defId;
+	}
+
+	/**
+	 * Returns the value for the member attribute <b>itemId</b>
+	 * 
+	 * @return Long - value of member attribute <b>itemId</b> .
+	 */
+	public Long getItemId() {
+		return this.itemId;
+	}
+
+	/**
+	 * This method sets the value to the member attribute <b> itemId</b> . You
+	 * cannot set null to the attribute.
+	 * 
+	 * @param itemId
+	 *            Value to set member attribute <b> itemId</b>
+	 */
+	public void setItemId(Long itemId) {
+		this.itemId = itemId;
 	}
 
 	/**
@@ -424,6 +489,48 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 	}
 
 	/**
+	 * @return the validationRegEx
+	 */
+	public String getValidationRegEx() {
+		return validationRegEx;
+	}
+
+	/**
+	 * @param validationRegEx the validationRegEx to set
+	 */
+	public void setValidationRegEx(String validationRegEx) {
+		this.validationRegEx = validationRegEx;
+	}
+
+	/**
+	 * @return the validationMessage
+	 */
+	public String getValidationMessage() {
+		return validationMessage;
+	}
+
+	/**
+	 * @param validationMessage the validationMessage to set
+	 */
+	public void setValidationMessage(String validationMessage) {
+		this.validationMessage = validationMessage;
+	}
+
+	/**
+	 * @return the uiHint
+	 */
+	public String getUiHint() {
+		return uiHint;
+	}
+
+	/**
+	 * @param uiHint the uiHint to set
+	 */
+	public void setUiHint(String uiHint) {
+		this.uiHint = uiHint;
+	}
+
+	/**
 	 * This method sets the value to the member attribute <b> label</b> . You
 	 * cannot set null to the attribute.
 	 * 
@@ -504,6 +611,20 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 	}
 
 	/**
+	 * @return the rbKeyValidationMessage
+	 */
+	public String getRbKeyValidationMessage() {
+		return rbKeyValidationMessage;
+	}
+
+	/**
+	 * @param rbKeyValidationMessage the rbKeyValidationMessage to set
+	 */
+	public void setRbKeyValidationMessage(String rbKeyValidationMessage) {
+		this.rbKeyValidationMessage = rbKeyValidationMessage;
+	}
+
+	/**
 	 * This method sets the value to the member attribute <b> order</b> . You
 	 * cannot set null to the attribute.
 	 * 
@@ -547,6 +668,13 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 		} else if (!defId.equals(other.defId)) {
 			return false;
 		}
+		if (itemId == null) {
+			if (other.itemId != null) {
+				return false;
+			}
+		} else if (!itemId.equals(other.itemId)) {
+			return false;
+		}
 		if (description == null) {
 			if (other.description != null) {
 				return false;
@@ -564,6 +692,14 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 		} else if (!id.equals(other.id)) {
 			return false;
 		}
+
+		if(!equals(validationRegEx, other.validationRegEx) ||
+		   !equals(validationMessage, other.validationMessage) ||
+		   !equals(uiHint, other.uiHint) ||
+		   !equals(rbKeyValidationMessage, other.rbKeyValidationMessage)) {
+			return false;
+		}
+
 		if (label == null) {
 			if (other.label != null) {
 				return false;
@@ -654,14 +790,19 @@ public class XXResourceDef extends XXDBBase implements java.io.Serializable {
 	@Override
 	public String toString() {
 		return "XXResourceDef [" + super.toString() + " id=" + id + ", defId="
-				+ defId + ", name=" + name + ", type=" + type + ", level="
+				+ defId + ", itemId=" + itemId + ", name=" + name + ", type=" + type + ", level="
 				+ level + ", parent=" + parent + ", mandatory=" + mandatory
 				+ ", lookUpSupported=" + lookUpSupported
 				+ ", recursiveSupported=" + recursiveSupported
 				+ ", excludesSupported=" + excludesSupported + ", matcher="
-				+ matcher + ", matcherOptions=" + matcherOptions + ", label="
-				+ label + ", description=" + description + ", rbKeyLabel="
-				+ rbKeyLabel + ", rbKeyDescription=" + rbKeyDescription
+				+ matcher + ", matcherOptions=" + matcherOptions
+				+ ", validationRegEx=" + validationRegEx
+				+ ", validationMessage=" + validationMessage
+				+ ", uiHint=" + uiHint
+				+ ", label=" + label + ", description=" + description
+				+ ", rbKeyLabel="+ rbKeyLabel
+				+ ", rbKeyDescription=" + rbKeyDescription
+				+ ", rbKeyValidationMessage=" + rbKeyValidationMessage
 				+ ", order=" + order + "]";
 	}
 

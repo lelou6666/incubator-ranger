@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.Encoded;
 import javax.ws.rs.GET;
@@ -33,11 +34,13 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.log4j.Logger;
+import org.apache.ranger.admin.client.datatype.RESTResponse;
 import org.apache.ranger.biz.AssetMgr;
 import org.apache.ranger.biz.RangerBizUtil;
 import org.apache.ranger.common.PropertiesUtil;
@@ -46,11 +49,17 @@ import org.apache.ranger.common.RangerSearchUtil;
 import org.apache.ranger.common.SearchCriteria;
 import org.apache.ranger.common.ServiceUtil;
 import org.apache.ranger.common.StringUtil;
-import org.apache.ranger.plugin.model.RangerPolicy;
-import org.apache.ranger.plugin.model.RangerService;
 import org.apache.ranger.common.annotation.RangerAnnotationClassName;
 import org.apache.ranger.common.annotation.RangerAnnotationJSMgrName;
-import org.apache.ranger.service.AbstractBaseResourceService;
+import org.apache.ranger.db.RangerDaoManager;
+import org.apache.ranger.entity.XXServiceDef;
+import org.apache.ranger.plugin.model.RangerPolicy;
+import org.apache.ranger.plugin.model.RangerService;
+import org.apache.ranger.plugin.store.EmbeddedServiceDefsUtil;
+import org.apache.ranger.plugin.util.GrantRevokeRequest;
+import org.apache.ranger.plugin.util.SearchFilter;
+import org.apache.ranger.plugin.util.ServicePolicies;
+import org.apache.ranger.security.context.RangerAPIList;
 import org.apache.ranger.service.XAccessAuditService;
 import org.apache.ranger.service.XAgentService;
 import org.apache.ranger.service.XAssetService;
@@ -128,10 +137,13 @@ public class AssetREST {
 	@Autowired
 	ServiceREST serviceREST;
 
-
+	@Autowired
+	RangerDaoManager daoManager;
+	
 	@GET
 	@Path("/assets/{id}")
 	@Produces({ "application/xml", "application/json" })
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.GET_X_ASSET + "\")")
 	public VXAsset getXAsset(@PathParam("id") Long id) {
 		if(logger.isDebugEnabled()) {
 			logger.debug("==> AssetREST.getXAsset(" + id + ")");
@@ -151,6 +163,7 @@ public class AssetREST {
 	@POST
 	@Path("/assets")
 	@Produces({ "application/xml", "application/json" })
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.CREATE_X_ASSET + "\")")
 	public VXAsset createXAsset(VXAsset vXAsset) {
 		if(logger.isDebugEnabled()) {
 			logger.debug("==> AssetREST.createXAsset(" + vXAsset + ")");
@@ -172,6 +185,7 @@ public class AssetREST {
 	@PUT
 	@Path("/assets/{id}")
 	@Produces({ "application/xml", "application/json" })
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.UPDATE_X_ASSET + "\")")
 	public VXAsset updateXAsset(VXAsset vXAsset) {
 		if(logger.isDebugEnabled()) {
 			logger.debug("==> AssetREST.updateXAsset(" + vXAsset + ")");
@@ -192,8 +206,8 @@ public class AssetREST {
 
 	@DELETE
 	@Path("/assets/{id}")
-	@PreAuthorize("hasRole('ROLE_SYS_ADMIN')")
 	@RangerAnnotationClassName(class_name = VXAsset.class)
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.DELETE_X_ASSET + "\")")
 	public void deleteXAsset(@PathParam("id") Long id,
 			@Context HttpServletRequest request) {
 		if(logger.isDebugEnabled()) {
@@ -210,9 +224,10 @@ public class AssetREST {
 	@POST
 	@Path("/assets/testConfig")
 	@Produces({ "application/xml", "application/json" })
-	public VXResponse testConfig(VXAsset vXAsset) {
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.TEST_CONFIG + "\")")
+	public VXResponse configTest(VXAsset vXAsset) {
 		if(logger.isDebugEnabled()) {
-			logger.debug("==> AssetREST.testConfig(" + vXAsset + ")");
+			logger.debug("==> AssetREST.configTest(" + vXAsset + ")");
 		}
 
 		RangerService service = serviceUtil.toRangerService(vXAsset);
@@ -229,6 +244,7 @@ public class AssetREST {
 	@GET
 	@Path("/assets")
 	@Produces({ "application/xml", "application/json" })
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.SEARCH_X_ASSETS + "\")")
 	public VXAssetList searchXAssets(@Context HttpServletRequest request) {
 		if(logger.isDebugEnabled()) {
 			logger.debug("==> AssetREST.searchXAssets()");
@@ -236,20 +252,26 @@ public class AssetREST {
 
 		VXAssetList ret = new VXAssetList();
 
-		List<RangerService> services = serviceREST.getServices(request);
+		SearchFilter filter = searchUtil.getSearchFilterFromLegacyRequestForRepositorySearch(request, xAssetService.sortFields);
+
+		List<RangerService> services = serviceREST.getServices(filter);
 
 		if(services != null) {
-			List<VXAsset> assets = new ArrayList<VXAsset>(services.size());
+			List<VXAsset> assets = new ArrayList<VXAsset>();
 
 			for(RangerService service : services) {
-				assets.add(serviceUtil.toVXAsset(service));
+				VXAsset asset = serviceUtil.toVXAsset(service);
+				
+				if(asset != null) {
+					assets.add(asset);
+				}
 			}
 
 			ret.setVXAssets(assets);
 		}
 
 		if(logger.isDebugEnabled()) {
-			logger.debug("<== AssetREST.searchXAssets(): count=" + (ret == null ? 0 : ret.getListSize()));
+			logger.debug("<== AssetREST.searchXAssets(): count=" +  ret.getListSize());
 		}
 
 		return ret;
@@ -258,6 +280,7 @@ public class AssetREST {
 	@GET
 	@Path("/assets/count")
 	@Produces({ "application/xml", "application/json" })
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.COUNT_X_ASSETS + "\")")
 	public VXLong countXAssets(@Context HttpServletRequest request) {
 		if(logger.isDebugEnabled()) {
 			logger.debug("==> AssetREST.countXAssets()");
@@ -265,9 +288,7 @@ public class AssetREST {
 
 		VXLong ret = new VXLong();
 
-		Long svcCount = serviceREST.countServices(request);
-
-		ret.setValue(svcCount == null ? 0 : svcCount.longValue());
+		ret.setValue(searchXAssets(request).getListSize());
 
 		if(logger.isDebugEnabled()) {
 			logger.debug("<== AssetREST.countXAssets(): " + ret);
@@ -373,18 +394,21 @@ public class AssetREST {
 
 		VXResourceList ret = new VXResourceList();
 
-		String arg     = request.getParameter("assetId");
-		Long   assetId = (arg == null || arg.isEmpty()) ? null : Long.parseLong(arg);
+		SearchFilter filter = searchUtil.getSearchFilterFromLegacyRequest(request, xResourceService.sortFields);
 
-		List<RangerPolicy> policies = assetId != null ? serviceREST.getServicePolicies(assetId, request) : serviceREST.getPolicies(request);
+		List<RangerPolicy> policies = serviceREST.getPolicies(filter);
 
 		if(policies != null) {
-			List<VXResource> resources = new ArrayList<VXResource>(policies.size());
+			List<VXResource> resources = new ArrayList<VXResource>();
 
 			for(RangerPolicy policy : policies) {
 				RangerService service = serviceREST.getServiceByName(policy.getService());
 
-				resources.add(serviceUtil.toVXResource(policy, service));
+				VXResource resource = serviceUtil.toVXResource(policy, service);
+
+				if(resource != null) {
+					resources.add(resource);
+				}
 			}
 
 			ret.setVXResources(resources);
@@ -407,9 +431,7 @@ public class AssetREST {
 
 		VXLong ret = new VXLong();
 
-		Long count = serviceREST.countPolicies(request);
-
-		ret.setValue(count == null ? 0 : count.longValue());
+		ret.setValue(searchXResources(request).getListSize());
 
 		if(logger.isDebugEnabled()) {
 			logger.debug("<== AssetREST.countXAssets(): " + ret);
@@ -500,19 +522,27 @@ public class AssetREST {
 		boolean           isSecure    = request.isSecure();
 		String            policyCount = request.getParameter("policyCount");
 		String            agentId     = request.getParameter("agentId");
+		Long              lastKnowPolicyVersion = Long.valueOf(-1);
 
 		if (ipAddress == null) {  
 			ipAddress = request.getRemoteAddr();
 		}
 
-		boolean httpEnabled = PropertiesUtil.getBooleanProperty("http.enabled",true);
+		boolean httpEnabled = PropertiesUtil.getBooleanProperty("ranger.service.http.enabled",true);
 
-		RangerService      service  = serviceREST.getServiceByName(repository);
-		List<RangerPolicy> policies = serviceREST.getServicePolicies(repository, request);
+		ServicePolicies servicePolicies = null;
 
-		long             policyUpdTime = (service != null && service.getPolicyUpdateTime() != null) ? service.getPolicyUpdateTime().getTime() : 0l;
-		VXAsset          vAsset        = serviceUtil.toVXAsset(service);
-		List<VXResource> vResourceList = new ArrayList<VXResource>();
+		try {
+			servicePolicies = serviceREST.getServicePoliciesIfUpdated(repository, lastKnowPolicyVersion, agentId, request);
+		} catch(Exception excp) {
+			logger.error("failed to retrieve policies for repository " + repository, excp);
+		}
+
+		RangerService      service       = serviceUtil.getServiceByName(repository);
+		List<RangerPolicy> policies      = servicePolicies != null ? servicePolicies.getPolicies() : null;
+		long               policyUpdTime = (servicePolicies != null && servicePolicies.getPolicyUpdateTime() != null) ? servicePolicies.getPolicyUpdateTime().getTime() : 0l;
+		VXAsset            vAsset        = serviceUtil.toVXAsset(service);
+		List<VXResource>   vResourceList = new ArrayList<VXResource>();
 		
 		if(policies != null) {
 			for(RangerPolicy policy : policies) {
@@ -529,8 +559,10 @@ public class AssetREST {
 	@GET
 	@Path("/exportAudit")
 	@Produces({ "application/xml", "application/json" })
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.SEARCH_X_POLICY_EXPORT_AUDITS + "\")")
 	public VXPolicyExportAuditList searchXPolicyExportAudits(
 			@Context HttpServletRequest request) {
+
 		SearchCriteria searchCriteria = searchUtil.extractCommonCriterias(
 				request, xPolicyExportAudits.sortFields);
 		searchUtil.extractString(request, searchCriteria, "agentId", 
@@ -554,7 +586,9 @@ public class AssetREST {
 	@GET
 	@Path("/report")
 	@Produces({ "application/xml", "application/json" })
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.GET_REPORT_LOGS + "\")")
 	public VXTrxLogList getReportLogs(@Context HttpServletRequest request){
+
 		SearchCriteria searchCriteria = searchUtil.extractCommonCriterias(
 				request, xTrxLogService.sortFields);
 		searchUtil.extractInt(request, searchCriteria, "objectClassType", "Class type for report.");
@@ -574,6 +608,7 @@ public class AssetREST {
 	@GET
 	@Path("/report/{transactionId}")
 	@Produces({ "application/xml", "application/json" })
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.GET_TRANSACTION_REPORT + "\")")
 	public VXTrxLogList getTransactionReport(@Context HttpServletRequest request, 
 			@PathParam("transactionId") String transactionId){
 		return assetMgr.getTransactionReport(transactionId);
@@ -582,6 +617,7 @@ public class AssetREST {
 	@GET
 	@Path("/accessAudit")
 	@Produces({ "application/xml", "application/json" })
+	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.GET_ACCESS_LOGS + "\")")
 	public VXAccessAuditList getAccessLogs(@Context HttpServletRequest request){
 		SearchCriteria searchCriteria = searchUtil.extractCommonCriterias(
 				request, xAccessAuditService.sortFields);
@@ -614,6 +650,15 @@ public class AssetREST {
 				"startDate", "MM/dd/yyyy");
 		searchUtil.extractDate(request, searchCriteria, "endDate", "endDate",
 				"MM/dd/yyyy");
+
+		searchUtil.extractString(request, searchCriteria, "tags", "tags", null);
+		
+		boolean isKeyAdmin = msBizUtil.isKeyAdmin();
+		XXServiceDef xxServiceDef = daoManager.getXXServiceDef().findByName(EmbeddedServiceDefsUtil.EMBEDDED_SERVICEDEF_KMS_NAME); 
+		if(isKeyAdmin && xxServiceDef != null){
+			searchCriteria.getParamList().put("repoType", xxServiceDef.getId());
+		}
+		
 		return assetMgr.getAccessLogs(searchCriteria);
 	}
 	
@@ -621,28 +666,34 @@ public class AssetREST {
 	@Path("/resources/grant")
 	@Produces({ "application/xml", "application/json" })	
 	public VXPolicy grantPermission(@Context HttpServletRequest request,VXPolicy vXPolicy) {
-		boolean httpEnabled = PropertiesUtil.getBooleanProperty("http.enabled",true);
-		X509Certificate[] certchain = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-		String ipAddress = request.getHeader("X-FORWARDED-FOR");  
-		if (ipAddress == null) {  
-			ipAddress = request.getRemoteAddr();
+		
+		RESTResponse ret = null;
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> AssetREST.grantPermission(" + vXPolicy + ")");
 		}
-		boolean isSecure = request.isSecure();
-		String repository=null;
-		if(vXPolicy!=null){
-			repository=vXPolicy.getRepositoryName();
-			vXPolicy.setOwner(vXPolicy.getGrantor());	
-			vXPolicy.setUpdatedBy(vXPolicy.getGrantor());
+		
+		if ( vXPolicy != null) {
+			String		  serviceName = vXPolicy.getRepositoryName();
+			GrantRevokeRequest grantRevokeRequest = serviceUtil.toGrantRevokeRequest(vXPolicy);
+			try {
+				ret = serviceREST.grantAccess(serviceName, grantRevokeRequest, request);
+			} catch(WebApplicationException excp) {
+				throw excp;
+			} catch (Throwable e) {
+				  logger.error( HttpServletResponse.SC_BAD_REQUEST + "Grant Access Failed for the request " + vXPolicy, e);
+				  throw restErrorUtil.createRESTException("Grant Access Failed for the request: " + vXPolicy + ". " + e.getMessage());
+			}
+		} else {
+			 logger.error( HttpServletResponse.SC_BAD_REQUEST + "Bad Request parameter");
+			 throw restErrorUtil.createRESTException("Bad Request parameter");
 		}
-		boolean isValidAuthentication=assetMgr.isValidHttpsAuthentication(repository,certchain,httpEnabled,ipAddress,isSecure);
-		if(isValidAuthentication){			
-			VXResource vXResource = xPolicyService.mapPublicToXAObject(vXPolicy,AbstractBaseResourceService.OPERATION_CREATE_CONTEXT);
-			vXResource=assetMgr.grantXResource(vXResource,vXPolicy);
-			vXResource.setPermMapList(xPolicyService.updatePermGroup(vXResource));
-			xResourceService.updateResource(vXResource);
-			vXPolicy=xPolicyService.mapXAToPublicObject(vXResource);	
-			vXPolicy.syncResponseWithJsonRequest();			
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== AssetREST.grantPermission(" + ret + ")");
 		}
+		
+		// TO DO Current Grant REST doesn't return a policy so returning a null value. Has to be replace with VXpolicy.
 		return vXPolicy;
 	}
 	
@@ -650,27 +701,31 @@ public class AssetREST {
 	@Path("/resources/revoke")
 	@Produces({ "application/xml", "application/json" })	
 	public VXPolicy revokePermission(@Context HttpServletRequest request,VXPolicy vXPolicy) {
-		boolean httpEnabled = PropertiesUtil.getBooleanProperty("http.enabled",true);
-		X509Certificate[] certchain = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-		String ipAddress = request.getHeader("X-FORWARDED-FOR");  
-		if (ipAddress == null) {  
-			ipAddress = request.getRemoteAddr();
+		
+		RESTResponse ret = null;
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> AssetREST.revokePermission(" + vXPolicy + ")");
 		}
-		boolean isSecure = request.isSecure();
-		String repository=null;
-		if(vXPolicy!=null){
-			repository=vXPolicy.getRepositoryName();
-			vXPolicy.setOwner(vXPolicy.getGrantor());	
-			vXPolicy.setUpdatedBy(vXPolicy.getGrantor());
+		
+		if ( vXPolicy != null) {
+			String		  serviceName = vXPolicy.getRepositoryName();
+			GrantRevokeRequest grantRevokeRequest = serviceUtil.toGrantRevokeRequest(vXPolicy);
+			try {
+				 ret = serviceREST.revokeAccess(serviceName, grantRevokeRequest, request);
+			} catch(WebApplicationException excp) {
+				throw excp;
+			} catch (Throwable e) {
+				  logger.error( HttpServletResponse.SC_BAD_REQUEST + "Revoke Access Failed for the request " + vXPolicy, e);
+				  throw restErrorUtil.createRESTException("Revoke Access Failed for the request: " + vXPolicy + ". " + e.getMessage());
+			}
+		} else {
+			 logger.error( HttpServletResponse.SC_BAD_REQUEST + "Bad Request parameter");
+			 throw restErrorUtil.createRESTException("Bad Request parameter");
 		}
-		boolean isValidAuthentication=assetMgr.isValidHttpsAuthentication(repository,certchain,httpEnabled,ipAddress,isSecure);
-		if(isValidAuthentication){		
-			VXResource vXResource = xPolicyService.mapPublicToXAObject(vXPolicy,AbstractBaseResourceService.OPERATION_CREATE_CONTEXT);
-			vXResource=assetMgr.revokeXResource(vXResource);
-			vXResource.setPermMapList(xPolicyService.updatePermGroup(vXResource));
-			xResourceService.updateResource(vXResource);
-			vXPolicy=xPolicyService.mapXAToPublicObject(vXResource);			
-			vXPolicy.syncResponseWithJsonRequest();		
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== AssetREST.revokePermission(" + ret + ")");
 		}
 		return vXPolicy;
 	}

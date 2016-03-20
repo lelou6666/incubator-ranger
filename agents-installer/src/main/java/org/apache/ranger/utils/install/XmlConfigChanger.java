@@ -157,7 +157,7 @@ public class XmlConfigChanger {
 		
 	}
 	
-	
+
 
 	
 	public void run() throws ParserConfigurationException, SAXException, IOException, TransformerException {
@@ -177,7 +177,7 @@ public class XmlConfigChanger {
 			
 			@SuppressWarnings("unused")
 			int lineNo = 0 ;
-			
+			Properties variables = new Properties();
 			while ((line = reader.readLine()) != null) {
 				
 				lineNo++ ;
@@ -198,18 +198,21 @@ public class XmlConfigChanger {
 				String[] tokens = line.split("\\s+") ;
 				
 				String propName = tokens[0] ;
-				
+
 				String propValue = null ;
-				
+
 				try {
+					if (propnameContainsVariables(propName)) {
+						propName = replaceProp(propName, variables);
+					}
 					propValue = replaceProp(tokens[1],installProperties) ;
 				} catch (ValidationException e) {
 					// throw new RuntimeException("Unable to replace tokens in the line: \n[" + line + "]\n in file [" + confFile.getAbsolutePath() + "] line number:["  + lineNo + "]" ) ;
 					throw new RuntimeException(e) ;
 				}
-				
-				
-				
+
+
+
 				String actionType = tokens[2] ;
 				String options = (tokens.length > 3 ? tokens[3] : null) ;
 				boolean createIfNotExists = (options != null && options.contains("create-if-not-exists")) ;
@@ -265,6 +268,9 @@ public class XmlConfigChanger {
 						}
 					}
 				}
+				else if ("var".equals(actionType)) {
+					variables.put(propName, propValue);
+				}
 				else {
 					throw new RuntimeException("Unknown Command Found: [" + actionType + "], Supported Types:  add modify del append") ;
 				}
@@ -290,8 +296,28 @@ public class XmlConfigChanger {
 		}
 
 	}
-	
-	
+
+	/**
+	 * Check if prop name contains a substitution variable embedded in it, e.g. %VAR_NAME%.
+	 * @param propName
+	 * @return true if propname contains at least 2 '%' characters in it, else false
+	 */
+	private boolean propnameContainsVariables(String propName) {
+
+		if (propName != null) {
+			int first = propName.indexOf('%');
+			if (first != -1) {
+				// indexof is safe even if 2nd argument is beyond size of string, i.e. if 1st percent was the last character of the string.
+				int second = propName.indexOf('%', first + 1);
+				if (second != -1) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+
 	private void addProperty(String propName, String val) {
 		NodeList nl = doc.getElementsByTagName(ROOT_NODE_NAME) ;
 		Node rootConfig = nl.item(0) ;
@@ -425,7 +451,19 @@ public class XmlConfigChanger {
 	private void loadInstallProperties() throws IOException {
 		if (propFile != null) {
 			FileInputStream in = new FileInputStream(propFile) ;
+			try {
 			installProperties.load(in);
+			}
+			finally {
+				if (in != null) {
+					try {
+						in.close();
+					}
+					catch(IOException ioe) {
+						// Ignore IOException during close of stream
+					}
+				}
+			}
 		}
 		// To support environment variable, we will add all environment variables to the Properties
 		installProperties.putAll(System.getenv());

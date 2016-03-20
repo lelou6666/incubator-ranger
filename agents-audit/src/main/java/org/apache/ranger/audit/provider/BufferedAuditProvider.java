@@ -17,13 +17,14 @@
  */
 package org.apache.ranger.audit.provider;
 
+import java.util.Collection;
 import java.util.Properties;
 
 import org.apache.ranger.audit.model.AuditEventBase;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 
-public abstract class BufferedAuditProvider extends BaseAuditProvider {
-	private LogBuffer<AuditEventBase>      mBuffer      = null;
+public abstract class BufferedAuditProvider extends BaseAuditHandler {
+	private LogBuffer<AuditEventBase> mBuffer = null;
 	private LogDestination<AuditEventBase> mDestination = null;
 
 	@Override
@@ -32,26 +33,59 @@ public abstract class BufferedAuditProvider extends BaseAuditProvider {
 	}
 
 	@Override
-	public void log(AuditEventBase event) {
-		if(event instanceof AuthzAuditEvent) {
-			AuthzAuditEvent authzEvent = (AuthzAuditEvent)event;
+	public boolean log(AuditEventBase event) {
+		if (event instanceof AuthzAuditEvent) {
+			AuthzAuditEvent authzEvent = (AuthzAuditEvent) event;
 
-			if(authzEvent.getAgentHostname() == null) {
+			if (authzEvent.getAgentHostname() == null) {
 				authzEvent.setAgentHostname(MiscUtil.getHostname());
 			}
 
-			if(authzEvent.getLogType() == null) {
+			if (authzEvent.getLogType() == null) {
 				authzEvent.setLogType("RangerAudit");
 			}
 
-			if(authzEvent.getEventId() == null) {
+			if (authzEvent.getEventId() == null) {
 				authzEvent.setEventId(MiscUtil.generateUniqueId());
 			}
 		}
 
-		if(! mBuffer.add(event)) {
+		if (!mBuffer.add(event)) {
 			logFailedEvent(event);
+			return false;
 		}
+		return true;
+	}
+
+	@Override
+	public boolean log(Collection<AuditEventBase> events) {
+		boolean ret = true;
+		for (AuditEventBase event : events) {
+			ret = log(event);
+			if (!ret) {
+				break;
+			}
+		}
+		return ret;
+	}
+
+	@Override
+	public boolean logJSON(String event) {
+		AuditEventBase eventObj = MiscUtil.fromJson(event,
+				AuthzAuditEvent.class);
+		return log(eventObj);
+	}
+
+	@Override
+	public boolean logJSON(Collection<String> events) {
+		boolean ret = true;
+		for (String event : events) {
+			ret = logJSON(event);
+			if (!ret) {
+				break;
+			}
+		}
+		return false;
 	}
 
 	@Override
@@ -69,13 +103,7 @@ public abstract class BufferedAuditProvider extends BaseAuditProvider {
 	}
 
 	@Override
-	public boolean isFlushPending() {
-		return false;
-	}
-
-	@Override
-	public long getLastFlushTime() {
-		return 0;
+	public void waitToComplete(long timeout) {
 	}
 
 	@Override
@@ -90,9 +118,9 @@ public abstract class BufferedAuditProvider extends BaseAuditProvider {
 		return mDestination;
 	}
 
-	protected void setBufferAndDestination(LogBuffer<AuditEventBase>      buffer,
-										   LogDestination<AuditEventBase> destination) {
-		mBuffer      = buffer;
+	protected void setBufferAndDestination(LogBuffer<AuditEventBase> buffer,
+			LogDestination<AuditEventBase> destination) {
+		mBuffer = buffer;
 		mDestination = destination;
 	}
 }

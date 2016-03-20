@@ -27,6 +27,7 @@ define(function(require){
 	
 	var localization	= require('utils/XALangSupport');
 	var BackboneFormDataType	= require('models/BackboneFormDataType');
+	var ConfigurationList		= require('views/service/ConfigurationList')
 
 	require('backbone-forms');
 	require('backbone-forms.list');
@@ -45,11 +46,13 @@ define(function(require){
 		templateData: function(){
 			var serviceDetail="", serviceConfig="";
 			_.each(this.schema, function(obj, name){
-			  if(!_.isUndefined(obj['class']) && obj['class'] == 'serviceConfig') 
-			    serviceConfig += name+",";
-			  else
-			   serviceDetail += name+",";
+			  if(!_.isUndefined(obj['class']) && obj['class'] == 'serviceConfig'){
+				  serviceConfig += name+",";
+			  } else {
+				  serviceDetail += name+",";
+			  }
 			});
+			
 			return {
 				serviceDetail : serviceDetail.slice(0,-1),
 				serviceConfig : serviceConfig.slice(0,-1)
@@ -58,6 +61,7 @@ define(function(require){
 		initialize: function(options) {
 			console.log("initialized a ServiceForm Form View");
 			_.extend(this, _.pick(options, 'rangerServiceDefModel'));
+			this.extraConfigColl = new Backbone.Collection();
 			this.setupFormForEditMode();
     		Backbone.Form.prototype.initialize.call(this, options);
 
@@ -81,8 +85,7 @@ define(function(require){
 		fields: ['name', 'description', 'isEnabled', 'type','configs', '_vPassword'],
 
 		schema : function(){
-
-			var attrs = _.pick(_.result(this.rangerServiceDefModel,'schemaBase'), 'name', 'description', 'isEnabled', 'type');
+			var attrs = _.pick(_.result(this.rangerServiceDefModel,'schemaBase'), this.getSerivceBaseFieldNames());
 			var that = this;
 			var formDataType = new BackboneFormDataType();
 			return formDataType.getFormElements(this.rangerServiceDefModel.get('configs'),this.rangerServiceDefModel.get('enums'), attrs, this);
@@ -100,10 +103,13 @@ define(function(require){
 			if(!this.model.isNew()){
 				_.each(this.model.get('configs'),function(value, name){
 					var configObj = _.findWhere(this.rangerServiceDefModel.get('configs'),{'name' : name });
-					if(configObj.type == 'bool'){
+					if(!_.isUndefined(configObj) && configObj.type == 'bool'){
 						this.model.set(name, this.getStringFromBoolean(configObj, value))
-					}else{
+					} else {
 						this.model.set(name, value)
+						if(_.isUndefined(configObj)){
+							this.extraConfigColl.add(new Backbone.Model({'name' : name, 'value' : value}))
+						}
 					}
 				},this);
 			}
@@ -111,11 +117,11 @@ define(function(require){
 		setupForm : function() {
 			if(this.model.isNew()){
 				this.fields.isEnabled.editor.setValue(XAEnums.ActiveStatus.STATUS_ENABLED.value);
-			}else{
-			//Set isEnabled Status
+			} else {
+				//Set isEnabled Status
 				if(XAEnums.ActiveStatus.STATUS_ENABLED.value == this.model.get('isEnabled')){
 					this.fields.isEnabled.editor.setValue(XAEnums.ActiveStatus.STATUS_ENABLED.value);
-				}else{
+				} else {
 					this.fields.isEnabled.editor.setValue(XAEnums.ActiveStatus.STATUS_DISABLED.value);
 				}
 			}	
@@ -125,6 +131,11 @@ define(function(require){
 		},
 		/** all custom field rendering */
 		renderCustomFields: function(){
+			this.$('.extraServiceConfigs').html(new ConfigurationList({
+				collection : this.extraConfigColl,
+				model 	   : this.model,
+				fieldLabel : localization.tt('lbl.addNewConfig')
+			}).render().el);
 		},
 
 		/** all post render plugin initialization */
@@ -140,24 +151,29 @@ define(function(require){
 			var that = this;
 			//Set configs for service 
 			var config = {};
+			if(!_.isEmpty(this.rangerServiceDefModel.get('configs'))){
 			_.each(this.rangerServiceDefModel.get('configs'),function(obj){
 				if(!_.isNull(obj)){
 					if(obj.type == 'bool'){
 						config[obj.name] = that.getBooleanForConfig(obj, that.model);
-					}else{
-						config[obj.name] = that.model.get(obj.name).toString();
+					} else {
+						config[obj.name] = _.isNull(that.model.get(obj.name)) ? "" : that.model.get(obj.name).toString();
 					}
-					that.model.unset(obj.name);
+					if(!_.isNull(obj.name)) {
+						that.model.unset(obj.name);
+					}
 				}
 			});
+			this.extraConfigColl.each(function(obj){ config[obj.get('name')] = obj.get('value');})
 			this.model.set('configs',config);
+			}
 			
 			//Set service type
 			this.model.set('type',this.rangerServiceDefModel.get('name'))
 			//Set isEnabled
 			if(parseInt(this.model.get('isEnabled')) == XAEnums.ActiveStatus.STATUS_ENABLED.value){
 				this.model.set('isEnabled',true);
-			}else{
+			} else {
 				this.model.set('isEnabled',false);
 			}
 			
@@ -177,7 +193,7 @@ define(function(require){
 			var subType = cofigObj.subType.split(':');
 			if(subType[0].indexOf(model.get(cofigObj.name)) >= 0 ){
 				return true;
-			}else{
+			} else {
 				return false;
 			}
 		},
@@ -185,10 +201,14 @@ define(function(require){
 			var subType = configObj.subType.split(':');
 			if(subType[0].toLowerCase().indexOf(value) >= 0 ){
 				return subType[0].substr(0, subType[0].length - 4);
-			}else{
+			} else {
 				return subType[1].substr(0, subType[0].length - 5);
 			}
 		},
+		getSerivceBaseFieldNames : function(){
+			 var fields = ['name', 'description', 'isEnabled','tagService']
+			 return this.rangerServiceDefModel.get('name') == XAEnums.ServiceType.SERVICE_TAG.label ? fields.slice(0,fields.indexOf("tagService")) : fields;
+		}
 	});
 
 	return ServiceForm;

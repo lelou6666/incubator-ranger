@@ -23,27 +23,39 @@ import org.apache.ranger.plugin.model.RangerServiceDef;
 
 
 public class RangerAccessResult {
-	private String              serviceName = null;
-	private RangerServiceDef    serviceDef  = null;
-	private RangerAccessRequest request     = null;
+	private final String              serviceName;
+	private final RangerServiceDef    serviceDef;
+	private final RangerAccessRequest request;
 
+	private boolean isAccessDetermined = false;
 	private boolean  isAllowed = false;
+	private boolean isAuditedDetermined = false;
 	private boolean  isAudited = false;
 	private long     policyId  = -1;
 	private String   reason    = null;
 
-	public RangerAccessResult(String serviceName, RangerServiceDef serviceDef, RangerAccessRequest request) {
-		this(serviceName, serviceDef, request, false, false, -1, null);
-	}
-
-	public RangerAccessResult(String serviceName, RangerServiceDef serviceDef, RangerAccessRequest request, boolean isAllowed, boolean isAudited, long policyId, String reason) {
+	public RangerAccessResult(final String serviceName, final RangerServiceDef serviceDef, final RangerAccessRequest request) {
 		this.serviceName = serviceName;
 		this.serviceDef  = serviceDef;
 		this.request     = request;
-		this.isAllowed   = isAllowed;
-		this.isAudited   = isAudited;
-		this.policyId    = policyId;
-		this.reason      = reason;
+		this.isAccessDetermined = false;
+		this.isAllowed   = false;
+		this.isAuditedDetermined = false;
+		this.isAudited   = false;
+		this.policyId    = -1;
+		this.reason      = null;
+	}
+
+	public void setAccessResultFrom(final RangerAccessResult other) {
+		this.isAccessDetermined = other.getIsAccessDetermined();
+		this.isAllowed   = other.getIsAllowed();
+		this.policyId    = other.getPolicyId();
+		this.reason      = other.getReason();
+	}
+
+	public void setAuditResultFrom(final RangerAccessResult other) {
+		this.isAuditedDetermined = other.getIsAuditedDetermined();
+		this.isAudited = other.getIsAudited();
 	}
 
 	/**
@@ -67,6 +79,10 @@ public class RangerAccessResult {
 		return request;
 	}
 
+	public boolean getIsAccessDetermined() { return isAccessDetermined; }
+
+	public void setIsAccessDetermined(boolean value) { isAccessDetermined = value; }
+
 	/**
 	 * @return the isAllowed
 	 */
@@ -78,6 +94,10 @@ public class RangerAccessResult {
 	 * @param isAllowed the isAllowed to set
 	 */
 	public void setIsAllowed(boolean isAllowed) {
+		if(! isAllowed) {
+			setIsAccessDetermined(true);
+		}
+
 		this.isAllowed = isAllowed;
 	}
 
@@ -87,6 +107,10 @@ public class RangerAccessResult {
 	public void setReason(String reason) {
 		this.reason = reason;
 	}
+
+	public boolean getIsAuditedDetermined() { return isAuditedDetermined; }
+
+	private void setIsAuditedDetermined(boolean value) { isAuditedDetermined = value; }
 	
 	/**
 	 * @return the isAudited
@@ -95,10 +119,13 @@ public class RangerAccessResult {
 		return isAudited;
 	}
 
+
+
 	/**
 	 * @param isAudited the isAudited to set
 	 */
 	public void setIsAudited(boolean isAudited) {
+		setIsAuditedDetermined(true);
 		this.isAudited = isAudited;
 	}
 
@@ -117,7 +144,7 @@ public class RangerAccessResult {
 	}
 
 	/**
-	 * @return the policyId
+	 * @param policyId the policyId to set
 	 */
 	public void setPolicyId(long policyId) {
 		this.policyId = policyId;
@@ -145,8 +172,10 @@ public class RangerAccessResult {
 	public StringBuilder toString(StringBuilder sb) {
 		sb.append("RangerAccessResult={");
 
+        sb.append("isAccessDetermined={").append(isAccessDetermined).append("} ");
 		sb.append("isAllowed={").append(isAllowed).append("} ");
-		sb.append("isAudited={").append(isAudited).append("} ");
+        sb.append("isAuditedDetermined={").append(isAuditedDetermined).append("} ");
+        sb.append("isAudited={").append(isAudited).append("} ");
 		sb.append("policyId={").append(policyId).append("} ");
 		sb.append("reason={").append(reason).append("} ");
 

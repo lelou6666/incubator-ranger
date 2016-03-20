@@ -19,53 +19,41 @@
 
 package org.apache.ranger.services.hdfs.client;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.apache.ranger.plugin.util.TimedEventUtil;
-import org.apache.ranger.plugin.store.ServiceStoreFactory;
-import org.apache.ranger.services.hdfs.client.HdfsClient;
 
 
 public class HdfsConnectionMgr {
 
-	protected Map<String, HdfsClient> 	hdfdsConnectionCache = null;
-	protected Map<String, Boolean> 		repoConnectStatusMap = null;
+	protected ConcurrentMap<String, HdfsClient> 	hdfsConnectionCache = null;
+	protected ConcurrentMap<String, Boolean> 		repoConnectStatusMap = null;
 
 	private static Logger LOG = Logger.getLogger(HdfsConnectionMgr.class);
 	
 	public HdfsConnectionMgr(){
-		hdfdsConnectionCache = new HashMap<String, HdfsClient>();
-		repoConnectStatusMap = new HashMap<String, Boolean>();
+		hdfsConnectionCache  = new ConcurrentHashMap<String, HdfsClient>();
+		repoConnectStatusMap = new ConcurrentHashMap<String, Boolean>();
 	}
 	
 	
-	public HdfsClient getHadoopConnection(final String serviceName, final Map<String,String> configs) {
+	public HdfsClient getHadoopConnection(final String serviceName, final String serviceType, final Map<String,String> configs) throws Exception{
 		HdfsClient hdfsClient = null;
-		String serviceType 	  = null;
-		try {
-			serviceType = ServiceStoreFactory
-									.instance()
-									.getServiceStore()
-									.getServiceByName(serviceName)
-									.getType();
-		} catch (Exception ex) {
-			LOG.error("Service could not be found for the Service Name : " + serviceName , ex);
-		}
 		if (serviceType != null) {
 			// get it from the cache
-			synchronized (hdfdsConnectionCache) {
-				hdfsClient = hdfdsConnectionCache.get(serviceType);
+				hdfsClient = hdfsConnectionCache.get(serviceName);
 				if (hdfsClient == null) {
 					if(configs == null) {
 						final Callable<HdfsClient> connectHDFS = new Callable<HdfsClient>() {
 							@Override
 							public HdfsClient call() throws Exception {
-								return new HdfsClient(serviceName);
+								return new HdfsClient(serviceName, configs);
 							}
 						};
 						
@@ -74,6 +62,7 @@ public class HdfsConnectionMgr {
 						} catch(Exception e){
 							LOG.error("Error establishing connection for HDFS repository : "
 									+ serviceName, e);
+							throw e;
 						}
 						
 					} else {
@@ -90,18 +79,29 @@ public class HdfsConnectionMgr {
 						} catch(Exception e){
 							LOG.error("Error establishing connection for HDFS repository : "
 									+ serviceName + " using configuration : " + configs, e);
+							throw e;
 						}
 					}	
-					hdfdsConnectionCache.put(serviceType, hdfsClient);
-					repoConnectStatusMap.put(serviceType, true);
+					HdfsClient oldClient = hdfsConnectionCache.putIfAbsent(serviceName, hdfsClient);
+					if (oldClient != null) {
+						// in the meantime someone else has put a valid client into the cache, let's use that instead.
+						hdfsClient = oldClient;
+					}
+					repoConnectStatusMap.put(serviceName, true);
  				} else {
-					List<String> testConnect = hdfsClient.listFiles("/", "*",null);
+ 					List<String> testConnect = null;
+					try {
+						testConnect = hdfsClient.listFiles("/", "*",null);
+					} catch ( Exception e) {
+						LOG.error("Error establishing connection for HDFS repository : "
+							+ serviceName + " using configuration : " + configs, e);
+						throw e;
+					}
 					if(testConnect == null){
-						hdfdsConnectionCache.put(serviceType, hdfsClient);
-						hdfsClient = getHadoopConnection(serviceName,configs);
+						hdfsConnectionCache.put(serviceName, hdfsClient);
+						hdfsClient = getHadoopConnection(serviceName,serviceType,configs);
 					}
 				}
-			}
 		} else {
 			LOG.error("Serice not found with name "+serviceName, new Throwable());
 		}

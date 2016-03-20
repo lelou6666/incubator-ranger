@@ -26,6 +26,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+import org.apache.ranger.plugin.client.HadoopException;
 import org.apache.ranger.plugin.service.ResourceLookupContext;
 import org.apache.ranger.plugin.util.TimedEventUtil;
 
@@ -37,25 +38,25 @@ public class HBaseResourceMgr {
 	private static final String TABLE 		 		    = "table";
 	private static final String COLUMNFAMILY 		    = "column-family";
 		
-	public static HashMap<String, Object> testConnection(String serviceName, Map<String, String> configs) throws Exception {
+	public static HashMap<String, Object> connectionTest(String serviceName, Map<String, String> configs) throws Exception {
 		HashMap<String, Object> ret = null;
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("<== HBaseResourceMgr.testConnection() ServiceName: "+ serviceName + "Configs" + configs ) ;
+			LOG.debug("<== HBaseResourceMgr.connectionTest() ServiceName: "+ serviceName + "Configs" + configs ) ;
 		}	
 		
 		try {
-			ret = HBaseClient.testConnection(serviceName, configs);
-		} catch (Exception e) {
-			LOG.error("<== HBaseResourceMgr.testConnection() Error: " + e) ;
+			ret = HBaseClient.connectionTest(serviceName, configs);
+		} catch (HadoopException e) {
+			LOG.error("<== HBaseResourceMgr.connectionTest() Error: " + e) ;
 		  throw e;
 		}
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("<== HBaseResourceMgr.testConnection() Result: "+ ret  ) ;
+			LOG.debug("<== HBaseResourceMgr.connectionTest() Result: "+ ret  ) ;
 		}	
 		return ret;
 	}
 	
-	public static List<String> getHBaseResource(String serviceName, Map<String, String> configs,ResourceLookupContext context) throws Exception{
+	public static List<String> getHBaseResource(String serviceName, String serviceType, Map<String, String> configs,ResourceLookupContext context) throws Exception{
 		
 		String 					  userInput 		= context.getUserInput();
 		String 					  resource		    = context.getResourceName();
@@ -71,36 +72,23 @@ public class HBaseResourceMgr {
 		}	
 		
 		if ( userInput != null && resource != null) {
-			if ( resourceMap != null && !resourceMap.isEmpty()  && ( resourceMap.get(TABLE) != null  ||  resourceMap.get(COLUMNFAMILY) != null) ) {
-				switch (resource.trim().toLowerCase()) {
-				case TABLE:
-						tableName = userInput;
-						tableList = resourceMap.get(TABLE); 
-						break;
-				case COLUMNFAMILY:
-						columnFamilies = userInput;
-						columnFamilyList = resourceMap.get(COLUMNFAMILY); 
-						break;
-				default:
-						break;
-				}
+			if ( resourceMap != null && !resourceMap.isEmpty() ) {
+				tableList 		 = resourceMap.get(TABLE); 
+				columnFamilyList = resourceMap.get(COLUMNFAMILY); 
+			 }
+		     switch (resource.trim().toLowerCase()) {
+			 case TABLE:
+					tableName = userInput;
+					break;
+			 case COLUMNFAMILY:
+					columnFamilies = userInput;
+					break;
+			 default:
+					break;
 			}
-			else {
-				 switch (resource.trim().toLowerCase()) {
-				 case TABLE:
-						tableName = userInput;
-						break;
-				 case COLUMNFAMILY:
-						columnFamilies = userInput;
-						break;
-				 default:
-						break;
-				}
-		    }	
 		}
-		
-		
-		if (serviceName != null && userInput != null && resource != null) {
+
+		if (serviceName != null && userInput != null) {
 			final List<String> finaltableList 		 = tableList;
 			final List<String> finalcolumnFamilyList = columnFamilyList;
 			
@@ -108,31 +96,13 @@ public class HBaseResourceMgr {
 				if(LOG.isDebugEnabled()) {
 					LOG.debug("<== HBaseResourceMgr.getHBaseResource UserInput: \""+ userInput  + "\" configs: " + configs + " context: "  + context) ;
 				}
-				final HBaseClient hBaseClient = new HBaseConnectionMgr().getHBaseConnection(serviceName,configs);
-				final Callable<List<String>> callableObj;
+				final HBaseClient hBaseClient = new HBaseConnectionMgr().getHBaseConnection(serviceName,serviceType,configs);
+				Callable<List<String>> callableObj = null;
 				
-				if (hBaseClient != null && tableName != null
-						&& !tableName.isEmpty()) {
-					final String finalColFamilies;
-					final String finalTableName;
-					if (columnFamilies != null && !columnFamilies.isEmpty()) {
-						if (!columnFamilies.endsWith("*")) {
-							columnFamilies += "*";
-						}
-
-						columnFamilies = columnFamilies.replaceAll("\\*",
-								".\\*");
-						finalColFamilies = columnFamilies;
-						finalTableName = tableName;
-
-						callableObj = new Callable<List<String>>() {
-							@Override
-							public List<String> call() {
-								return hBaseClient.getColumnFamilyList(finalColFamilies,finaltableList,finalcolumnFamilyList);
-							}
-						};
-
-					} else {
+				if ( hBaseClient != null) {
+					if ( tableName != null && !tableName.isEmpty()) {
+						final String finalTableName;
+						//get tableList
 						if (!tableName.endsWith("*")) {
 							tableName += "*";
 						}
@@ -144,14 +114,36 @@ public class HBaseResourceMgr {
 							@Override
 							public List<String> call() {
 								return hBaseClient.getTableList(finalTableName,finaltableList);
-							}
-						};
+								}
+							};
+						} else {
+							//get columfamilyList
+							final String finalColFamilies;
+							if (columnFamilies != null && !columnFamilies.isEmpty()) {
+								if (!columnFamilies.endsWith("*")) {
+								columnFamilies += "*";
+								}
 
+							columnFamilies = columnFamilies.replaceAll("\\*",
+									".\\*");
+							finalColFamilies = columnFamilies;
+
+							callableObj = new Callable<List<String>>() {
+								@Override
+								public List<String> call() {
+									return hBaseClient.getColumnFamilyList(finalColFamilies,finaltableList,finalcolumnFamilyList);
+								}
+							};
+						}
 					}
-					resultList = TimedEventUtil.timedTask(callableObj, 5,
-							TimeUnit.SECONDS);
+					if (callableObj != null) {
+						synchronized(hBaseClient) {
+							resultList = TimedEventUtil.timedTask(callableObj, 5,
+									TimeUnit.SECONDS);
+						}
+					}
+					
 				}
-
 			} catch (Exception e) {
 				LOG.error("Unable to get hbase resources.", e);
 				throw e;

@@ -24,9 +24,13 @@ import java.util.Map;
 import java.util.Set;
 
 public interface RangerAccessRequest {
-	RangerResource getResource();
+	RangerAccessResource getResource();
 
 	String getAccessType();
+
+	boolean isAccessTypeAny();
+
+	boolean isAccessTypeDelegatedAdmin();
 
 	String getUser();
 
@@ -45,4 +49,10 @@ public interface RangerAccessRequest {
 	String getSessionId();
 	
 	Map<String, Object> getContext();
+
+	RangerAccessRequest getReadOnlyCopy();
+
+	ResourceMatchingScope getResourceMatchingScope();
+
+	enum ResourceMatchingScope {SELF, SELF_OR_DESCENDANTS}
 }

@@ -49,6 +49,9 @@ public class UserService extends UserServiceBase<XXPortalUser, VXPortalUser> {
 	@Autowired
 	RangerConfigUtil configUtil;
 
+	@Autowired
+	XUserPermissionService xUserPermissionService;
+
 	private static UserService instance = null;
 
 	public UserService() {

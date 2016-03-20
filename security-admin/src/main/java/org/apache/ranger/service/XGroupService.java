@@ -68,9 +68,12 @@ public class XGroupService extends XGroupServiceBase<XXGroup, VXGroup> {
 				SearchField.DATA_TYPE.STRING, SearchField.SEARCH_TYPE.PARTIAL));
 		searchFields.add(new SearchField("groupSource", "obj.groupSource",
 				SearchField.DATA_TYPE.STRING, SearchField.SEARCH_TYPE.FULL));
-		 createdByUserId = new Long(PropertiesUtil.getIntProperty(
-				"xa.xuser.createdByUserId", 1));		 
-		
+
+		searchFields.add(new SearchField("isVisible", "obj.isVisible",
+				SearchField.DATA_TYPE.INTEGER, SearchField.SEARCH_TYPE.FULL ));
+
+		createdByUserId = Long.valueOf(PropertiesUtil.getIntProperty("ranger.xuser.createdByUserId", 1));
+
 		 sortFields.add(new SortField("name", "obj.name",true,SortField.SORT_ORDER.ASC));
 	}
 
@@ -148,7 +151,7 @@ public class XGroupService extends XGroupServiceBase<XXGroup, VXGroup> {
 	}
 
 	public List<XXTrxLog> getTransactionLog(VXGroup vObj, XXGroup mObj, String action){
-		if(vObj == null && (action == null || !action.equalsIgnoreCase("update"))){
+		if(vObj == null || action == null || (action.equalsIgnoreCase("update") && mObj == null)){
 			return null;
 		}
 		
@@ -231,6 +234,13 @@ public class XGroupService extends XGroupServiceBase<XXGroup, VXGroup> {
 		}
 		
 		return trxLogList;
+	}
+	
+	@Override
+	public VXGroup populateViewBean(XXGroup xGroup) {
+		VXGroup vObj = super.populateViewBean(xGroup);
+		vObj.setIsVisible(xGroup.getIsVisible());
+		return vObj;
 	}
 	
 	@Override

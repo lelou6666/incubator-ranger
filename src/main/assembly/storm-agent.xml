@@ -30,9 +30,22 @@
         <unpack>false</unpack>
 	    <directoryMode>755</directoryMode>
 	    <fileMode>644</fileMode>
+  	    <outputDirectory>/lib</outputDirectory>
+     </binaries>
+     <includes>
+	  <include>org.apache.ranger:ranger-storm-plugin-shim</include>
+	  <include>org.apache.ranger:ranger-plugin-classloader</include>
+      </includes>
+    </moduleSet>
+    <moduleSet>
+     <binaries>
+        <includeDependencies>true</includeDependencies>
+        <unpack>false</unpack>
+	    <directoryMode>755</directoryMode>
+	    <fileMode>644</fileMode>
         <dependencySets>
             <dependencySet>
-                <outputDirectory>/lib</outputDirectory>
+                <outputDirectory>lib/ranger-storm-plugin-impl</outputDirectory>
                 <unpack>false</unpack>
                 <includes>
                     <include>commons-configuration:commons-configuration:jar:${commons.configuration.version}</include>
@@ -42,44 +55,55 @@
                     <include>org.eclipse.persistence:eclipselink</include>
                     <include>org.eclipse.persistence:javax.persistence</include>
                     <include>commons-collections:commons-collections</include>
-					<include>com.sun.jersey:jersey-bundle</include>
+                    <include>com.sun.jersey:jersey-bundle</include>
                     <include>commons-logging:commons-logging:jar:${commons.logging.version}</include>
-                    <include>com.google.guava:guava:jar:${guava.version}</include>
+                    <include>com.google.guava:guava:jar:${google.guava.version}</include>
                     <include>org.codehaus.jackson:jackson-jaxrs:jar:${codehaus.jackson.version}</include>
-                    <include>org.codehaus.jackson:jackson-core-asl:jar:${codehaus.jackson.version}</include>
-                    <include>org.codehaus.jackson:jackson-mapper-asl:jar:${codehaus.jackson.version}</include>
+                    <include>org.codehaus.jackson:jackson-core-asl:jar:${codehaus.jackson.storm.version}</include>
+                    <include>org.codehaus.jackson:jackson-mapper-asl:jar:${codehaus.jackson.storm.version}</include>
+                    <include>org.apache.httpcomponents:httpclient:jar:${httpcomponent.httpclient.version}</include>
+                    <include>org.apache.httpcomponents:httpcore:jar:${httpcomponent.httpcore.version}</include>
+                    <include>org.apache.httpcomponents:httpmime:jar:${httpcomponent.httpmime.version}</include>
+                    <include>org.noggit:noggit:jar:${noggit.version}</include>
+                    <include>com.google.protobuf:protobuf-java:jar:${protobuf-java.version}</include>
+                    <include>org.apache.hadoop:hadoop-hdfs:jar:${hadoop.version}</include>
+                    <include>org.apache.htrace:htrace-core:jar:${htrace-core.version}</include>
+                    <include>commons-cli:commons-cli:jar:${commons.cli.version}</include> 
+                    <include>commons-lang:commons-lang:jar:${commons.lang.version}</include>
+                    <include>commons-io:commons-io:jar:${commons.io.version}</include>
                 </includes>
             </dependencySet>
             <dependencySet>
                     <outputDirectory>/install/lib</outputDirectory>
                     <unpack>false</unpack>
-            		<directoryMode>755</directoryMode>
-            		<fileMode>644</fileMode>
+                    <directoryMode>755</directoryMode>
+                    <fileMode>644</fileMode>
                     <includes>
                         <include>commons-cli:commons-cli</include>
                         <include>commons-collections:commons-collections</include>
                         <include>commons-configuration:commons-configuration:jar:${commons.configuration.version}</include>
+                        <include>commons-io:commons-io:jar:${commons.io.version}</include>
                         <include>commons-lang:commons-lang:jar:${commons.lang.version}</include>
                         <include>commons-logging:commons-logging</include>
-                        <include>com.google.guava:guava:jar:${guava.version}</include>
+                        <include>com.google.guava:guava:jar:${google.guava.version}</include>
                         <include>org.hamcrest:hamcrest-all</include>
                         <include>junit:junit</include>
                         <include>org.slf4j:slf4j-api:jar:${slf4j-api.version}</include>
                         <include>org.apache.hadoop:hadoop-common:jar:${hadoop-common.version}</include>
                         <include>org.apache.hadoop:hadoop-auth:jar:${hadoop-common.version}</include>
-						<include>security_plugins.ranger-plugins-cred:ranger-plugins-cred</include>
-						<include>org.apache.ranger:credentialbuilder</include>
+                        <include>org.apache.ranger:ranger-plugins-cred</include>
+                        <include>org.apache.ranger:credentialbuilder</include>
                     </includes>
             </dependencySet>
         </dependencySets>
-        <outputDirectory>/lib</outputDirectory>
+        <outputDirectory>lib/ranger-storm-plugin-impl</outputDirectory>
      </binaries>
      <includes>
-		<include>security_plugins.ranger-plugins-audit:ranger-plugins-audit</include>
-		<include>security_plugins.ranger-plugins-cred:ranger-plugins-cred</include>
-		<include>security_plugins.ranger-plugins-impl:ranger-plugins-impl</include>
-		<include>security_plugins.ranger-plugins-common:ranger-plugins-common</include>
-		<include>security_plugins.ranger-storm-plugin:ranger-storm-plugin</include>
+		<include>org.apache.ranger:ranger_solrj</include>
+		<include>org.apache.ranger:ranger-plugins-audit</include>
+		<include>org.apache.ranger:ranger-plugins-cred</include>
+		<include>org.apache.ranger:ranger-plugins-common</include>
+		<include>org.apache.ranger:ranger-storm-plugin</include>
      </includes>
     </moduleSet>
     <moduleSet>
@@ -89,7 +113,7 @@
         <unpack>false</unpack>
      </binaries>
      <includes>
-		<include>security_plugins.ranger-plugins-installer:ranger-plugins-installer</include>
+		<include>org.apache.ranger:ranger-plugins-installer</include>
 		<include>org.apache.ranger:credentialbuilder</include>
      </includes>
     </moduleSet>
@@ -130,6 +154,22 @@
 		<source>agents-common/scripts/enable-agent.sh</source>
         <outputDirectory>/</outputDirectory>
         <destName>enable-storm-plugin.sh</destName>
+        <fileMode>755</fileMode>
+    </file>
+    <file>
+        <source>agents-common/scripts/upgrade-plugin.sh</source>
+        <outputDirectory>/</outputDirectory>
+        <destName>upgrade-storm-plugin.sh</destName>
+        <fileMode>755</fileMode>
+    </file>
+    <file>
+        <source>agents-common/scripts/upgrade-plugin.py</source>
+        <outputDirectory>/</outputDirectory>
+        <fileMode>755</fileMode>
+    </file>
+    <file>
+        <source>security-admin/scripts/ranger_credential_helper.py</source>
+        <outputDirectory>/</outputDirectory>
         <fileMode>755</fileMode>
     </file>
     <file>

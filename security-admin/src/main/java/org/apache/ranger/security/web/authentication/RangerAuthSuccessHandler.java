@@ -58,8 +58,7 @@ SavedRequestAwareAuthenticationSuccessHandler {
     public RangerAuthSuccessHandler() {
 	super();
 	if (ajaxLoginSuccessPage == null) {
-	    ajaxLoginSuccessPage = PropertiesUtil.getProperty(
-		    "xa.ajax.auth.success.page", "/ajax_success.html");
+		ajaxLoginSuccessPage = PropertiesUtil.getProperty("ranger.ajax.auth.success.page", "/ajax_success.html");
 	}
     }
 
@@ -87,7 +86,7 @@ SavedRequestAwareAuthenticationSuccessHandler {
     	
     	response.setContentType("application/json;charset=UTF-8");
 		response.setHeader("Cache-Control", "no-cache");
-
+		response.setHeader("X-Frame-Options", "DENY");
 		VXResponse vXResponse = new VXResponse();
     	
     	if(!isValidUser) {

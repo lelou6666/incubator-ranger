@@ -27,6 +27,26 @@
 public class RangerCommonEnums {
 
 	/***************************************************************
+	 * Enum values for AllowedPermission
+	 **************************************************************/
+	/**
+	 * IS_ALLOWED is an element of enum AllowedPermission. Its value is "IS_ALLOWED".
+	 */
+	public static final int IS_ALLOWED = 1;
+
+	/***************************************************************
+	 * Enum values for VisibilityStatus
+	 **************************************************************/
+	/**
+	 * IS_VISIBLE is an element of enum VisibilityStatus. Its value is "IS_VISIBLE".
+	 */
+	public static final int IS_VISIBLE = 1;
+	/**
+	 * IS_HIDDEN is an element of enum VisibilityStatus. Its value is "IS_HIDDEN".
+	 */
+	public static final int IS_HIDDEN = 0;
+
+	/***************************************************************
 	 * Enum values for ActiveStatus
 	 **************************************************************/
 	/**
@@ -884,7 +904,15 @@ public class RangerCommonEnums {
 	 */
 	public static final int ClassTypes_MAX = 1012;
 
-
+	static public String getLabelFor_VisibilityStatus( int elementValue ) {
+		if( elementValue == 0 ) {
+			return "Hidden"; //IS_HIDDEN
+		}
+		if( elementValue == 1 ) {
+			return "Visible"; //IS_VISIBLE
+		}
+		return null;
+	}
 
 	static public String getLabelFor_ActiveStatus( int elementValue ) {
 		if( elementValue == 0 ) {

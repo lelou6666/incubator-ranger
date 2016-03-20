@@ -26,12 +26,14 @@
 			</div>
 		{{/if}}
 		<b data-fieldsets class="policy-form"></b>
-	
 	</fieldset>
 	 <fieldset>
-		<p class="formHeader">
-			User and Group Permissions :
-		</p>
+		<p class="wrap-header bold formHeader">
+ 			Allow Conditions :	
+ 			<span class="label label-yellow pull-right" ></span>
+ 		</p> &nbsp;
+ 		<div class=" wrap position-relative">
+
 		<div class="" data-customfields="groupPerms">
 			<div class="control-group">
 				<label class="control-label">{{tt 'lbl.permissions'}}</label>
@@ -40,5 +42,51 @@
 				</div>
 			</div>		
 		</div>
+		<div class="form-indent-right">
+			<p class="wrap-header reportSearchHeader">
+				Exclude from Allow Conditions :	
+			</p> &nbsp;
+			<div class="wrap position-relative" >
+		
+				<div class="" data-customfields="groupPermsAllowExclude">
+					<div class="control-group" style="margin-left: -100px;">
+						<label class="control-label">Exclude :</label>
+						<div class="controls">
+							<img src="images/loading.gif" style=" margin-left: 4%; margin-top: 1%;" />
+						</div>
+					</div>		
+				</div>
+			</div>
+		</div>
+		</div>
+
+		<p class="wrap-header bold formHeader">
+			Deny Conditions :	
+		</p> &nbsp;
+		<div class="wrap position-relative" >
+			<div class="" data-customfields="groupPermsDeny">
+				<div class="control-group">
+					<label class="control-label">{{tt 'lbl.permissions'}}</label>
+					<div class="controls">
+						<img src="images/loading.gif" style=" margin-left: 4%; margin-top: 1%;" />
+					</div>
+				</div>		
+			</div>
+		<div class="form-indent-right">
+			<p class="wrap-header reportSearchHeader">
+				Exclude from Deny Conditions :	
+			</p> &nbsp;
+			<div class="wrap position-relative" >
+				<div class="" data-customfields="groupPermsDenyExclude">
+					<div class="control-group">
+						<label class="control-label">Exclude :</label>
+						<div class="controls">
+							<img src="images/loading.gif" style=" margin-left: 4%; margin-top: 1%;" />
+						</div>
+					</div>		
+				</div>
+			</div>
+			</div>
 	</fieldset>
 </form>
+

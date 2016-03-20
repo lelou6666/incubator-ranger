@@ -43,12 +43,6 @@ public abstract class BaseClient {
 	
 	protected Map<String,String> connectionProperties ;
 	
-	public BaseClient(String serviceName) {
-    this.serviceName = serviceName ;
-    init() ;
-    login() ;
-	}
-
   public BaseClient(String svcName, Map<String,String> connectionProperties) {
     this(svcName, connectionProperties, null);
   }
@@ -78,13 +72,13 @@ public abstract class BaseClient {
 				+ "policies, but you would not be able to use autocomplete for "
 				+ "resource names. Check xa_portal.log for more info.";
 		try {
-			Thread.currentThread().setContextClassLoader(configHolder.getClassLoader());
+			//Thread.currentThread().setContextClassLoader(configHolder.getClassLoader());
 			String userName = configHolder.getUserName() ;
 			if (userName == null) {
 				String msgDesc = "Unable to find login username for hadoop environment, ["
 						+ serviceName + "]";
 				HadoopException hdpException = new HadoopException(msgDesc);
-				hdpException.generateResponseDataMap(false, msgDesc, msgDesc + errMsg,
+				hdpException.generateResponseDataMap(false, msgDesc + errMsg, msgDesc + errMsg,
 						null, null);
 
 				throw hdpException;
@@ -116,14 +110,14 @@ public abstract class BaseClient {
 					+ serviceName + "]";
 
 			HadoopException hdpException = new HadoopException(msgDesc, ioe);
-			hdpException.generateResponseDataMap(false, getMessage(ioe),
+			hdpException.generateResponseDataMap(false, getMessage(ioe) +  errMsg,
 					msgDesc + errMsg, null, null);
 			throw hdpException;
 		} catch (SecurityException se) {
 			String msgDesc = "Unable to login to Hadoop environment ["
 					+ serviceName + "]";
 			HadoopException hdpException = new HadoopException(msgDesc, se);
-			hdpException.generateResponseDataMap(false, getMessage(se),
+			hdpException.generateResponseDataMap(false, getMessage(se) +  errMsg,
 					msgDesc + errMsg, null, null);
 			throw hdpException;
 		} finally {
@@ -165,5 +159,13 @@ public abstract class BaseClient {
 		}
 		return StringUtils.join(errList, "");
 	}
-	
+
+	public static Map<String, String> getMaskedConfigMap(Map<String, String> configMap){
+		Map<String, String> maskedMap=new HashMap<String, String>();
+		maskedMap.putAll(configMap);
+		if(maskedMap!=null && maskedMap.containsKey("password")){
+			maskedMap.put("password", "*****");
+		}
+		return maskedMap;
+	}
 }

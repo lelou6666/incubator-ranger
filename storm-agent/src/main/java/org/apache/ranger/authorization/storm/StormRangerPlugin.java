@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.ranger.authorization.storm;
 
 import java.util.Set;
@@ -10,7 +27,7 @@ import org.apache.ranger.authorization.storm.StormRangerPlugin.StormConstants.Re
 import org.apache.ranger.plugin.audit.RangerDefaultAuditHandler;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
-import org.apache.ranger.plugin.policyengine.RangerResourceImpl;
+import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
 import org.apache.ranger.plugin.service.RangerBasePlugin;
 
 import com.google.common.collect.Sets;
@@ -31,7 +48,7 @@ public class StormRangerPlugin extends RangerBasePlugin {
 			// mandatory call to base plugin
 			super.init();
 			// One time call to register the audit hander with the policy engine.
-			super.setDefaultAuditHandler(new RangerDefaultAuditHandler());
+			super.setResultProcessor(new RangerDefaultAuditHandler());
 			// this needed to set things right in the nimbus process
 			if (KerberosName.getRules() == null) {
 				KerberosName.setRules("DEFAULT") ;
@@ -51,8 +68,9 @@ public class StormRangerPlugin extends RangerBasePlugin {
 		}
 		request.setAccessType(_operation);
 		request.setClientIPAddress(_clientIp);
+		request.setAction(_operation);
 		// build resource and connect stuff into request
-		RangerResourceImpl resource = new RangerResourceImpl();
+		RangerAccessResourceImpl resource = new RangerAccessResourceImpl();
 		resource.setValue(ResourceName.Topology, _topology);
 		request.setResource(resource);
 		

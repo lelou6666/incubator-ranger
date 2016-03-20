@@ -143,7 +143,49 @@ public abstract class RangerDaoManagerBase {
 		if (classType == AppConstants.CLASS_TYPE_XA_DATA_HIST) {
 			return getXXDataHist();
 		}
+		if (classType == AppConstants.CLASS_TYPE_RANGER_POLICY_WITH_ASSIGNED_ID) {
+			return getXXPolicyWithAssignedId();
+		}
+		if (classType == AppConstants.CLASS_TYPE_RANGER_SERVICE_WITH_ASSIGNED_ID) {
+			return getXXServiceWithAssignedId();
+		}
+		if (classType == AppConstants.CLASS_TYPE_RANGER_MODULE_DEF) {
+			return getXXModuleDef();
+		}
+		if (classType == AppConstants.CLASS_TYPE_RANGER_USER_PERMISSION) {
+			return getXXUserPermission();
+		}
+		if (classType == AppConstants.CLASS_TYPE_RANGER_GROUP_PERMISSION) {
+			return getXXUserPermission();
+		}
+		if (classType == AppConstants.CLASS_TYPE_RANGER_SERVICE_DEF_WITH_ASSIGNED_ID) {
+			return getXXServiceDefWithAssignedId();
+		}
 		
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG_DEF) {
+			return getXXTagDef();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG_ATTR_DEF) {
+			return getXXTagAttributeDef();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_SERVICE_RESOURCE) {
+			return getXXServiceResource();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_SERVICE_RESOURCE_ELEMENT) {
+			return getXXServiceResourceElement();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_SERVICE_RESOURCE_ELEMENT_VALUE) {
+			return getXXServiceResourceElementValue();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG) {
+			return getXXTag();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG_ATTR) {
+			return getXXTagAttribute();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG_RESOURCE_MAP) {
+			return getXXTagResourceMap();
+		}
 		
 		logger.error("No DaoManager found for classType=" + classType, new Throwable());
 		return null;
@@ -255,7 +297,50 @@ public abstract class RangerDaoManagerBase {
 		if (className.equals("XXDataHist")) {
 			return getXXDataHist();
 		}
-		
+		if (className.equals("XXPolicyWithAssignedId")) {
+			return getXXPolicyWithAssignedId();
+		}
+		if (className.equals("XXServiceWithAssignedId")) {
+			return getXXServiceWithAssignedId();
+		}
+		if (className.equals("XXModuleDef")) {
+			return getXXModuleDef();
+		}
+		if (className.equals("XXUserPermission")) {
+			return getXXUserPermission();
+		}
+		if (className.equals("XXGroupPermission")) {
+			return getXXGroupPermission();
+		}
+		if (className.equals("XXServiceDefWithAssignedId")) {
+			return getXXServiceDefWithAssignedId();
+		}
+
+		if (className.equals("XXTagDef")) {
+			return getXXTagDef();
+		}
+		if (className.equals("XXTagAttributeDef")) {
+			return getXXTagAttributeDef();
+		}
+		if (className.equals("XXServiceResource")) {
+			return getXXServiceResource();
+		}
+		if (className.equals("XXServiceResourceElement")) {
+			return getXXServiceResourceElement();
+		}
+		if (className.equals("XXServiceResourceElementValue")) {
+			return getXXServiceResourceElementValue();
+		}
+		if (className.equals("XXTag")) {
+			return getXXTag();
+		}
+		if (className.equals("XXTagAttribute")) {
+			return getXXTagAttribute();
+		}
+		if (className.equals("XXTagResourceMap")) {
+			return getXXTagResourceMap();
+		}
+
 		logger.error("No DaoManager found for className=" + className, new Throwable());
 		return null;
 	}
@@ -321,6 +406,9 @@ public abstract class RangerDaoManagerBase {
 	}
 
 	public XXAccessAuditDao getXXAccessAudit() {
+		//Load appropriate class based on audit store
+		//TODO: Need to fix this, currently hard coding Solr
+		
 		return new XXAccessAuditDao(this);
 	}
 
@@ -358,6 +446,10 @@ public abstract class RangerDaoManagerBase {
 
 	public XXPolicyConditionDefDao getXXPolicyConditionDef() {
 		return new XXPolicyConditionDefDao(this);
+	}
+
+	public XXContextEnricherDefDao getXXContextEnricherDef() {
+		return new XXContextEnricherDefDao(this);
 	}
 
 	public XXEnumDefDao getXXEnumDef() {
@@ -398,6 +490,62 @@ public abstract class RangerDaoManagerBase {
 
 	public XXDataHistDao getXXDataHist() {
 		return new XXDataHistDao(this);
+	}
+	
+	public XXPolicyWithAssignedIdDao getXXPolicyWithAssignedId() {
+		return new XXPolicyWithAssignedIdDao(this);
+	}
+	
+	public XXServiceWithAssignedIdDao getXXServiceWithAssignedId() {
+		return new XXServiceWithAssignedIdDao(this);
+	}
+
+	public XXModuleDefDao getXXModuleDef(){
+		return new XXModuleDefDao(this);
+	}
+
+	public XXUserPermissionDao getXXUserPermission(){
+		return new XXUserPermissionDao(this);
+	}
+
+	public XXGroupPermissionDao getXXGroupPermission(){
+		return new XXGroupPermissionDao(this);
+	}
+	
+	public XXServiceDefWithAssignedIdDao getXXServiceDefWithAssignedId() {
+		return new XXServiceDefWithAssignedIdDao(this);
+	}
+
+	public XXTagDefDao getXXTagDef() {
+		return new XXTagDefDao(this);
+	}
+
+	public XXTagAttributeDefDao getXXTagAttributeDef() {
+		return new XXTagAttributeDefDao(this);
+	}
+
+	public XXServiceResourceDao getXXServiceResource() {
+		return new XXServiceResourceDao(this);
+	}
+
+	public XXServiceResourceElementDao getXXServiceResourceElement() {
+		return new XXServiceResourceElementDao(this);
+	}
+
+	public XXServiceResourceElementValueDao getXXServiceResourceElementValue() {
+		return new XXServiceResourceElementValueDao(this);
+	}
+
+	public XXTagDao getXXTag() {
+		return new XXTagDao(this);
+	}
+
+	public XXTagAttributeDao getXXTagAttribute() {
+		return new XXTagAttributeDao(this);
+	}
+
+	public XXTagResourceMapDao getXXTagResourceMap() {
+		return new XXTagResourceMapDao(this);
 	}
 
 }

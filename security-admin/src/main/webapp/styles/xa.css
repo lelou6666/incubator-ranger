@@ -1,3 +1,4 @@
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -597,12 +598,12 @@ table td.backgrid-filter .clear {
   background-color: #eeeeee;
 }
 
-table.table-permission tr th:last-child, table.table-permission tr td:last-child {
+/*table.table-permission tr th:last-child, table.table-permission tr td:last-child {
   border: 0;
   padding-left: 6%;
   color: transparent;
   background-color: #fff;
-}
+}*/
 
 .table-permission thead tr {
   color: #4F4F4F;
@@ -637,6 +638,44 @@ table.backgrid thead tr a {
 
 table.backgrid thead tr:hover {
   background: transparent;
+}
+
+.table-read-only tr th:last-child, table.table-read-only tr td:last-child {
+  border: 1px solid #dddddd !important;
+  color: #4F4F4F !important;
+  background-color: inherit !important;
+}
+.serviceInfo{
+  margin-top: -5px;
+}
+.updateInfo{
+  margin-top: 10px;
+}
+.updateInfo p {
+  margin-bottom: 0px;
+  margin-top: 0px;
+  font-size: 11px;
+}
+.policyVer{
+  font-size: 23px;
+  padding: 5px 0 0 3px;
+}
+.policyVer i{
+  color : #3C9C11 !important;
+  opacity: 0.4;
+  -webkit-user-select: none;
+}
+.policyVer i.active{
+  color : #3C9C11 !important;
+  cursor : pointer;
+  opacity: 1;
+}
+.policyVer text{
+  padding : 0 10px;
+  color : black;
+  font-size: 14px;
+  position: relative;
+  top: -3px;
 }
 
 .r-path {
@@ -1398,6 +1437,7 @@ ul.tabs > li > a {
   top: 0;
 }
 .diff ol {
+  min-width: 250px;
   display: table-cell;
   margin: 0;
   padding: 0;
@@ -1684,8 +1724,8 @@ td.html-cell.renderable:last-child {
 	margin-bottom: 0 !important;
 }
 .policy-form .field-isEnabled{
-float: left;
-margin-bottom: 0 !important;
+margin-left: 413px;
+margin-bottom: 12px !important;
 }
 .policy-form .field-isEnabled .controls{
 	margin-left:30px;
@@ -1695,9 +1735,9 @@ margin-bottom: 5px;
 }
 
 .popover-content {
-	overflow-y: auto;
+	/*overflow-y: auto;
+	max-height: 250px;*/
 	padding-right: 25px;
-	max-height: 250px;
 }
 .margin-bottom-57 {
 	margin-bottom:57px;
@@ -1750,4 +1790,121 @@ margin-top: -29px;
 }
 .label-ranger {
 	background-color: #3C9C11;
+}
+.sameLevelDropdown{
+	margin-right: 31px;
+	margin-left: -130px;
+	width: 100px;
+	height: 29px;
+	font-family: Tahoma;
+	font-size: 14px;
+	border-radius: 10px;
+	border: 2px #cccccc solid;
+}
+.margin-left-5{
+	margin-left:5px;
+}
+.tr-inactive {
+  background-color: #F5F5F5;
+}
+.tr-inactive a {
+  color: #CCC;
+}
+.tr-inactive td span.label{
+  background-color: #BCBCBC;
+  color: #fff;
+  font-weight: normal;
+  text-shadow: none;
+}
+td.select-row-cell {
+  text-align: center;
+}
+.ranger-notifications {
+	right: 33px!important;
+	top: 41px!important;
+}table.table-permission.visible-border tr td:last-child {
+  border: 1px solid #dddddd;
+  padding-left: 0;
+}
+.set-height-groups{
+	width: 100%;
+	height: 100px;
+	overflow-x: hidden;	
+}
+.float-left-margin-2{
+	float: left;
+	margin: 2px;
+}
+
+#r_topNav .dropdown-menu {
+	margin:0;
+}
+
+.table-policy-condition th,
+.table-policy-condition td {
+  border: none !important;
+  white-space: nowrap;
+  color: #444444 !important;
+}
+
+.table-policy-condition tr:nth-child(even) td, .table-policy-condition tr:nth-child(even) th  {background-color: #FFFFFF;}
+.table-policy-condition tr:nth-child(odd) td, .table-policy-condition tr:nth-child(odd) th  {background-color: #EEEEEE;}
+
+.table-policy-condition label {
+  float: left;
+  margin-right: 10px;
+}
+.label-lightblue, .label-lightgreen {text-shadow:none; display: block; margin-bottom: 2px;}
+.label-lightblue {background-color: #DEEEF9; color: #000;}
+.label-lightgreen {background-color: #E4F4D8; color: #000;}
+
+input[type="radio"], input[type="checkbox"] {margin-top: 0;}
+
+.table-policy-condition td:nth-child(3) {
+  border-left: 2px solid #fff !important;
+}
+.table-policy-condition td:nth-child(3) label {
+  float: none;
+  text-align: center;
+  margin-left: 10px;
+}
+.white-space-normal{
+  white-space: normal;
+  word-break: break-all;
+}
+.margin-top-6{
+  margin-top: 6px;
+}
+.tag-fixed-popover {
+	top: 50px !important;
+	left: 55% !important;
+	margin-left: -350px !important;
+	max-width: 700px !important;
+	max-height: 500px;
+	overflow-y: auto;
+}
+.tag-fixed-popover-wrapper {
+	position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    z-index: 99 !important;
+    background-color: rgba(0,0,0,0.5);
+}
+.table-policy-condition label {
+	font-size: 12px;
+	text-align: left;
+}
+.table-policy-condition tr[data-id=storm] td label {
+    min-width: 170px;
+}
+/* align all component 
+.table-policy-condition td label {
+    min-width: 170px;
+} */
+.pause-play-close{
+	margin-left: -5px;
+    margin-top: -2px;
+    font-size: 11px;
 }

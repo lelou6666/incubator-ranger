@@ -20,22 +20,47 @@
 package org.apache.ranger.plugin.policyevaluator;
 
 
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.ranger.plugin.model.RangerPolicy;
+import org.apache.ranger.plugin.model.RangerPolicy.RangerPolicyResource;
 import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 import org.apache.ranger.plugin.policyengine.RangerAccessResult;
-import org.apache.ranger.plugin.policyengine.RangerResource;
+import org.apache.ranger.plugin.policyengine.RangerAccessResource;
+import org.apache.ranger.plugin.policyengine.RangerPolicyEngineOptions;
 
-public interface RangerPolicyEvaluator {
-	void init(RangerPolicy policy, RangerServiceDef serviceDef);
+public interface RangerPolicyEvaluator extends Comparable<RangerPolicyEvaluator> {
+	public static final String EVALUATOR_TYPE_AUTO   = "auto";
+	public static final String EVALUATOR_TYPE_OPTIMIZED = "optimized";
+	public static final String EVALUATOR_TYPE_CACHED    = "cached";
+
+	void init(RangerPolicy policy, RangerServiceDef serviceDef, RangerPolicyEngineOptions options);
 
 	RangerPolicy getPolicy();
 
 	RangerServiceDef getServiceDef();
 
+	boolean hasAllow();
+
+	boolean hasDeny();
+
+	int getEvalOrder();
+
+	int getCustomConditionsCount();
+
+	boolean isAuditEnabled();
+
 	void evaluate(RangerAccessRequest request, RangerAccessResult result);
 
-	boolean isMatch(RangerResource resource);
+	boolean isMatch(RangerAccessResource resource);
 
-	boolean isSingleAndExactMatch(RangerResource resource);
+	boolean isCompleteMatch(RangerAccessResource resource);
+
+	boolean isCompleteMatch(Map<String, RangerPolicyResource> resources);
+
+	boolean isAccessAllowed(RangerAccessResource resource, String user, Set<String> userGroups, String accessType);
+
+	boolean isAccessAllowed(Map<String, RangerPolicyResource> resources, String user, Set<String> userGroups, String accessType);
 }

@@ -102,14 +102,18 @@ public class KnoxClient {
 						Iterator<JsonNode> elements = topologyNode.getElements();
 						while (elements.hasNext()) {
 							JsonNode element = elements.next();
-							String topologyName = element.get("name").getValueAsText();
-							LOG.debug("Found Knox topologyName: " + topologyName);
-							if ( knoxTopologyList != null && knoxTopologyList.contains(topologyName)) {
-					        	continue;
-					        }
-							if (topologyName.startsWith(topologyNameMatching)) {
-								topologyList.add(topologyName);
+							JsonNode nameElement = element.get("name");
+							if (nameElement != null) {
+								String topologyName = nameElement.getValueAsText();
+								LOG.debug("Found Knox topologyName: " + topologyName);
+								if (knoxTopologyList != null && topologyName != null && knoxTopologyList.contains(topologyName)) {
+									continue;
+								}
+								if (topologyName != null && topologyName.startsWith(topologyNameMatching)) {
+									topologyList.add(topologyName);
+								}
 							}
+
 						}
 					} else {
 						LOG.error("Got invalid  REST response from: "+ knoxUrl + ", responsStatus: " + response.getStatus());
@@ -144,7 +148,6 @@ public class KnoxClient {
 			hdpException.generateResponseDataMap(false,
 					BaseClient.getMessage(t), msgDesc + errMsg, null, null);
 			throw hdpException;
-		} finally {
 		}
 		return topologyList;
 	}
@@ -186,17 +189,24 @@ public class KnoxClient {
 						
 						JsonNode rootNode = objectMapper.readTree(jsonString);
 						JsonNode topologyNode = rootNode.findValue("topology");
-						JsonNode servicesNode = topologyNode.get("services");
-						Iterator<JsonNode> services = servicesNode.getElements();
-						while (services.hasNext()) {
-							JsonNode service = services.next();
-							String serviceName = service.get("role").getValueAsText();
-							LOG.debug("Knox serviceName: " + serviceName);
-							if ( knoxServiceList != null && knoxServiceList.contains(serviceName)) {
-					        	continue;
-					        }
-							if (serviceName.startsWith(serviceNameMatching)) {
-								serviceList.add(serviceName);
+						if (topologyNode != null) {
+							JsonNode servicesNode = topologyNode.get("services");
+							if (servicesNode != null) {
+								Iterator<JsonNode> services = servicesNode.getElements();
+								while (services.hasNext()) {
+									JsonNode service = services.next();
+									JsonNode serviceElement = service.get("role");
+									if (serviceElement != null) {
+										String serviceName = serviceElement.getValueAsText();
+										LOG.debug("Knox serviceName: " + serviceName);
+										if (serviceName == null || (knoxServiceList != null && knoxServiceList.contains(serviceName))) {
+											continue;
+										}
+										if (serviceName.startsWith(serviceNameMatching)) {
+											serviceList.add(serviceName);
+										}
+									}
+								}
 							}
 						}
 					} else {
@@ -232,8 +242,6 @@ public class KnoxClient {
 			hdpException.generateResponseDataMap(false,
 					BaseClient.getMessage(t), msgDesc + errMsg, null, null);
 			throw hdpException;
-
-		} finally {
 		}
 		return serviceList;
 	}
@@ -248,32 +256,28 @@ public class KnoxClient {
 			System.exit(1);
 		}
 
-		try {
-			knoxClient = new KnoxClient(args[0], args[1], args[2]);
-			List<String> topologyList = knoxClient.getTopologyList("",null);
-			if ((topologyList == null) || topologyList.isEmpty()) {
-				System.out.println("No knox topologies found");
-			} else {
-				for (String topology : topologyList) {
-					System.out.println("Found Topology: " + topology);
-					List<String> serviceList = knoxClient.getServiceList(topology, "",null);
-					if ((serviceList == null) || serviceList.isEmpty()) {
-						System.out.println("No services found for knox topology: " + topology);
-					} else {
-						for (String service : serviceList) {
-							System.out.println("	Found service for topology: " + service +", " + topology);
-						}
+		knoxClient = new KnoxClient(args[0], args[1], args[2]);
+		List<String> topologyList = knoxClient.getTopologyList("",null);
+		if ((topologyList == null) || topologyList.isEmpty()) {
+			System.out.println("No knox topologies found");
+		} else {
+			for (String topology : topologyList) {
+				System.out.println("Found Topology: " + topology);
+				List<String> serviceList = knoxClient.getServiceList(topology, "",null);
+				if ((serviceList == null) || serviceList.isEmpty()) {
+					System.out.println("No services found for knox topology: " + topology);
+				} else {
+					for (String service : serviceList) {
+						System.out.println("	Found service for topology: " + service +", " + topology);
 					}
 				}
 			}
-		} finally {
 		}
 	}
 	
-	public static HashMap<String, Object> testConnection(String serviceName,
+	public static HashMap<String, Object> connectionTest(String serviceName,
 										  		Map<String, String> configs) {
 
-		List<String> strList = new ArrayList<String>();
 		String errMsg = " You can still save the repository and start creating "
 				+ "policies, but you would not be able to use autocomplete for "
 				+ "resource names. Check xa_portal.log for more info.";
@@ -281,14 +285,14 @@ public class KnoxClient {
 		HashMap<String, Object> responseData = new HashMap<String, Object>();
 
 		KnoxClient knoxClient = getKnoxClient(serviceName, configs);
-		strList = getKnoxResources(knoxClient, "", null,null,null);
+		List<String> strList = getKnoxResources(knoxClient, "", null,null,null);
 
 		if (strList != null && (strList.size() != 0)) {
 			connectivityStatus = true;
 		}
 		
 		if (connectivityStatus) {
-			String successMsg = "TestConnection Successful";
+			String successMsg = "ConnectionTest Successful";
 			BaseClient.generateResponseDataMap(connectivityStatus, successMsg, successMsg,
 					null, null, responseData);
 		} else {
@@ -303,8 +307,10 @@ public class KnoxClient {
 	public static KnoxClient getKnoxClient(String serviceName,
 										   Map<String, String> configs) {
 		KnoxClient knoxClient = null;
-		LOG.debug("Getting knoxClient for ServiceName: " + serviceName
-				+ "configMap: " + configs.toString());
+		if(LOG.isDebugEnabled()){
+			LOG.debug("Getting knoxClient for ServiceName: " + serviceName);
+			LOG.debug("configMap: " + BaseClient.getMaskedConfigMap(configs));
+		}
 		String errMsg = " You can still save the repository and start creating "
 				+ "policies, but you would not be able to use autocomplete for "
 				+ "resource names. Check xa_portal.log for more info.";

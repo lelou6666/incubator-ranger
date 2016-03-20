@@ -1,21 +1,28 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.ranger.service;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.ranger.entity.XXAccessTypeDef;
-import org.apache.ranger.entity.XXEnumDef;
-import org.apache.ranger.entity.XXPolicyConditionDef;
-import org.apache.ranger.entity.XXResourceDef;
-import org.apache.ranger.entity.XXServiceConfigDef;
 import org.apache.ranger.entity.XXServiceDef;
+import org.apache.ranger.entity.XXServiceDefBase;
 import org.apache.ranger.plugin.model.RangerServiceDef;
-import org.apache.ranger.plugin.model.RangerServiceDef.RangerAccessTypeDef;
-import org.apache.ranger.plugin.model.RangerServiceDef.RangerEnumDef;
-import org.apache.ranger.plugin.model.RangerServiceDef.RangerPolicyConditionDef;
-import org.apache.ranger.plugin.model.RangerServiceDef.RangerResourceDef;
-import org.apache.ranger.plugin.model.RangerServiceDef.RangerServiceConfigDef;
-import org.apache.ranger.plugin.util.SearchFilter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -23,89 +30,42 @@ import org.springframework.stereotype.Service;
 @Scope("singleton")
 public class RangerServiceDefService extends RangerServiceDefServiceBase<XXServiceDef, RangerServiceDef> {
 
+	public RangerServiceDefService() {
+		super();
+	}
+
 	@Override
 	protected void validateForCreate(RangerServiceDef vObj) {
-		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	protected void validateForUpdate(RangerServiceDef vObj,
-			XXServiceDef entityObj) {
-		// TODO Auto-generated method stub
+	protected void validateForUpdate(RangerServiceDef vObj, XXServiceDef entityObj) {
 
 	}
 
 	@Override
-	protected RangerServiceDef populateViewBean(XXServiceDef xServiceDef) {
-		RangerServiceDef serviceDef = super.populateViewBean(xServiceDef);
-		Long serviceDefId = xServiceDef.getId();
-		
-		List<XXServiceConfigDef> xConfigs = daoMgr.getXXServiceConfigDef().findByServiceDefId(serviceDefId);
-		if (!stringUtil.isEmpty(xConfigs)) {
-			List<RangerServiceConfigDef> configs = new ArrayList<RangerServiceConfigDef>();
-			for (XXServiceConfigDef xConfig : xConfigs) {
-				RangerServiceConfigDef config = populateXXToRangerServiceConfigDef(xConfig);
-				configs.add(config);
-			}
-			serviceDef.setConfigs(configs);
-		}
-		
-		List<XXResourceDef> xResources = daoMgr.getXXResourceDef().findByServiceDefId(serviceDefId);
-		if(!stringUtil.isEmpty(xResources)) {
-			List<RangerResourceDef> resources = new ArrayList<RangerResourceDef>();
-			for(XXResourceDef xResource : xResources) {
-				RangerResourceDef resource = populateXXToRangerResourceDef(xResource);
-				resources.add(resource);
-			}
-			serviceDef.setResources(resources);
-		}
-		
-		List<XXAccessTypeDef> xAccessTypes = daoMgr.getXXAccessTypeDef().findByServiceDefId(serviceDefId);
-		if(!stringUtil.isEmpty(xAccessTypes)) {
-			List<RangerAccessTypeDef> accessTypes = new ArrayList<RangerAccessTypeDef>();
-			for(XXAccessTypeDef xAtd : xAccessTypes) {
-				RangerAccessTypeDef accessType = populateXXToRangerAccessTypeDef(xAtd);
-				accessTypes.add(accessType);
-			}
-			serviceDef.setAccessTypes(accessTypes);
-		}
-		
-		List<XXPolicyConditionDef> xPolicyConditions = daoMgr.getXXPolicyConditionDef().findByServiceDefId(serviceDefId);
-		if(!stringUtil.isEmpty(xPolicyConditions)) {
-			List<RangerPolicyConditionDef> policyConditions = new ArrayList<RangerServiceDef.RangerPolicyConditionDef>();
-			for(XXPolicyConditionDef xPolicyCondDef : xPolicyConditions) {
-				RangerPolicyConditionDef policyCondition = populateXXToRangerPolicyConditionDef(xPolicyCondDef);
-				policyConditions.add(policyCondition);
-			}
-			serviceDef.setPolicyConditions(policyConditions);
-		}
-		
-		List<XXEnumDef> xEnumList = daoMgr.getXXEnumDef().findByServiceDefId(serviceDefId);
-		if(!stringUtil.isEmpty(xEnumList)) {
-			List<RangerEnumDef> enums = new ArrayList<RangerEnumDef>();
-			for(XXEnumDef xEnum : xEnumList) {
-				RangerEnumDef vEnum = populateXXToRangerEnumDef(xEnum);
-				enums.add(vEnum);
-			}
-			serviceDef.setEnums(enums);
-		}
-		return serviceDef;
+	protected XXServiceDef mapViewToEntityBean(RangerServiceDef vObj, XXServiceDef xObj, int OPERATION_CONTEXT) {
+		return (XXServiceDef) super.mapViewToEntityBean(vObj, (XXServiceDefBase) xObj, OPERATION_CONTEXT);
 	}
-	
-	public List<RangerServiceDef> getServiceDefs(SearchFilter filter) {
+
+	@Override
+	protected RangerServiceDef mapEntityToViewBean(RangerServiceDef vObj, XXServiceDef xObj) {
+		return super.mapEntityToViewBean(vObj, (XXServiceDefBase) xObj);
+	}
+
+	public List<RangerServiceDef> getAllServiceDefs() {
 		List<XXServiceDef> xxServiceDefList = daoMgr.getXXServiceDef().getAll();
 		List<RangerServiceDef> serviceDefList = new ArrayList<RangerServiceDef>();
-		
-		for(XXServiceDef xxServiceDef : xxServiceDefList) {
+
+		for (XXServiceDef xxServiceDef : xxServiceDefList) {
 			RangerServiceDef serviceDef = populateViewBean(xxServiceDef);
 			serviceDefList.add(serviceDef);
 		}
 		return serviceDefList;
 	}
-	
+
 	public RangerServiceDef getPopulatedViewObject(XXServiceDef xServiceDef) {
 		return this.populateViewBean(xServiceDef);
 	}
-
 }

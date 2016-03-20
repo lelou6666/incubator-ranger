@@ -43,6 +43,7 @@ import org.apache.ranger.common.UserSessionBase;
 import org.apache.ranger.common.view.VTrxLogAttr;
 import org.apache.ranger.db.RangerDaoManager;
 import org.apache.ranger.entity.XXAsset;
+import org.apache.ranger.entity.XXAuditMap;
 import org.apache.ranger.entity.XXGroup;
 import org.apache.ranger.entity.XXPermMap;
 import org.apache.ranger.entity.XXPortalUser;
@@ -51,9 +52,7 @@ import org.apache.ranger.entity.XXTrxLog;
 import org.apache.ranger.entity.XXUser;
 import org.apache.ranger.util.RangerEnumUtil;
 import org.apache.ranger.view.VXAuditMap;
-import org.apache.ranger.view.VXAuditMapList;
 import org.apache.ranger.view.VXPermMap;
-import org.apache.ranger.view.VXPermMapList;
 import org.apache.ranger.view.VXResource;
 import org.apache.ranger.view.VXResourceList;
 import org.apache.ranger.view.VXResponse;
@@ -90,8 +89,7 @@ public class XResourceService extends
 
 	static HashMap<String, VTrxLogAttr> trxLogAttrs = new HashMap<String, VTrxLogAttr>();
 	
-	static String fileSeparator = PropertiesUtil.getProperty(
-			"xa.file.separator", "/");
+	static String fileSeparator = PropertiesUtil.getProperty("ranger.file.separator", "/");
 	
 	static {
 		trxLogAttrs.put("name", new VTrxLogAttr("name", "Resource Path", false));
@@ -275,9 +273,10 @@ public class XResourceService extends
 						+ "resource path.", MessageEnums.INVALID_INPUT_DATA);
 			}
 		}
-		if (!vObj.getName().equalsIgnoreCase(mObj.getName()) || 
+		if ((vObj != null && mObj != null) &&
+				(!vObj.getName().equalsIgnoreCase(mObj.getName()) ||
 				vObj.getIsRecursive()!=mObj.getIsRecursive() || 
-				vObj.getResourceType() != mObj.getResourceType()) {
+				vObj.getResourceType() != mObj.getResourceType())) {
 			validateForCreate(vObj);
 		}
 		
@@ -340,30 +339,30 @@ public class XResourceService extends
 				vXResource.getAssetId());
 		if (xxAsset != null) {
 			vXResource.setAssetName(xxAsset.getName());
-		}
-		vXResource.setAssetType(xxAsset.getAssetType());
+            vXResource.setAssetType(xxAsset.getAssetType());
+        }
 	}
 
 	private void populateAuditList(VXResource vXResource) {
-		SearchCriteria searchCriteria = new SearchCriteria();
-		searchCriteria.addParam("resourceId", vXResource.getId());
-		VXAuditMapList vXAuditMapList = xAuditMapService
-				.searchXAuditMaps(searchCriteria);
-		if (vXAuditMapList != null && vXAuditMapList.getResultSize() != 0) {
-			List<VXAuditMap> auditMapList = vXAuditMapList.getList();
-			vXResource.setAuditList(auditMapList);
+
+		List<XXAuditMap> xAuditMapList = daoManager.getXXAuditMap().findByResourceId(vXResource.getId());
+		List<VXAuditMap> vXAuditMapList = new ArrayList<VXAuditMap>();
+
+		for (XXAuditMap xAuditMap : xAuditMapList) {
+			vXAuditMapList.add(xAuditMapService.populateViewBean(xAuditMap));
 		}
+		vXResource.setAuditList(vXAuditMapList);
 	}
 
 	private void populatePermList(VXResource vXResource) {
-		SearchCriteria searchCriteria = new SearchCriteria();
-		searchCriteria.addParam("resourceId", vXResource.getId());
-		VXPermMapList vXPermMapList = xPermMapService
-				.searchXPermMaps(searchCriteria);
-		if (vXPermMapList != null && vXPermMapList.getResultSize() != 0) {
-			List<VXPermMap> permMapList = vXPermMapList.getList();
-			vXResource.setPermMapList(permMapList);
-		}		
+
+		List<XXPermMap> xPermMapList = daoManager.getXXPermMap().findByResourceId(vXResource.getId());
+		List<VXPermMap> vXPermMapList = new ArrayList<VXPermMap>();
+
+		for (XXPermMap xPermMap : xPermMapList) {
+			vXPermMapList.add(xPermMapService.populateViewBean(xPermMap));
+		}
+		vXResource.setPermMapList(vXPermMapList);
 	}
 
 	@Override
@@ -424,9 +423,9 @@ public class XResourceService extends
 
 	@Override
 	protected XXResource mapViewToEntityBean(VXResource vObj, XXResource mObj, int OPERATION_CONTEXT) {
-		super.mapViewToEntityBean(vObj, mObj, OPERATION_CONTEXT);
-		mObj.setUdfs(vObj.getUdfs());
-		if(vObj!=null && mObj!=null){
+        if(vObj!=null && mObj!=null){
+		    super.mapViewToEntityBean(vObj, mObj, OPERATION_CONTEXT);
+		    mObj.setUdfs(vObj.getUdfs());
 			XXPortalUser xXPortalUser= null;
 			if(mObj.getAddedByUserId()==null || mObj.getAddedByUserId()==0){
 				if(!stringUtil.isEmpty(vObj.getOwner())){
@@ -451,22 +450,22 @@ public class XResourceService extends
 
 	@Override
 	protected VXResource mapEntityToViewBean(VXResource vObj, XXResource mObj) {
-		super.mapEntityToViewBean(vObj, mObj);
-		vObj.setUdfs(mObj.getUdfs());
-		populateAssetProperties(vObj);
-		if(mObj!=null && vObj!=null){			
+        if(mObj!=null && vObj!=null){
+            super.mapEntityToViewBean(vObj, mObj);
+		    vObj.setUdfs(mObj.getUdfs());
+		    populateAssetProperties(vObj);
 			XXPortalUser xXPortalUser= null;
 			if(stringUtil.isEmpty(vObj.getOwner())){
-				xXPortalUser=rangerDaoManager.getXXPortalUser().getById(mObj.getAddedByUserId());		
+				xXPortalUser=rangerDaoManager.getXXPortalUser().getById(mObj.getAddedByUserId());
 				if(xXPortalUser!=null){
 					vObj.setOwner(xXPortalUser.getLoginId());
 				}
 			}
 			if(stringUtil.isEmpty(vObj.getUpdatedBy())){
-				xXPortalUser= rangerDaoManager.getXXPortalUser().getById(mObj.getUpdatedByUserId());		
+				xXPortalUser= rangerDaoManager.getXXPortalUser().getById(mObj.getUpdatedByUserId());
 				if(xXPortalUser!=null){
 					vObj.setUpdatedBy(xXPortalUser.getLoginId());
-				}	
+				}
 			}
 		}
 		return vObj;
@@ -512,7 +511,7 @@ public class XResourceService extends
 				pathList.add(fileSeparator);
 			}
 			
-			StringBuffer path = new StringBuffer();
+			StringBuilder path = new StringBuilder();
 			for (int i = 1; i < policyPathParts.length - 1; i++) {
 				path.append(fileSeparator + policyPathParts[i]);
 				pathList.add(path.toString());
@@ -892,7 +891,11 @@ public class XResourceService extends
 				vxPermMap = perm.getValue();
 				break;
 			}
-			
+
+			if (vxPermMap == null) {
+				continue;
+			}
+
 			if (map.size() > 0 && map.get(AppConstants.XA_PERM_TYPE_READ) == null) {
 				vxPermMap.setPermType(AppConstants.XA_PERM_TYPE_READ);
 				map.put(AppConstants.XA_PERM_TYPE_READ, vxPermMap);
@@ -912,6 +915,10 @@ public class XResourceService extends
 			for (Entry<Integer, VXPermMap> perm : map.entrySet()) {
 				vxPermMap = perm.getValue();
 				break;
+			}
+
+			if (vxPermMap == null) {
+				continue;
 			}
 
 			if (map.size() > 0 && map.get(AppConstants.XA_PERM_TYPE_READ) == null) {
@@ -951,7 +958,7 @@ public class XResourceService extends
 	}
 	
 	public List<XXTrxLog> getTransactionLog(VXResource vObj, XXResource mObj, String action){
-		if(vObj == null && (action == null || !action.equalsIgnoreCase("update"))){
+		if(vObj == null || action == null || (action.equalsIgnoreCase("update") && mObj == null)) {
 			return null;
 		}
 

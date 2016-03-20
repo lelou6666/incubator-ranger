@@ -23,6 +23,7 @@ define(function(require){
 
 	var VXGroupBase		= require('model_bases/VXGroupBase');
 	var localization	= require('utils/XALangSupport');
+	var XAEnums         = require('utils/XAEnums');
 	
 	var VXGroup = VXGroupBase.extend(
 	/** @lends VXGroup.prototype */
@@ -34,8 +35,22 @@ define(function(require){
 		 */
 		initialize: function() {
 			this.modelName = 'VXGroup';
+			var selectable = new Backbone.Picky.Selectable(this);
+			_.extend(this, selectable);
 			this.bindErrorEvents();
-			
+			this.toView();
+		},
+
+		toView : function(){
+			if(!_.isUndefined(this.get('isVisible'))){
+				var visible = (this.get('isVisible') == XAEnums.VisibilityStatus.STATUS_VISIBLE.value);
+				this.set('isVisible', visible);
+			}
+		},
+
+		toServer : function(){
+			var visible = this.get('isVisible') ? XAEnums.VisibilityStatus.STATUS_VISIBLE.value : XAEnums.VisibilityStatus.STATUS_HIDDEN.value;
+			this.set('isVisible', visible);
 		},
 		/**
 		 * @function schema
@@ -54,7 +69,7 @@ define(function(require){
 				name : {
 					type		: 'Text',
 					title		: localization.tt("lbl.groupName") +' *',
-					validators  : ['required',{type:'regexp',regexp:/^[a-zA-Z][a-zA-Z0-9_'&-]*[A-Za-z0-9]$/i,message :'Please enter valid name.'}],
+					validators  : ['required',{type:'regexp',regexp:/^[a-zA-Z][a-zA-Z0-9_'&-]*[A-Za-z0-9]$/i,message :'Name must start with alphabet and must end with alphabet or number and must have atleast two chars.Allowed special characters _ ,\' ,& ,-'}],
 					editorAttrs 	:{ 'maxlength': 32},
 				},
 				description : {
@@ -63,17 +78,6 @@ define(function(require){
 				}
 			});	
 		},
-
-		/*links : {
-			detail: {
-				href: 'javascript:void(0)',
-				label : this.toString()
-			},
-			list: {
-				href: 'javascript:void(0)',
-				label : this.toString()
-			},
-		},*/
 		
 		/** This models toString() */
 		toString : function(){

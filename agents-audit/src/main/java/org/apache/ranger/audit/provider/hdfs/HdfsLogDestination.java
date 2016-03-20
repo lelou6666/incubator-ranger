@@ -24,11 +24,14 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.ranger.audit.model.AuditEventBase;
 import org.apache.ranger.audit.provider.DebugTracer;
 import org.apache.ranger.audit.provider.LogDestination;
 import org.apache.ranger.audit.provider.MiscUtil;
@@ -36,6 +39,8 @@ import org.apache.ranger.audit.provider.MiscUtil;
 public class HdfsLogDestination<T> implements LogDestination<T> {
 	public final static String EXCP_MSG_FILESYSTEM_CLOSED = "Filesystem closed";
 
+	private String name = getClass().getName();
+	
 	private String  mDirectory                = null;
 	private String  mFile                     = null;
 	private int     mFlushIntervalSeconds     = 1 * 60;
@@ -52,11 +57,26 @@ public class HdfsLogDestination<T> implements LogDestination<T> {
 	private long               mNextFlushTime      = 0;
 	private long               mLastOpenFailedTime = 0;
 	private boolean            mIsStopInProgress   = false;
+	private Map<String, String> configProps = null;
 
 	public HdfsLogDestination(DebugTracer tracer) {
 		mLogger = tracer;
 	}
 
+	
+	public void setName(String name) {
+		this.name = name;
+	}
+
+
+	/* (non-Javadoc)
+	 * @see org.apache.ranger.audit.provider.LogDestination#getName()
+	 */
+	@Override
+	public String getName() {
+		return name;
+	}
+	
 	public String getDirectory() {
 		return mDirectory;
 	}
@@ -133,16 +153,28 @@ public class HdfsLogDestination<T> implements LogDestination<T> {
 	}
 
 	@Override
-	public boolean send(T log) {
-		boolean ret = false;
+	public boolean send(AuditEventBase log) {
+		boolean ret = true;
 		
 		if(log != null) {
-			String msg = log.toString();
+			String msg = MiscUtil.stringify(log);
 
 			ret = sendStringified(msg);
 		}
 
 		return ret;
+	}
+
+	
+	@Override
+	public boolean send(AuditEventBase[] logs) {
+		for(int i = 0; i < logs.length; i++) {
+			boolean ret = send(logs[i]);
+			if(!ret) {
+				return ret;
+			}
+		}
+		return true;
 	}
 
 	@Override
@@ -168,6 +200,18 @@ public class HdfsLogDestination<T> implements LogDestination<T> {
 		return ret;
 	}
 
+	@Override
+	public boolean sendStringified(String[] logs) {
+		for(int i = 0; i < logs.length; i++) {
+			boolean ret = sendStringified(logs[i]);
+			if(!ret) {
+				return ret;
+			}
+		}
+		return true;
+	}
+	
+	
 	@Override
 	public boolean flush() {
 		mLogger.debug("==> HdfsLogDestination.flush()");
@@ -216,7 +260,7 @@ public class HdfsLogDestination<T> implements LogDestination<T> {
 
 		long startTime = MiscUtil.getRolloverStartTime(mNextRolloverTime, (mRolloverIntervalSeconds * 1000L));
 
-		mHdfsFilename = MiscUtil.replaceTokens(mDirectory + org.apache.hadoop.fs.Path.SEPARATOR + mFile, startTime);
+		mHdfsFilename = MiscUtil.replaceTokens(mDirectory + Path.SEPARATOR + mFile, startTime);
 
 		FSDataOutputStream ostream     = null;
 		FileSystem         fileSystem  = null;
@@ -231,7 +275,7 @@ public class HdfsLogDestination<T> implements LogDestination<T> {
 
 			// TODO: mechanism to XA-HDFS plugin to disable auditing of access checks to the current HDFS file
 
-			conf        = new Configuration();
+			conf        = createConfiguration();
 			pathLogfile = new Path(mHdfsFilename);
 			fileSystem  = FileSystem.get(uri, conf);
 
@@ -272,7 +316,7 @@ public class HdfsLogDestination<T> implements LogDestination<T> {
 			}
 		} catch(Throwable ex) {
 			mLogger.warn("HdfsLogDestination.openFile() failed", ex);
-		} finally {
+//		} finally {
 			// TODO: unset the property set above to exclude auditing of logfile opening
 			//        System.setProperty(hdfsCurrentFilenameProperty, null);
 		}
@@ -447,5 +491,27 @@ public class HdfsLogDestination<T> implements LogDestination<T> {
 		sb.append("}");
 		
 		return sb.toString();
+	}
+
+	public void setConfigProps(Map<String,String> configProps) {
+		this.configProps = configProps;
+	}
+
+	Configuration createConfiguration() {
+		Configuration conf = new Configuration();
+		if (configProps != null) {
+			for (Map.Entry<String, String> entry : configProps.entrySet()) {
+				String key = entry.getKey();
+				String value = entry.getValue();
+				// for ease of install config file may contain properties with empty value, skip those
+				if (StringUtils.isNotEmpty(value)) {
+					conf.set(key, value);
+				}
+				mLogger.info("Adding property to HDFS config: " + key + " => " + value);
+			}
+		}
+
+		mLogger.info("Returning HDFS Filesystem Config: " + conf.toString());
+		return conf;
 	}
 }

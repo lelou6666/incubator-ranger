@@ -52,7 +52,7 @@ define(function(require){
 		/** all events binding here */
 		bindEvents : function(){
 			this.on('userRoleList:change', function(form, fieldEditor){
-//    			this.userRoleListChange(form, fieldEditor);
+				//this.userRoleListChange(form, fieldEditor);
     		});
 		},
 		/** fields for the form
@@ -63,34 +63,32 @@ define(function(require){
 				name : {
 					type		: 'Text',
 					title		: localization.tt("lbl.userName") +' *',
-					//validators  : ['required'],
-					validators  : ['required',{type:'regexp',regexp:/^[a-z][a-z0-9,._'-]+$/i,message :'Please enter valid name'}],
+					validators  : ['required',{type:'regexp',regexp:/^[a-z0-9][a-z0-9,._'-+]+$/i,message :"Name should start with alpha/numeric letters and can have special characters ,.+_'-"}],
 					editorAttrs :{'maxlength': 32}
 				},
 				password : {
 					type		: 'Password',
-					title		: localization.tt("lbl.password") +' *',
+					title		: localization.tt("lbl.newPassword") +' *',
 					validators  : ['required', {type: 'match', field: 'passwordConfirm', message: 'Passwords must match!'},
 					               {type:'regexp',regexp:/^.*(?=.{8,256})(?=.*\d)(?=.*[a-zA-Z]).*$/,message :localization.tt('validationMessages.passwordError')}],
-					editorAttrs  : {'onpaste':'return false;','oncopy':'return false;','autocomplete':'off'}               
+					editorAttrs  : {'oncopy':'return false;','autocomplete':'off'}               
 				},
 				passwordConfirm : {
 					type		: 'Password',
 					title		: localization.tt("lbl.passwordConfirm") +' *',
 					validators  : ['required',
 					               {type:'regexp',regexp:/^.*(?=.{8,256})(?=.*\d)(?=.*[a-zA-Z]).*$/,message :localization.tt('validationMessages.passwordError')}],
-					editorAttrs  : {'onpaste':'return false;','oncopy':'return false;','autocomplete':'off'}
+					editorAttrs  : {'oncopy':'return false;','autocomplete':'off'}
 				},
 				firstName : { 
 					type		: 'Text',
 					title		: localization.tt("lbl.firstName")+' *',
-					validators  : ['required',{type:'regexp',regexp:/^[a-z][a-z0-9]+$/i,message :'Please enter valid name'}]
+					validators  : ['required',{type:'regexp',regexp:/^[a-zA-Z][a-zA-Z0-9\s_-]*[a-zA-Z0-9]+$/,message :'First name should start with alphabets & can have underscore, hyphen, space.'}]
 				},
 				lastName : { 
 					type		: 'Text',
 					title		: localization.tt("lbl.lastName"),
-					validators  : [{type:'regexp',regexp:/^[a-z][a-z0-9]+$/i,message :'Please enter valid name'}]
-				///^[a-zA-z][a-z ,.'-]+$/i
+					validators  : [{type:'regexp',regexp:/^[a-zA-Z][a-zA-Z0-9\s_-]*[a-zA-Z0-9]+$/,message :'Last name should start with alphabets & can have underscore, hyphen, space.'}]
 				},
 				emailAddress : {
 					type		: 'Text',
@@ -100,7 +98,14 @@ define(function(require){
 				userRoleList : {
 					type : 'Select',
 					options : function(callback, editor){
-						var userTypes = _.filter(XAEnums.UserRoles,function(m){return m.label != 'Unknown'});
+
+						var userTypes = _.filter(XAEnums.UserRoles,function(m){
+							if(!SessionMgr.isKeyAdmin()){
+								return m.label != 'Unknown'	&& m.label != 'KeyAdmin';
+							} else {
+								return m.label != 'Unknown' && m.label != 'Admin';
+							}
+						});
 						var nvPairs = XAUtils.enumToSelectPairs(userTypes);
 						callback(nvPairs);
 					},
@@ -108,13 +113,6 @@ define(function(require){
 				}
 			};	
 		},
-		/*userRoleListChange : function(form, fieldEditor){
-			if(fieldEditor.getValue() == 1){
-				this.model.set('userRoleList',["ROLE_USER"]);
-			}else{
-				this.model.set('userRoleList',["ROLE_SYS_ADMIN"]);
-			}
-		},*/
 		/** on render callback */
 		render: function(options) {
 			var that = this;
@@ -127,10 +125,13 @@ define(function(require){
 				if(this.model.has('userRoleList')){
 					var roleList = this.model.get('userRoleList');
 					if(!_.isUndefined(roleList) && roleList.length > 0){
-						if(XAEnums.UserRoles[roleList[0]].value == XAEnums.UserRoles.ROLE_USER.value)
+						if(XAEnums.UserRoles[roleList[0]].value == XAEnums.UserRoles.ROLE_USER.value){
 							this.fields.userRoleList.setValue(XAEnums.UserRoles.ROLE_USER.value);
-						else
+						} else if(XAEnums.UserRoles[roleList[0]].value == XAEnums.UserRoles.ROLE_KEY_ADMIN.value){
+							this.fields.userRoleList.setValue(XAEnums.UserRoles.ROLE_KEY_ADMIN.value);
+						} else {
 							this.fields.userRoleList.setValue(XAEnums.UserRoles.ROLE_SYS_ADMIN.value);
+						}
 					}
 				}
 				if(!_.isUndefined(this.model.get('userSource')) && this.model.get('userSource') == XAEnums.UserSource.XA_USER.value){
@@ -145,15 +146,18 @@ define(function(require){
 				
 				if(SessionMgr.getUserProfile().get('loginId') != "admin"){
 					if(this.model.get('name') != "admin"){
-						if(_.contains(SessionMgr.getUserProfile().get('userRoleList'),'ROLE_SYS_ADMIN')){
+						if(_.contains(SessionMgr.getUserProfile().get('userRoleList'),'ROLE_SYS_ADMIN') 
+								|| _.contains(SessionMgr.getUserProfile().get('userRoleList'),'ROLE_KEY_ADMIN')){
 							this.fields.userRoleList.editor.$el.attr('disabled',false);
-						}else{
-							this.fields.userRoleList.editor.$el.attr('disabled',true);
+						} else {
+							if(!SessionMgr.isKeyAdmin()){
+								this.fields.userRoleList.editor.$el.attr('disabled',true);
+							}
 						}
-					}else{
+					} else {
 						this.fields.userRoleList.editor.$el.attr('disabled',true);
 					}
-				}else{
+				} else {
 					this.fields.userRoleList.editor.$el.attr('disabled',false);
 				}
 				//User does not allowed to change his role (it's own role)
@@ -167,8 +171,9 @@ define(function(require){
 			that.$('[data-customfields="groupIdList"]').html(new AddGroup({
 				model : that.model
 			}).render().el);
-			if(!that.showBasicFields)
+			if(!that.showBasicFields) {
 				that.$('[data-customfields="groupIdList"]').hide();
+			}
 		},
 		showCustomFields : function(){
 			if(!this.showBasicFields){
@@ -189,8 +194,8 @@ define(function(require){
 				this.fields.password.$el.hide();
 				this.fields.passwordConfirm.$el.hide();
 				
-				this.fields.password.editor.validators = [];//this.removeElementFromArr(this.fields.password.editor.validators , 'required');
-				this.fields.passwordConfirm.editor.validators = [];//this.removeElementFromArr(this.fields.passwordConfirm.editor.validators , 'required');
+				this.fields.password.editor.validators = [];
+				this.fields.passwordConfirm.editor.validators = [];
 				//Remove validation checks for external users
 				if(this.model.get('userSource') == XAEnums.UserSource.XA_USER.value){
 					this.fields.firstName.editor.validators = [];
@@ -207,25 +212,21 @@ define(function(require){
 		beforeSaveUserDetail : function(){
 			if(this.model.get('userSource') != XAEnums.UserSource.XA_USER.value){
 				var groupArr = this.$('[data-customfields="groupIdList"]').find('.tags').editable('getValue', true);
-				if(_.isNumber(groupArr))
+				if(_.isNumber(groupArr)){
 					groupArr = groupArr.toString().split(',');
-				/*if(_.isEmpty(groupArr) ){
-					this.$('[data-customfields="groupIdList"]').find('.control-group').addClass('error');
-					this.$('[data-customfields="groupIdList"]').find('[data-error="groupIdList"]').show();
-					return false;
-				}else{
-					this.$('[data-customfields="groupIdList"]').find('.control-group').removeClass('error');
-					this.$('[data-customfields="groupIdList"]').find('[data-error="groupIdList"]').hide();				
-				}*/
+				}
 				this.model.set('groupIdList',groupArr);
 				this.model.set('status',XAEnums.ActivationStatus.ACT_STATUS_ACTIVE.value);
 				this.model.unset('passwordConfirm');
 			}
-			if(!this.model.isNew())
+			if(!this.model.isNew()){
 				this.model.unset('password');
+			}
 			//FOR USER ROLE
 			if(this.fields.userRoleList.getValue() == XAEnums.UserRoles.ROLE_USER.value){
 				this.model.set('userRoleList',["ROLE_USER"]);
+			}else if(this.fields.userRoleList.getValue() == XAEnums.UserRoles.ROLE_KEY_ADMIN.value){
+				this.model.set('userRoleList',["ROLE_KEY_ADMIN"]);
 			}else{
 				this.model.set('userRoleList',["ROLE_SYS_ADMIN"]);
 			}
@@ -233,8 +234,14 @@ define(function(require){
 		},
 		beforeSavePasswordDetail : function(){
 			this.model.unset('passwordConfirm');
-			this.model.unset('userRoleList');
-			
+			//FOR USER ROLE
+			if(this.fields.userRoleList.getValue() == XAEnums.UserRoles.ROLE_USER.value){
+				this.model.set('userRoleList',["ROLE_USER"]);
+			}else if(this.fields.userRoleList.getValue() == XAEnums.UserRoles.ROLE_KEY_ADMIN.value){
+				this.model.set('userRoleList',["ROLE_KEY_ADMIN"]);
+			}else{
+				this.model.set('userRoleList',["ROLE_SYS_ADMIN"]);
+			}
 		},
 		/** all post render plugin initialization */
 		initializePlugins: function(){

@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.ranger.service;
 
 import java.io.IOException;
@@ -49,7 +66,6 @@ public class RangerDataHistService {
 		
 		Long objectId = baseModelObj.getId();
 		String objectGuid = baseModelObj.getGuid();
-		Long version = baseModelObj.getVersion();
 		Date currentDate = DateUtil.getUTCDate();
 		
 		XXDataHist xDataHist = new XXDataHist();;
@@ -93,7 +109,6 @@ public class RangerDataHistService {
 								+ objectName, MessageEnums.DATA_NOT_UPDATABLE);
 			}
 			
-			prevHist.setVersion(version);
 			prevHist.setUpdateTime(currentDate);
 			prevHist.setToTime(currentDate);
 			prevHist.setObjectName(objectName);
@@ -122,5 +137,22 @@ public class RangerDataHistService {
 					MessageEnums.INVALID_INPUT_DATA);
 		}
 	}
-	
+
+	public Object writeJsonToJavaObject(String json, Class<?> tClass) {
+		ObjectMapper mapper = new ObjectMapper();
+
+		try {
+			return mapper.readValue(json, tClass);
+		} catch (JsonParseException e) {
+			throw restErrorUtil.createRESTException("Invalid input data: " + e.getMessage(),
+					MessageEnums.INVALID_INPUT_DATA);
+		} catch (JsonMappingException e) {
+			throw restErrorUtil.createRESTException("Invalid input data: " + e.getMessage(),
+					MessageEnums.INVALID_INPUT_DATA);
+		} catch (IOException e) {
+			throw restErrorUtil.createRESTException("Invalid input data: " + e.getMessage(),
+					MessageEnums.INVALID_INPUT_DATA);
+		}
+	}
+
 }

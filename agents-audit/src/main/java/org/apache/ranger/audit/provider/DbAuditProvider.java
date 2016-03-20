@@ -19,6 +19,7 @@
 package org.apache.ranger.audit.provider;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
@@ -30,7 +31,10 @@ import javax.persistence.Persistence;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ranger.audit.dao.DaoManager;
+import org.apache.ranger.audit.destination.AuditDestination;
+import org.apache.ranger.audit.entity.AuthzAuditEventDbObj;
 import org.apache.ranger.audit.model.AuditEventBase;
+import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.authorization.hadoop.utils.RangerCredentialProvider;
 
 
@@ -38,7 +42,7 @@ import org.apache.ranger.authorization.hadoop.utils.RangerCredentialProvider;
  * NOTE:
  * - Instances of this class are not thread-safe.
  */
-public class DbAuditProvider extends BaseAuditProvider {
+public class DbAuditProvider extends AuditDestination {
 
 	private static final Log LOG = LogFactory.getLog(DbAuditProvider.class);
 
@@ -73,25 +77,28 @@ public class DbAuditProvider extends BaseAuditProvider {
 
 		super.init(props);
 
-		mDbProperties         = BaseAuditProvider.getPropertiesWithPrefix(props, AUDIT_JPA_CONFIG_PROP_PREFIX);
-		mCommitBatchSize      = BaseAuditProvider.getIntProperty(props, AUDIT_DB_BATCH_SIZE_PROP, 1000);
-		mDbRetryMinIntervalMs = BaseAuditProvider.getIntProperty(props, AUDIT_DB_RETRY_MIN_INTERVAL_PROP, 15 * 1000);
+		mDbProperties         = MiscUtil.getPropertiesWithPrefix(props, AUDIT_JPA_CONFIG_PROP_PREFIX);
+		mCommitBatchSize      = MiscUtil.getIntProperty(props, AUDIT_DB_BATCH_SIZE_PROP, 1000);
+		mDbRetryMinIntervalMs = MiscUtil.getIntProperty(props, AUDIT_DB_RETRY_MIN_INTERVAL_PROP, 15 * 1000);
 
-		boolean isAsync = BaseAuditProvider.getBooleanProperty(props, AUDIT_DB_IS_ASYNC_PROP, false);
+		boolean isAsync = MiscUtil.getBooleanProperty(props, AUDIT_DB_IS_ASYNC_PROP, false);
 
 		if(! isAsync) {
 			mCommitBatchSize = 1; // Batching not supported in sync mode
 		}
 
-		String jdbcPassword = getCredentialString(BaseAuditProvider.getStringProperty(props, AUDIT_DB_CREDENTIAL_PROVIDER_FILE), AUDIT_DB_CREDENTIAL_PROVIDER_ALIAS);
+		String jdbcPassword = getCredentialString(MiscUtil.getStringProperty(props, AUDIT_DB_CREDENTIAL_PROVIDER_FILE), AUDIT_DB_CREDENTIAL_PROVIDER_ALIAS);
 
 		if(jdbcPassword != null && !jdbcPassword.isEmpty()) {
 			mDbProperties.put(AUDIT_JPA_JDBC_PASSWORD, jdbcPassword);
 		}
+
+		// initialize the database related classes
+		AuthzAuditEventDbObj.init(props);
 	}
 
 	@Override
-	public void log(AuditEventBase event) {
+	public boolean log(AuditEventBase event) {
 		LOG.debug("DbAuditProvider.log()");
 
 		boolean isSuccess = false;
@@ -99,7 +106,7 @@ public class DbAuditProvider extends BaseAuditProvider {
 		try {
 			if(preCreate(event)) {
 				DaoManager daoMgr = daoManager;
-	
+
 				if(daoMgr != null) {
 					event.persist(daoMgr);
 	
@@ -113,6 +120,39 @@ public class DbAuditProvider extends BaseAuditProvider {
 				logFailedEvent(event);
 			}
 		}
+		LOG.debug("<== DbAuditProvider.log()");
+		return isSuccess;
+	}
+
+	@Override
+	public boolean log(Collection<AuditEventBase> events) {
+		boolean ret = true;
+		for (AuditEventBase event : events) {
+			ret = log(event);
+			if(!ret) {
+				break;
+			}
+		}
+		return ret;
+	}
+
+	@Override
+	public boolean logJSON(String event) {
+		AuditEventBase eventObj = MiscUtil.fromJson(event,
+				AuthzAuditEvent.class);
+		return log(eventObj);
+	}
+
+	@Override
+	public boolean logJSON(Collection<String> events) {
+		boolean ret = true;
+		for (String event : events) {
+			ret = logJSON(event);
+			if( !ret ) {
+				break;
+			}
+		}
+		return ret;
 	}
 
 	@Override
@@ -127,21 +167,6 @@ public class DbAuditProvider extends BaseAuditProvider {
 		LOG.info("DbAuditProvider.stop()");
 
 		cleanUp();
-	}
-	
-	@Override
-    public void waitToComplete() {
-		LOG.info("DbAuditProvider.waitToComplete()");
-	}
-
-	@Override
-	public boolean isFlushPending() {
-		return mUncommitted.size() > 0;
-	}
-	
-	@Override
-	public long getLastFlushTime() {
-		return mLastCommitTime;
 	}
 
 	@Override
@@ -167,7 +192,7 @@ public class DbAuditProvider extends BaseAuditProvider {
 		}
 
 		LOG.info("DbAuditProvider: init()");
-
+		LOG.info("java.library.path:"+System.getProperty("java.library.path"));
 		try {
 			entityManagerFactory = Persistence.createEntityManagerFactory("xa_server", mDbProperties);
 

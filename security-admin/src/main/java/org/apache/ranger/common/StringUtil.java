@@ -36,7 +36,6 @@ public class StringUtil implements Serializable {
 
 	static final public String VALIDATION_NAME = "[\\w\\ \\-\\']*";
 	static final public String VALIDATION_TEXT = "[a-zA-Z0-9\\ \"!@#$%^&amp;*()-_=+;:'&quot;|~`&lt;&gt;?/{}\\.\\,\\-\\?<>]*";
-	// Only for Student loginId
 	static final public String VALIDATION_LOGINID = "[a-z,A-Z][\\w\\-\\_]*[a-z,A-Z,0-9]";
 
 	static final public String VALIDATION_ALPHA = "[a-z,A-Z]*";
@@ -91,7 +90,7 @@ public class StringUtil implements Serializable {
 			return null;
 		}
 		str = str.trim().toLowerCase();
-		StringBuffer result = new StringBuffer(str.length());
+		StringBuilder result = new StringBuilder(str.length());
 		boolean makeUpper = true;
 		boolean lastCharSpace = true;
 		for (int c = 0; c < str.length(); c++) {

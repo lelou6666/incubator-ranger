@@ -45,10 +45,10 @@ public class SearchGroup {
 	}
 
 	public String getWhereClause(String prefix) {
-		if ((values == null || values.size() == 0)
-				&& (searchGroups == null || searchGroups.size() == 0)) {
+		if (values == null || values.size() == 0 || searchGroups == null || searchGroups.size() == 0) {
 			return "";
 		}
+
 		int count = -1;
 		int innerCount = 0;
 		StringBuilder whereClause = new StringBuilder("(");
@@ -108,7 +108,7 @@ public class SearchGroup {
 	 */
 	public void resolveValues(Query query, String prefix) {
 		if ((values == null || values.size() == 0)
-				&& (searchGroups == null || searchGroups.size() == 0)) {
+				|| (searchGroups == null || searchGroups.size() == 0)) {
 			return;
 		}
 

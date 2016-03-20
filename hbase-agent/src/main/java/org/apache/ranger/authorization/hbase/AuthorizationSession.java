@@ -29,9 +29,9 @@ import org.apache.hadoop.hbase.security.User;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
+import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResult;
-import org.apache.ranger.plugin.policyengine.RangerPolicyEngine;
-import org.apache.ranger.plugin.policyengine.RangerResourceImpl;
+import org.apache.ranger.plugin.service.RangerBasePlugin;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
@@ -44,7 +44,7 @@ public class AuthorizationSession {
 	final HbaseUserUtils _userUtils = _factory.getUserUtils();
 	final HbaseAuthUtils _authUtils = _factory.getAuthUtils();
 	// immutable state
-	final RangerPolicyEngine _authorizer;
+	final RangerBasePlugin _authorizer;
 	// Mutable state: Use supplied state information
 	String _operation;
 	String _otherInformation;
@@ -57,12 +57,14 @@ public class AuthorizationSession {
 	Set<String> _groups; // this exits to avoid having to get group for a user repeatedly.  It is kept in sync with _user;
 	// Passing a null handler to policy engine would suppress audit logging.
 	HbaseAuditHandler _auditHandler = null;
-	
+	boolean _superUser = false; // is this session for a super user?
+	private RangerAccessRequest.ResourceMatchingScope _resourceMatchingScope = RangerAccessRequest.ResourceMatchingScope.SELF;
+
 	// internal state per-authorization
 	RangerAccessRequest _request;
 	RangerAccessResult _result;
 	
-	public AuthorizationSession(RangerPolicyEngine authorizer) {
+	public AuthorizationSession(RangerBasePlugin authorizer) {
 		_authorizer = authorizer;
 	}
 
@@ -89,10 +91,11 @@ public class AuthorizationSession {
 	AuthorizationSession user(User aUser) {
 		_user = aUser;
 		if (_user == null) {
-			LOG.debug("AuthorizationSession.user: user is null!");
+			LOG.warn("AuthorizationSession.user: user is null!");
 			_groups = null;
 		} else {
 			_groups = _userUtils.getUserGroups(_user);
+			_superUser = _userUtils.isSuperUser(_user);
 		}
 		return this;
 	}
@@ -156,7 +159,7 @@ public class AuthorizationSession {
 		// session can be reused so reset its state
 		zapAuthorizationState();
 		// TODO get this via a factory instead
-		RangerResourceImpl resource = new RangerResourceImpl();
+		RangerAccessResourceImpl resource = new RangerAccessResourceImpl();
 		// policy engine should deal sensibly with null/empty values, if any
 		resource.setValue("table", _table);
 		resource.setValue("column-family", _columnFamily);
@@ -167,6 +170,7 @@ public class AuthorizationSession {
 		request.setAction(_operation);
 		request.setRequestData(_otherInformation);
 		request.setClientIPAddress(_remoteAddress);
+		request.setResourceMatchingScope(_resourceMatchingScope);
 		
 		_request = request;
 		if (LOG.isDebugEnabled()) {
@@ -177,27 +181,43 @@ public class AuthorizationSession {
 	
 	AuthorizationSession authorize() {
 		if (LOG.isDebugEnabled()) {
-			String message = "authorize: " + getRequestMessage();
-			LOG.debug(message);
+			LOG.debug("==> AuthorizationSession.authorize: " + getRequestMessage());
 		}
+		
 		if (_request == null) {
 			String message = String.format("Invalid state transition: buildRequest() must be called before authorize().  This request would ultimately get denied.!");
 			throw new IllegalStateException(message);
 		} else {
 			// ok to pass potentially null handler to policy engine.  Null handler effectively suppresses the audit.
+			if (_auditHandler != null && _superUser) {
+				if (LOG.isDebugEnabled()) {
+	                LOG.debug("Setting super-user override on audit handler");
+				}
+				_auditHandler.setSuperUserOverride(_superUser);
+			}
 			_result = _authorizer.isAccessAllowed(_request, _auditHandler);
 		}
+		
 		if (LOG.isDebugEnabled()) {
 			boolean allowed = isAuthorized();
 			String reason = getDenialReason();
-			String message = "AuthorizationSession.authorize: " + getLogMessage(allowed, reason);
-			LOG.debug(message);
+			LOG.debug("<== AuthorizationSession.authorize: " + getLogMessage(allowed, reason));
 		}
 		return this;
 	}
 	
+	void logCapturedEvents() {
+		if (_auditHandler != null) {
+			List<AuthzAuditEvent> events = _auditHandler.getCapturedEvents();
+			_auditHandler.logAuthzAudits(events);
+		}
+	}
+	
 	void publishResults() throws AccessDeniedException {
-
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("==> AuthorizationSession.publishResults()");
+		}
+		
 		boolean authorized = isAuthorized();
 		if (_auditHandler != null) {
 			List<AuthzAuditEvent> events = null;
@@ -211,7 +231,7 @@ public class AuthorizationSession {
 					events = theseEvents;
 				}
 			} else {
-				AuthzAuditEvent event = _auditHandler.discardMostRecentEvent();
+				AuthzAuditEvent event = _auditHandler.getAndDiscardMostRecentEvent();
 				if (event != null) {
 					events = Lists.newArrayList(event);
 				}
@@ -229,9 +249,13 @@ public class AuthorizationSession {
 			String reason = getDenialReason();
 			String message = getLogMessage(false, reason);
 			if (LOG.isDebugEnabled()) {
-				LOG.debug("AuthorizationSession.publishResults: throwing exception: " + message);
+				LOG.debug("<== AuthorizationSession.publishResults: throwing exception: " + message);
 			}
 			throw new AccessDeniedException("Insufficient permissions for user '" + _user.getName() + "' (action=" + _access + ")");
+		}
+
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("<== AuthorizationSession.publishResults()");
 		}
 	}
 	
@@ -254,6 +278,12 @@ public class AuthorizationSession {
 			LOG.error(message);
 		} else {
 			allowed = _result.getIsAllowed();
+		}
+		if (!allowed && _superUser) {
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("User [" + _user + "] is a superUser!  Overriding policy engine's decision.  Request is deemed authorized!");
+			}
+			allowed = true;
 		}
 		return allowed;
 	}
@@ -283,6 +313,7 @@ public class AuthorizationSession {
 			.add("table", _table)
 			.add("column", _column)
 			.add("column-family", _columnFamily)
+			.add("resource-matching-scope", _resourceMatchingScope)
 			.toString();
 	}
 
@@ -335,9 +366,16 @@ public class AuthorizationSession {
 
 	RangerAccessResult buildResult(boolean allowed, boolean audited, String reason) {
 		RangerAccessResult result = _authorizer.createAccessResult(_request);
-		result.setIsAllowed(allowed);
-		result.setReason(reason);
-		result.setIsAudited(audited);
+		if (result != null) {
+			result.setIsAllowed(allowed);
+			result.setReason(reason);
+			result.setIsAudited(audited);
+		}
 		return result;
+	}
+
+	AuthorizationSession resourceMatchingScope(RangerAccessRequest.ResourceMatchingScope scope) {
+		_resourceMatchingScope = scope;
+		return this;
 	}
 }

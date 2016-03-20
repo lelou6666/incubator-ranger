@@ -20,10 +20,18 @@
  package org.apache.ranger.biz;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.apache.log4j.Logger;
 import org.apache.ranger.common.DateUtil;
 import org.apache.ranger.common.HTTPUtil;
@@ -38,8 +46,11 @@ import org.apache.ranger.db.RangerDaoManager;
 import org.apache.ranger.entity.XXAuthSession;
 import org.apache.ranger.entity.XXPortalUser;
 import org.apache.ranger.entity.XXPortalUserRole;
+import org.apache.ranger.entity.XXUser;
 import org.apache.ranger.security.context.RangerContextHolder;
 import org.apache.ranger.security.context.RangerSecurityContext;
+import org.apache.ranger.security.listener.RangerHttpSessionListener;
+import org.apache.ranger.security.web.filter.RangerSecurityContextFormationFilter;
 import org.apache.ranger.service.AuthSessionService;
 import org.apache.ranger.util.RestUtil;
 import org.apache.ranger.view.VXAuthSession;
@@ -77,6 +88,8 @@ public class SessionMgr {
 	public SessionMgr() {
 		logger.debug("SessionManager created");
 	}
+
+	private static final Long SESSION_UPDATE_INTERVAL_IN_MILLIS = 30 * DateUtils.MILLIS_PER_MINUTE;
 
 	public UserSessionBase processSuccessLogin(int authType, String userAgent) {
 		return processSuccessLogin(authType, userAgent, null);
@@ -129,27 +142,64 @@ public class SessionMgr {
 				gjAuthSession.setRequestUserAgent(userAgent);
 			}
 			gjAuthSession.setDeviceType(httpUtil.getDeviceType(userAgent));
-			gjAuthSession = storeAuthSession(gjAuthSession);
+			HttpSession session = httpRequest.getSession();
+			if (session != null) {
+				if (session.getAttribute("auditLoginId") == null) {
+					synchronized (session) {
+						if (session.getAttribute("auditLoginId") == null) {
+							gjAuthSession = storeAuthSession(gjAuthSession);
+							session.setAttribute("auditLoginId", gjAuthSession.getId());
+						}
+					}
+				}
+			}
 
 			userSession = new UserSessionBase();
 			userSession.setXXPortalUser(gjUser);
 			userSession.setXXAuthSession(gjAuthSession);
-			resetUserSessionForProfiles(userSession);
 
+			resetUserSessionForProfiles(userSession);
+			resetUserModulePermission(userSession);
+
+			Calendar cal = Calendar.getInstance();
 			if (details != null) {
 				logger.info("Login Success: loginId=" + currentLoginId
 						+ ", sessionId=" + gjAuthSession.getId()
 						+ ", sessionId=" + details.getSessionId()
-						+ ", requestId=" + details.getRemoteAddress());
+						+ ", requestId=" + details.getRemoteAddress()
+						+ ", epoch=" + cal.getTimeInMillis());
 			} else {
 				logger.info("Login Success: loginId=" + currentLoginId
 						+ ", sessionId=" + gjAuthSession.getId()
-						+ ", details is null");
+						+ ", details is null"
+						+ ", epoch=" + cal.getTimeInMillis());
 			}
 
 		}
 
 		return userSession;
+	}
+
+	public void resetUserModulePermission(UserSessionBase userSession) {
+
+		XXUser xUser = daoManager.getXXUser().findByUserName(userSession.getLoginId());
+		if (xUser != null) {
+			List<String> permissionList = daoManager.getXXModuleDef().findAccessibleModulesByUserId(userSession.getUserId(), xUser.getId());
+			CopyOnWriteArraySet<String> userPermissions = new CopyOnWriteArraySet<String>(permissionList);
+
+			UserSessionBase.RangerUserPermission rangerUserPermission = userSession.getRangerUserPermission();
+
+			if (rangerUserPermission == null) {
+				rangerUserPermission = new UserSessionBase.RangerUserPermission();
+			}
+
+			rangerUserPermission.setUserPermissions(userPermissions);
+			rangerUserPermission.setLastUpdatedTime(Calendar.getInstance().getTimeInMillis());
+			userSession.setRangerUserPermission(rangerUserPermission);
+			logger.info("UserSession Updated to set new Permissions to User: " + userSession.getLoginId());
+		} else {
+			logger.error("No XUser found with username: " + userSession.getLoginId() + "So Permission is not set for the user");
+		}
 	}
 
 	public void resetUserSessionForProfiles(UserSessionBase userSession) {
@@ -175,12 +225,20 @@ public class SessionMgr {
 				userSession.getUserId());
 		for (XXPortalUserRole gjUserRole : roleList) {
 			String userRole = gjUserRole.getUserRole();
-
 			strRoleList.add(userRole);
-			if (userRole.equals(RangerConstants.ROLE_SYS_ADMIN)) {
-				userSession.setUserAdmin(true);
-			}
 		}
+
+		if (strRoleList.contains(RangerConstants.ROLE_SYS_ADMIN)) {
+			userSession.setUserAdmin(true);
+			userSession.setKeyAdmin(false);
+		} else if (strRoleList.contains(RangerConstants.ROLE_KEY_ADMIN)) {
+			userSession.setKeyAdmin(true);
+			userSession.setUserAdmin(false);
+		} else if (strRoleList.size() == 1 && strRoleList.get(0).equals(RangerConstants.ROLE_USER)) {
+			userSession.setKeyAdmin(false);
+			userSession.setUserAdmin(false);
+		}
+
 		userSession.setUserRoleList(strRoleList);
 	}
 
@@ -263,6 +321,7 @@ public class SessionMgr {
 		RangerContextHolder.setSecurityContext(context);
 
 		resetUserSessionForProfiles(userSession);
+		resetUserModulePermission(userSession);
 
 		return userSession;
 	}
@@ -273,7 +332,10 @@ public class SessionMgr {
 	 */
 	public VXAuthSessionList searchAuthSessions(SearchCriteria searchCriteria) {
 
-		if (searchCriteria != null && searchCriteria.getParamList() != null
+		if (searchCriteria == null) {
+			searchCriteria = new SearchCriteria();
+		}
+		if (searchCriteria.getParamList() != null
 				&& searchCriteria.getParamList().size() > 0) {	
 			
 			int clientTimeOffsetInMinute=RestUtil.getClientTimeOffset();
@@ -335,6 +397,70 @@ public class SessionMgr {
 			return true;
 		}
 		
+	}
+
+	public CopyOnWriteArrayList<UserSessionBase> getActiveSessionsOnServer() {
+
+		CopyOnWriteArrayList<HttpSession> activeHttpUserSessions = RangerHttpSessionListener.getActiveSessionOnServer();
+		CopyOnWriteArrayList<UserSessionBase> activeRangerUserSessions = new CopyOnWriteArrayList<UserSessionBase>();
+
+		if (CollectionUtils.isEmpty(activeHttpUserSessions)) {
+			return activeRangerUserSessions;
+		}
+
+		for (HttpSession httpSession : activeHttpUserSessions) {
+
+			if (httpSession.getAttribute(RangerSecurityContextFormationFilter.AKA_SC_SESSION_KEY) == null) {
+				continue;
+			}
+
+			RangerSecurityContext securityContext = (RangerSecurityContext) httpSession.getAttribute(RangerSecurityContextFormationFilter.AKA_SC_SESSION_KEY);
+			if (securityContext.getUserSession() != null) {
+				activeRangerUserSessions.add(securityContext.getUserSession());
+			}
+		}
+
+		return activeRangerUserSessions;
+	}
+
+	public Set<UserSessionBase> getActiveUserSessionsForPortalUserId(Long portalUserId) {
+		CopyOnWriteArrayList<UserSessionBase> activeSessions = getActiveSessionsOnServer();
+
+		if (CollectionUtils.isEmpty(activeSessions)) {
+			return null;
+		}
+
+		Set<UserSessionBase> activeUserSessions = new HashSet<UserSessionBase>();
+		for (UserSessionBase session : activeSessions) {
+			if (session.getUserId().equals(portalUserId)) {
+				activeUserSessions.add(session);
+			}
+		}
+		if (logger.isDebugEnabled()) {
+			logger.debug("No Session Found with portalUserId: " + portalUserId);
+		}
+		return activeUserSessions;
+	}
+
+	public Set<UserSessionBase> getActiveUserSessionsForXUserId(Long xUserId) {
+		XXPortalUser portalUser = daoManager.getXXPortalUser().findByXUserId(xUserId);
+		if (portalUser != null) {
+			return getActiveUserSessionsForPortalUserId(portalUser.getId());
+		} else {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Could not find corresponding portalUser for xUserId" + xUserId);
+			}
+			return null;
+		}
+	}
+
+	public synchronized void refreshPermissionsIfNeeded(UserSessionBase userSession) {
+		if (userSession != null) {
+			Long lastUpdatedTime = (userSession.getRangerUserPermission() != null) ? userSession.getRangerUserPermission().getLastUpdatedTime() : null;
+			if (lastUpdatedTime == null || (Calendar.getInstance().getTimeInMillis() - lastUpdatedTime) > SESSION_UPDATE_INTERVAL_IN_MILLIS) {
+				this.resetUserModulePermission(userSession);
+			}
+		}
 	}
 
 }

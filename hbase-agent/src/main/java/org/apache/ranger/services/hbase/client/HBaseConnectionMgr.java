@@ -19,15 +19,14 @@
 
 package org.apache.ranger.services.hbase.client;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
-import org.apache.ranger.services.hbase.client.HBaseClient;
-import org.apache.ranger.plugin.store.ServiceStoreFactory;
 import org.apache.ranger.plugin.util.TimedEventUtil;
 
 
@@ -35,32 +34,21 @@ public class HBaseConnectionMgr {
 
 	private static Logger LOG = Logger.getLogger(HBaseConnectionMgr.class);
 
-	protected HashMap<String, HBaseClient> hbaseConnectionCache;
+	protected ConcurrentMap<String, HBaseClient> hbaseConnectionCache;
 	
-	protected HashMap<String, Boolean> repoConnectStatusMap;
+	protected ConcurrentMap<String, Boolean> repoConnectStatusMap;
 
 	public HBaseConnectionMgr() {
-		hbaseConnectionCache = new HashMap<String, HBaseClient>();
-		repoConnectStatusMap = new HashMap<String, Boolean>();
+		hbaseConnectionCache = new ConcurrentHashMap<String, HBaseClient>();
+		repoConnectStatusMap = new ConcurrentHashMap<String, Boolean>();
 	}
 
-	public HBaseClient getHBaseConnection(final String serviceName, final Map<String,String> configs) {
+	public HBaseClient getHBaseConnection(final String serviceName, final String serviceType, final Map<String,String> configs) {
 		
 		HBaseClient client = null;
-		String serviceType = null;
-		try {
-			serviceType = ServiceStoreFactory
-									.instance()
-									.getServiceStore()
-									.getServiceByName(serviceName)
-									.getType();
-		} catch (Exception ex) {
-			LOG.error("Service could not be found for the Service Name : " + serviceName , ex);
-		}
 		if (serviceType != null) {
 			// get it from the cache
-			synchronized (hbaseConnectionCache) {
-				client = hbaseConnectionCache.get(serviceType);
+				client = hbaseConnectionCache.get(serviceName);
 				if (client == null) {
 					if ( configs == null ) {
 						final Callable<HBaseClient> connectHBase = new Callable<HBaseClient>() {
@@ -69,7 +57,7 @@ public class HBaseConnectionMgr {
 								HBaseClient hBaseClient=null;
 								if(serviceName!=null){
 									try{
-										hBaseClient=new HBaseClient(serviceName);
+										hBaseClient=new HBaseClient(serviceName, configs);
 									}catch(Exception ex){
 										LOG.error("Error connecting HBase repository : ", ex);
 									}
@@ -113,7 +101,11 @@ public class HBaseConnectionMgr {
 					} 
 
 					if(client!=null){
-						hbaseConnectionCache.put(serviceType, client);
+						HBaseClient oldClient = hbaseConnectionCache.putIfAbsent(serviceName, client);
+						if (oldClient != null) {
+							// in the meantime someone else has put a valid client into the cache, let's use that instead.
+							client = oldClient;
+						}
 					}
 	
 				} else {
@@ -121,12 +113,11 @@ public class HBaseConnectionMgr {
 				  List<String> testConnect = client.getTableList(".\\*",null);
 				
 				  if(testConnect == null){
-						hbaseConnectionCache.remove(serviceType);
-						client = getHBaseConnection(serviceName,configs);
+						hbaseConnectionCache.remove(serviceName);
+						client = getHBaseConnection(serviceName,serviceType,configs);
 				  }
 			 }
-			 repoConnectStatusMap.put(serviceType, true);
-			}
+			 repoConnectStatusMap.put(serviceName, true);
 		} else {
 			LOG.error("Service Name not found with name " + serviceName,
 					new Throwable());

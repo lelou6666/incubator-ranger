@@ -29,6 +29,7 @@ define(function(require) {
 	return Backbone.Marionette.Controller.extend({
 
 		initialize: function( options ) {
+
 			console.log("initialize a Controller Controller");
 			var vTopNav 	= require('views/common/TopNav');
 			var vProfileBar = require('views/common/ProfileBar');
@@ -56,49 +57,25 @@ define(function(require) {
 	   
 	   //************** Analytics(reports)  Related *********************/
 	   userAccessReportAction : function(){
-		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.Analytics.value });
+		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.AccessManager.value });
 		   var view				= require('views/reports/UserAccessLayout');
-		   var VXResourceList 	= require('collections/VXResourceList');
+		   var RangerPolicyList = require('collections/RangerPolicyList');
 		   var VXGroupList		= require('collections/VXGroupList');
 		   var VXUserList		= require('collections/VXUserList');
-		   var resourceList 	= new VXResourceList([],{
-			   queryParams : {
-				   //'resourceType' : XAEnums.AssetType.ASSET_HDFS.value,
-				   //'assetId' : assetId 
-			   }
-		   });
-		   var that 		= this;
-		   this.groupList 	= new VXGroupList();
-		   this.userList 	= new VXUserList();
-		   resourceList.setPageSize(200, {fetch : false});
-		   resourceList.fetch({
-			   async:false,
-			   cache : false
-		   }).done(function(){
-				that.groupList.fetch({
-						async:false,
-						cache:false
-					}).done(function(){
-					that.userList.fetch({
-						async:false,
-						cache:false
-					}).done(function(){
-						if(App.rContent.currentView)
-							   App.rContent.currentView.close();
-						App.rContent.show(new view({
-							collection : resourceList,
-							groupList :that.groupList,
-							userList :that.userList
-						}));
-					});
-				});
-		   });
+		   if(App.rContent.currentView)
+			   App.rContent.currentView.close();
+		   App.rContent.show(new view({
+			   collection : new RangerPolicyList(),
+			   groupList : new VXGroupList(),
+			   userList : new VXUserList()
+		   }));
 	   },
 	   auditReportAction : function(tab){
 		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.Audit.value });
 		   var view					= require('views/reports/AuditLayout');
 		   var VXAccessAuditList 	= require('collections/VXAccessAuditList');
 		   var accessAuditList 		= new VXAccessAuditList();
+		   _.extend(accessAuditList.queryParams,{ 'sortBy'  :  'eventTime' });
 		   App.rContent.show(new view({
 			   accessAuditList : accessAuditList,
 			   tab :tab
@@ -137,8 +114,9 @@ define(function(require) {
 	   /************** UserORGroups Related *********************/
 	   userManagerAction :function(tab){
 		   MAppState.set({
-				'currentTab' : XAGlobals.AppTabs.Users.value
+				'currentTab' : XAGlobals.AppTabs.Settings.value
 			});
+		   var XAUtil		= require('utils/XAUtils');
 		   var view 		= require('views/users/UserTableLayout');
 		   var VXUserList	= require('collections/VXUserList');
 		   var userList 	= new VXUserList();
@@ -147,13 +125,14 @@ define(function(require) {
 			   collection : userList,
 			   tab :tab
 		   }));
+		   _.extend(userList.queryParams, XAUtil.getUserDataParams())
 		   userList.fetch({
-			   cache:true
+			   cache:false,
 		   });
 	   },
 	   userCreateAction : function(){
 		   MAppState.set({
-				'currentTab' : XAGlobals.AppTabs.Users.value
+				'currentTab' : XAGlobals.AppTabs.Settings.value
 			});
 		   var view 		= require('views/users/UserCreate');
 		   var VXUser		= require('models/VXUser');
@@ -172,7 +151,7 @@ define(function(require) {
 	   },
 	   userEditAction : function(userId){
 		   MAppState.set({
-				'currentTab' : XAGlobals.AppTabs.Users.value
+				'currentTab' : XAGlobals.AppTabs.Settings.value
 			});
 		   var view 		= require('views/users/UserCreate');
 		   var VXUser		= require('models/VXUser');
@@ -189,7 +168,7 @@ define(function(require) {
 	   },
 	   groupCreateAction : function(){
 		   MAppState.set({
-				'currentTab' : XAGlobals.AppTabs.Users.value
+				'currentTab' : XAGlobals.AppTabs.Settings.value
 			});
 		   var view 		= require('views/users/GroupCreate');
 		   var VXGroup		= require('models/VXGroup');
@@ -203,7 +182,7 @@ define(function(require) {
 	   },
 	   groupEditAction : function(groupId){
 		   MAppState.set({
-				'currentTab' : XAGlobals.AppTabs.Users.value
+				'currentTab' : XAGlobals.AppTabs.Settings.value
 			});
 		   var view 		= require('views/users/GroupCreate');
 		   var VXGroup		= require('models/VXGroup');
@@ -224,28 +203,42 @@ define(function(require) {
    	   //************** Generic design Related *********************/
    	   /************************************************************/
 
-	   serviceManagerAction :function(){
-		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.PolicyManager.value });
-		   console.log('Policy Manager action called..');
+	   serviceManagerAction :function(type){
+		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.AccessManager.value });
+		   var XAUtil				= require('utils/XAUtils');
+		   var XAEnums				= require('utils/XAEnums');
 		   var view 				= require('views/policymanager/ServiceLayout');
 		   var RangerServiceDefList	= require('collections/RangerServiceDefList');
+		   var RangerServiceDef		= require('models/RangerServiceDef');
+		   
 		   var collection 			= new RangerServiceDefList();
-		   collection.queryParams.sortBy = 'id';
-		   collection.fetch({
-			   cache : false,
-			   async:false
-		   }).done(function(){
-			   if(App.rContent.currentView) App.rContent.currentView.close();
-			   //TODO FROM SERVER SIDE IT SHOULD GIVE SORTBY `ID` BY DEFAULT
-//			   collection = collection.sort()
-			   App.rContent.show(new view({
-				   collection : collection
-			   }));
-		   });
+		   collection.queryParams.sortBy = 'serviceTypeId';
+		   
+		   if(type == 'tag'){
+			   var tagServiceDef	= new RangerServiceDef();
+			   tagServiceDef.url 	= XAUtil.getRangerServiceDef(XAEnums.ServiceType.SERVICE_TAG.label)
+			   tagServiceDef.fetch({
+				   cache : false,
+				   async:false
+			   })
+			   collection.add(tagServiceDef);
+		   }else{
+			   collection.fetch({
+				   cache : false,
+				   async:false
+			   });
+			   var coll = collection.filter(function(model){ return model.get('name') != XAEnums.ServiceType.SERVICE_TAG.label})
+			   collection.reset(coll)
+		   }
+//		   if(App.rContent.currentView) App.rContent.currentView.close();
+		   App.rContent.show(new view({
+			   collection : collection,
+			   type	: type
+		   }));
 	   },
 
 	   serviceCreateAction :function(serviceTypeId){
-    	   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.PolicyManager.value });
+    	   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.AccessManager.value });
 		   var view				= require('views/service/ServiceCreate');
 		   var RangerServiceDef	= require('models/RangerServiceDef');
 		   var RangerService	= require('models/RangerService');
@@ -259,7 +252,7 @@ define(function(require) {
 		   }));
 	   },
 	   serviceEditAction :function(serviceTypeId, serviceId){
-    	   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.PolicyManager.value });
+    	   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.AccessManager.value });
 		   var view				= require('views/service/ServiceCreate');
 		   var RangerServiceDef	= require('models/RangerServiceDef');
 		   var RangerService	= require('models/RangerService');
@@ -278,37 +271,26 @@ define(function(require) {
 	   },
 	   
 	   policyManageAction :function(serviceId){
-		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.PolicyManager.value });
+		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.AccessManager.value });
 		   var XAUtil			= require('utils/XAUtils');
 		   var view 			= require('views/policies/RangerPolicyTableLayout');
 		   var RangerService	= require('models/RangerService');
-		   var RangerPolicyList	= require('collections/RangerPolicyList');
+		   var RangerPolicyList 	=  require('collections/RangerPolicyList');
 		   
 		   var rangerService = new RangerService({id : serviceId});
-		   var rangerPolicyList = new RangerPolicyList();
-		   /*var rangerPolicyList = new RangerPolicyList([],{
-			   queryParams : {
-				   'serviceId' : serviceId 
-			   }
-		   });*/
-		   rangerPolicyList.url = XAUtil.getServicePoliciesURL(serviceId);
-		   
+
 		   rangerService.fetch({
 			  cache : false,
 			  async : false
 		   });
-		   
-		   rangerPolicyList.fetch({
-			   cache : false,
-		   }).done(function(){
-			   App.rContent.show(new view({
-				   collection : rangerPolicyList,
-				   rangerService : rangerService
-			   }));
-		   });   
+		   App.rContent.show(new view({
+			   rangerService : rangerService,
+			   collection : new RangerPolicyList()
+			   
+		   }));
 	   },
 	   RangerPolicyCreateAction :function(serviceId){
-    	   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.PolicyManager.value });
+    	   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.AccessManager.value });
 
 		   var view 			= require('views/policies/RangerPolicyCreate');
 		   var RangerService	= require('models/RangerService');
@@ -325,7 +307,7 @@ define(function(require) {
 		   });
 	   },
 	   RangerPolicyEditAction :function(serviceId, policyId){
-    	   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.PolicyManager.value });
+    	   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.AccessManager.value });
 
 		   var view 			= require('views/policies/RangerPolicyCreate');
 		   var RangerService	= require('models/RangerService');
@@ -346,6 +328,68 @@ define(function(require) {
 			   }));
 		   });
 	   },
-	   
+	   /************PERMISSIONS LISTING *****************************************/
+	   modulePermissionsAction :function(){
+		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.Settings.value });
+		   var view 			= require('views/permissions/ModulePermsTableLayout');
+		   var ModulePermissionList	= require('collections/VXModuleDefList');
+
+		   App.rContent.show(new view({
+			   collection : new ModulePermissionList()
+		   }));
+
+	   },
+	   modulePermissionEditAction : function(moduleId){
+		   MAppState.set({
+				'currentTab' : XAGlobals.AppTabs.Settings.value
+			});
+		   var view 				= require('views/permissions/ModulePermissionCreate');
+		   var ModulePermission		= require('models/VXModuleDef');
+		   var ModulePermissionList	= require('collections/VXModuleDefList');
+		   var modulePermission 	= new ModulePermission({id : moduleId});
+		   var that = this
+		   modulePermission.collection = new ModulePermissionList();
+		   modulePermission.fetch({cache : true}).done(function(){
+			   App.rContent.show(new view({
+				   model : modulePermission,
+				   groupList : that.groupList,
+				   userList : that.userList
+			   }));
+		   });
+	   },
+	   postLoginDefaultView : function(){
+		   var SessionMgr  = require('mgrs/SessionMgr');
+		   var XAGlobals   = require('utils/XAGlobals');
+		   var XAUtils	   = require('utils/XAUtils');
+		   var vXPortalUser = SessionMgr.getUserProfile();
+		   var userModuleNames = _.pluck(vXPortalUser.get('userPermList'),'moduleName');
+		   XAUtils.setLocationHash(userModuleNames);
+       },
+	   /************** KMS *********************/
+	   kmsManagerAction :function(kmsManagePage, kmsServiceName){
+		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.Encryption.value });
+		   var view 		= require('views/kms/KMSTableLayout');
+		   var KmsKeyList	= require('collections/VXKmsKeyList');
+		   App.rContent.show(new view({
+			   collection     : new KmsKeyList(),
+			   kmsServiceName : kmsServiceName,
+			   kmsManagePage  : kmsManagePage
+		   }));
+	   },
+	   kmsKeyCreateAction : function(kmsServiceName){
+		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.Encryption.value });
+		   var view 		= require('views/kms/KmsKeyCreate');
+		   var KmsKey		= require('models/VXKmsKey');
+		   
+		   App.rContent.show(new view({
+			   model : new KmsKey({'length' : 128, 'cipher' : 'AES/CTR/NoPadding' }),
+			   kmsServiceName : kmsServiceName
+		   }));
+	   },
+	   /**************** ERROR PAGE ******************************/
+	   pageNotFoundAction	: function() {
+		   var XAUtils			= require('utils/XAUtils');
+		   XAUtils.defaultErrorHandler(undefined, { 'status' : 404 });
+	   },
 	});
 });

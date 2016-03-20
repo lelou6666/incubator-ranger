@@ -25,25 +25,31 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
+
 
 public class RangerAccessRequestImpl implements RangerAccessRequest {
-	private RangerResource      resource        = null;
-	private String              accessType      = null;
-	private String              user            = null;
-	private Set<String>         userGroups      = null;
-	private Date                accessTime      = null;
-	private String              clientIPAddress = null;
-	private String              clientType      = null;
-	private String              action          = null;
-	private String              requestData     = null;
-	private String              sessionId       = null;
-	private Map<String, Object> context         = null;
+	private RangerAccessResource resource        = null;
+	private String               accessType      = null;
+	private String               user            = null;
+	private Set<String>          userGroups      = null;
+	private Date                 accessTime      = null;
+	private String               clientIPAddress = null;
+	private String               clientType      = null;
+	private String               action          = null;
+	private String               requestData     = null;
+	private String               sessionId       = null;
+	private Map<String, Object>  context         = null;
+
+	private boolean isAccessTypeAny            = false;
+	private boolean isAccessTypeDelegatedAdmin = false;
+	private ResourceMatchingScope resourceMatchingScope = ResourceMatchingScope.SELF;
 
 	public RangerAccessRequestImpl() {
 		this(null, null, null, null);
 	}
 
-	public RangerAccessRequestImpl(RangerResource resource, String accessType, String user, Set<String> userGroups) {
+	public RangerAccessRequestImpl(RangerAccessResource resource, String accessType, String user, Set<String> userGroups) {
 		setResource(resource);
 		setAccessType(accessType);
 		setUser(user);
@@ -60,7 +66,7 @@ public class RangerAccessRequestImpl implements RangerAccessRequest {
 	}
 
 	@Override
-	public RangerResource getResource() {
+	public RangerAccessResource getResource() {
 		return resource;
 	}
 
@@ -114,12 +120,33 @@ public class RangerAccessRequestImpl implements RangerAccessRequest {
 		return context;
 	}
 
-	public void setResource(RangerResource resource) {
+	@Override
+	public ResourceMatchingScope getResourceMatchingScope() {
+		return resourceMatchingScope;
+	}
+
+	@Override
+	public boolean isAccessTypeAny() {
+		return isAccessTypeAny;
+	}
+
+	@Override
+	public boolean isAccessTypeDelegatedAdmin() {
+		return isAccessTypeDelegatedAdmin;
+	}
+
+	public void setResource(RangerAccessResource resource) {
 		this.resource = resource;
 	}
 
 	public void setAccessType(String accessType) {
-		this.accessType = accessType;
+		if (StringUtils.isEmpty(accessType)) {
+			accessType = RangerPolicyEngine.ANY_ACCESS;
+		}
+
+		this.accessType            = accessType;
+		isAccessTypeAny            = StringUtils.equals(accessType, RangerPolicyEngine.ANY_ACCESS);
+		isAccessTypeDelegatedAdmin = StringUtils.equals(accessType, RangerPolicyEngine.ADMIN_ACCESS);
 	}
 
 	public void setUser(String user) {
@@ -153,6 +180,8 @@ public class RangerAccessRequestImpl implements RangerAccessRequest {
 	public void setSessionId(String sessionId) {
 		this.sessionId = sessionId;
 	}
+
+	public void setResourceMatchingScope(ResourceMatchingScope scope) { this.resourceMatchingScope = scope; }
 
 	public void setContext(Map<String, Object> context) {
 		this.context = (context == null) ? new HashMap<String, Object>() : context;
@@ -188,7 +217,7 @@ public class RangerAccessRequestImpl implements RangerAccessRequest {
 		sb.append("action={").append(action).append("} ");
 		sb.append("requestData={").append(requestData).append("} ");
 		sb.append("sessionId={").append(sessionId).append("} ");
-
+		sb.append("resourceMatchingScope={").append(resourceMatchingScope).append("} ");
 
 		sb.append("context={");
 		if(context != null) {
@@ -201,5 +230,9 @@ public class RangerAccessRequestImpl implements RangerAccessRequest {
 		sb.append("}");
 
 		return sb;
+	}
+	@Override
+	public RangerAccessRequest getReadOnlyCopy() {
+		return new RangerAccessRequestReadOnly(this);
 	}
 }

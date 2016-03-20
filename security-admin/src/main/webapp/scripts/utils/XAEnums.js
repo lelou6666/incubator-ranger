@@ -49,7 +49,8 @@ define(function(require) {
 	
 	XAEnums.UserRoles = mergeParams(XAEnums.UserRoles, {
 		ROLE_SYS_ADMIN:{value:0, label:'Admin', rbkey:'xa.enum.AccessResult.ACCESS_RESULT_ALLOWED', tt: 'lbl.AccessResult_ACCESS_RESULT_ALLOWED'},
-		ROLE_USER:{value:1, label:'User', rbkey:'xa.enum.AccessResult.ACCESS_RESULT_DENIED', tt: 'lbl.AccessResult_ACCESS_RESULT_DENIED'}
+		ROLE_USER:{value:1, label:'User', rbkey:'xa.enum.AccessResult.ACCESS_RESULT_DENIED', tt: 'lbl.AccessResult_ACCESS_RESULT_DENIED'},
+		ROLE_KEY_ADMIN:{value:2, label:'KeyAdmin', rbkey:'xa.enum.AccessResult.ACCESS_RESULT_ALLOWED', tt: 'lbl.AccessResult_ACCESS_RESULT_ALLOWED'},
 	});
 	
 	XAEnums.UserTypes = mergeParams(XAEnums.UserTypes, {
@@ -73,10 +74,35 @@ define(function(require) {
 		ACT_STATUS_NO_LOGIN:{value:7, label:'No login privilege', rbkey:'xa.enum.ActivationStatus.ACT_STATUS_NO_LOGIN', tt: 'lbl.ActivationStatus_ACT_STATUS_NO_LOGIN'}
 	});
 
+	XAEnums.VisibilityStatus = mergeParams(XAEnums.VisibilityStatus, {
+		STATUS_HIDDEN:{value:0, label:'Hidden', rbkey:'xa.enum.VisibilityStatus.IS_HIDDEN', tt: 'lbl.VisibilityStatus_IS_HIDDEN'},
+		STATUS_VISIBLE:{value:1, label:'Visible', rbkey:'xa.enum.VisibilityStatus.IS_VISIBLE', tt: 'lbl.VisibilityStatus_IS_VISIBLE'}
+	});
+
+	XAEnums.AuditStatus = mergeParams(XAEnums.AuditStatus, {
+		AUDIT_ENABLED:{value:true, label:'Yes', rbkey:'xa.enum.AuditStatus.ENABLED', tt: 'lbl.AuditStatus_ENABLED'},
+		AUDIT_DISABLED:{value:false, label:'No', rbkey:'xa.enum.AuditStatus.DISABLED', tt: 'lbl.AuditStatus_DISABLED'}
+	});
+
+	XAEnums.RecursiveStatus = mergeParams(XAEnums.RecursiveStatus, {
+		STATUS_RECURSIVE:{value:true, label:'recursive', rbkey:'xa.enum.RecursiveStatus.RECURSIVE', tt: 'lbl.RecursiveStatus_RECURSIVE'},
+		STATUS_NONRECURSIVE:{value:false, label:'nonrecursive', rbkey:'xa.enum.RecursiveStatus.NONRECURSIVE', tt: 'lbl.RecursiveStatus_NONRECURSIVE'}
+	});
+
+	XAEnums.ExcludeStatus = mergeParams(XAEnums.ExcludeStatus, {
+		STATUS_EXCLUDE:{value:true, label:'exclude', rbkey:'xa.enum.ExcludeStatus.EXCLUDE', tt: 'lbl.ExcludeStatus_EXCLUDE'},
+		STATUS_INCLUDE:{value:false, label:'include', rbkey:'xa.enum.ExcludeStatus.INCLUDE', tt: 'lbl.ExcludeStatus_INCLUDE'}
+	});
+
 	XAEnums.ActiveStatus = mergeParams(XAEnums.ActiveStatus, {
 		STATUS_DISABLED:{value:0, label:'Disabled', rbkey:'xa.enum.ActiveStatus.STATUS_DISABLED', tt: 'lbl.ActiveStatus_STATUS_DISABLED'},
 		STATUS_ENABLED:{value:1, label:'Enabled', rbkey:'xa.enum.ActiveStatus.STATUS_ENABLED', tt: 'lbl.ActiveStatus_STATUS_ENABLED'},
 		STATUS_DELETED:{value:2, label:'Deleted', rbkey:'xa.enum.ActiveStatus.STATUS_DELETED', tt: 'lbl.ActiveStatus_STATUS_DELETED'}
+	});
+
+	XAEnums.PolicyType = mergeParams(XAEnums.PolicyType, {
+		POLICY_TYPE_ALLOW:{value:0, label:'Allow', rbkey:'xa.enum.PolicyType.POLICY_TYPE_ALLOW', tt: 'lbl.PolicyType_ALLOW'},
+		POLICY_TYPE_DENY:{value:1, label:'Deny', rbkey:'xa.enum.PolicyType.POLICY_TYPE_DENY', tt: 'lbl.PolicyType_DENY'}
 	});
 
 	XAEnums.AssetType = mergeParams(XAEnums.AssetType, {
@@ -95,7 +121,8 @@ define(function(require) {
 		Service_HIVE:{value:2, label:'hive', rbkey:'xa.enum.AssetType.ASSET_HIVE', tt: 'lbl.AssetType_ASSET_HIVE'},
 		Service_HBASE:{value:3, label:'hbase', rbkey:'xa.enum.AssetType.ASSET_HBASE', tt: 'lbl.AssetType_ASSET_HBASE'},
 		Service_KNOX:{value:4, label:'knox', rbkey:'xa.enum.AssetType.ASSET_KNOX', tt: 'lbl.AssetType_ASSET_KNOX'},
-		Service_STORM:{value:5, label:'storm', rbkey:'xa.enum.AssetType.ASSET_STORM', tt: 'lbl.AssetType_ASSET_STORM'}
+		Service_STORM:{value:5, label:'storm', rbkey:'xa.enum.AssetType.ASSET_STORM', tt: 'lbl.AssetType_ASSET_STORM'},
+		SERVICE_TAG:{value:6, label:'tag', rbkey:'xa.enum.ServiceType.SERVICE_TAG', tt: 'lbl.ServiceType_SERVICE_TAG'}
 	});
 
 	XAEnums.AuthStatus = mergeParams(XAEnums.AuthStatus, {
@@ -144,7 +171,10 @@ define(function(require) {
 		CLASS_TYPE_XA_POLICY_EXPORT_AUDIT:{value:1009, label:'XA Policy Export Audit', rbkey:'xa.enum.ClassTypes.CLASS_TYPE_XA_POLICY_EXPORT_AUDIT', modelName:'VXPolicyExportAudit', type:'vXPolicyExportAudit', tt: 'lbl.ClassTypes_CLASS_TYPE_XA_POLICY_EXPORT_AUDIT'},
 		CLASS_TYPE_TRX_LOG:{value:1010, label:'Transaction log', rbkey:'xa.enum.ClassTypes.CLASS_TYPE_TRX_LOG', tt: 'lbl.ClassTypes_CLASS_TYPE_TRX_LOG'},
 		CLASS_TYPE_XA_ACCESS_AUDIT:{value:1011, label:'Access Audit', rbkey:'xa.enum.ClassTypes.CLASS_TYPE_XA_ACCESS_AUDIT', modelName:'VXAccessAudit', type:'vXAccessAudit', tt: 'lbl.ClassTypes_CLASS_TYPE_XA_ACCESS_AUDIT'},
-		CLASS_TYPE_XA_TRANSACTION_LOG_ATTRIBUTE:{value:1012, label:'Transaction log attribute', rbkey:'xa.enum.ClassTypes.CLASS_TYPE_XA_TRANSACTION_LOG_ATTRIBUTE', tt: 'lbl.ClassTypes_CLASS_TYPE_XA_TRANSACTION_LOG_ATTRIBUTE'}
+		CLASS_TYPE_XA_TRANSACTION_LOG_ATTRIBUTE:{value:1012, label:'Transaction log attribute', rbkey:'xa.enum.ClassTypes.CLASS_TYPE_XA_TRANSACTION_LOG_ATTRIBUTE', tt: 'lbl.ClassTypes_CLASS_TYPE_XA_TRANSACTION_LOG_ATTRIBUTE'},
+		CLASS_TYPE_RANGER_POLICY:{value:1020, label:'Ranger Policy', rbkey:'xa.enum.ClassTypes.CLASS_TYPE_RANGER_POLICY', modelName:'VXRangerPolicy', type:'vXResource', tt: 'lbl.ClassTypes_CLASS_TYPE_RANGER_POLICY'},
+		CLASS_TYPE_RANGER_SERVICE:{value:1030, label:'Ranger Service', rbkey:'xa.enum.ClassTypes.CLASS_TYPE_RANGER_SERVICE', modelName:'VXRangerService', type:'vXRangerService', tt: 'lbl.ClassTypes_CLASS_TYPE_RANGER_SERVICE'},
+		
 	});
 
 	XAEnums.DataType = mergeParams(XAEnums.DataType, {
@@ -216,11 +246,6 @@ define(function(require) {
 		PWD_RESET_USED:{value:1, label:'Used', rbkey:'xa.enum.PasswordResetStatus.PWD_RESET_USED', tt: 'lbl.PasswordResetStatus_PWD_RESET_USED'},
 		PWD_RESET_EXPIRED:{value:2, label:'Expired', rbkey:'xa.enum.PasswordResetStatus.PWD_RESET_EXPIRED', tt: 'lbl.PasswordResetStatus_PWD_RESET_EXPIRED'},
 		PWD_RESET_DISABLED:{value:3, label:'Disabled', rbkey:'xa.enum.PasswordResetStatus.PWD_RESET_DISABLED', tt: 'lbl.PasswordResetStatus_PWD_RESET_DISABLED'}
-	});
-
-	XAEnums.PolicyType = mergeParams(XAEnums.PolicyType, {
-		POLICY_INCLUSION:{value:0, label:'Inclusion', rbkey:'xa.enum.PolicyType.POLICY_INCLUSION', tt: 'lbl.PolicyType_POLICY_INCLUSION'},
-		POLICY_EXCLUSION:{value:1, label:'Exclusion', rbkey:'xa.enum.PolicyType.POLICY_EXCLUSION', tt: 'lbl.PolicyType_POLICY_EXCLUSION'}
 	});
 
 	XAEnums.PriorityType = mergeParams(XAEnums.PriorityType, {
@@ -330,6 +355,14 @@ define(function(require) {
 		XA_PERM_TYPE_UPLOAD_NEW_CREDENTIAL:{value:31, label:'Upload New Credential', rbkey:'xa.enum.XAPermType.XA_PERM_TYPE_ALLOW', tt: 'lbl.XAPermType_XA_PERM_TYPE_ALLOW'},
 		
         
+	});
+	
+	XAEnums.MenuPermissions =  mergeParams(XAEnums.MenuPermissions, {
+		XA_RESOURCE_BASED_POLICIES:{value:0, label:'Resource Based Policies', rbkey:'xa.enum.MenuPermissions.XA_RESOURCE_BASED_POLICIES', tt: 'lbl.XAPermForType_XA_PERM_FOR_UNKNOWN'},
+		XA_USER_GROUPS:{value:1, label:'Users/Groups', rbkey:'xa.enum.MenuPermissions.XA_USER_GROUP', tt: 'lbl.XAPermForType_XA_PERM_FOR_USER'},
+		XA_REPORTS:{value:2, label:'Reports', rbkey:'xa.enum.MenuPermissions.XA_REPORTS', tt: 'lbl.XAPermForType_XA_PERM_FOR_GROUP'},
+		XA_AUDITS:{value:3, label:'Audit', rbkey:'xa.enum.MenuPermissions.XA_AUDITS', tt: 'lbl.XAPermForType_XA_PERM_FOR_GROUP'},
+		XA_KEY_MANAGER:{value:4, label:'Key Manager', rbkey:'xa.enum.MenuPermissions.XA_KEY_MANAGER', tt: 'lbl.XAPermForType_XA_PERM_FOR_GROUP'}
 	});
 
 	return XAEnums;

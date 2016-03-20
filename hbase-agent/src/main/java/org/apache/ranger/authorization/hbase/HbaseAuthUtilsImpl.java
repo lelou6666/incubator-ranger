@@ -21,7 +21,6 @@ package org.apache.ranger.authorization.hbase;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.NamespaceDescriptor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.security.access.Permission.Action;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -29,14 +28,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 public class HbaseAuthUtilsImpl implements HbaseAuthUtils {
 
 	private static final Log LOG = LogFactory.getLog(HbaseAuthUtilsImpl.class.getName());
-
-	public String getNameSpace(NamespaceDescriptor ns) {
-		if (ns == null) {
-			// TODO log an error and Throw an error so the operation is denied?
-		}
-		return ns.getName();
-	}
-
 	@Override
 	public String getAccess(Action action) {
 		switch(action) {

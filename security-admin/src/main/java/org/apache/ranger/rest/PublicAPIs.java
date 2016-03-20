@@ -17,55 +17,33 @@
  * under the License.
  */
 
- package org.apache.ranger.rest;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
+package org.apache.ranger.rest;
 
 import org.apache.log4j.Logger;
-import org.apache.ranger.biz.AssetMgr;
-import org.apache.ranger.common.AppConstants;
-import org.apache.ranger.common.MessageEnums;
-import org.apache.ranger.common.RESTErrorUtil;
-import org.apache.ranger.common.RangerCommonEnums;
-import org.apache.ranger.common.RangerConstants;
-import org.apache.ranger.common.RangerSearchUtil;
-import org.apache.ranger.common.SearchCriteria;
-import org.apache.ranger.common.StringUtil;
+import org.apache.ranger.common.*;
 import org.apache.ranger.common.annotation.RangerAnnotationClassName;
 import org.apache.ranger.common.annotation.RangerAnnotationJSMgrName;
 import org.apache.ranger.db.RangerDaoManager;
-import org.apache.ranger.service.AbstractBaseResourceService;
+import org.apache.ranger.entity.XXPolicy;
+import org.apache.ranger.entity.XXService;
+import org.apache.ranger.plugin.model.RangerPolicy;
+import org.apache.ranger.plugin.model.RangerService;
+import org.apache.ranger.plugin.util.SearchFilter;
+import org.apache.ranger.service.RangerPolicyService;
 import org.apache.ranger.service.XAssetService;
-import org.apache.ranger.service.XPolicyService;
-import org.apache.ranger.service.XRepositoryService;
-import org.apache.ranger.service.XResourceService;
-import org.apache.ranger.view.VXAsset;
-import org.apache.ranger.view.VXAssetList;
-import org.apache.ranger.view.VXLong;
-import org.apache.ranger.view.VXPolicy;
-import org.apache.ranger.view.VXPolicyList;
-import org.apache.ranger.view.VXRepository;
-import org.apache.ranger.view.VXRepositoryList;
-import org.apache.ranger.view.VXResource;
-import org.apache.ranger.view.VXResourceList;
-import org.apache.ranger.view.VXResponse;
+import org.apache.ranger.view.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+
+import java.util.List;
 
 @Path("public")
 @Component
@@ -79,57 +57,107 @@ public class PublicAPIs {
 	RangerSearchUtil searchUtil;
 
 	@Autowired
-	AssetMgr assetMgr;
-
-	@Autowired
 	XAssetService xAssetService;
 
 	@Autowired
-	RESTErrorUtil restErrorUtil;
-
-	@Autowired
-	XRepositoryService xRepositoryService;
-
-	@Autowired
-	XResourceService xResourceService;
-
-	@Autowired
-	XPolicyService xPolicyService;
+	RangerPolicyService policyService;
 
 	@Autowired
 	StringUtil stringUtil;
 
 	@Autowired
-	RangerDaoManager xaDaoMgr;
+	ServiceUtil serviceUtil;
+	
+	@Autowired
+	ServiceREST serviceREST;
 
+	@Autowired
+	RangerDaoManager daoMgr;
+
+	@Autowired
+	RESTErrorUtil restErrorUtil;
+	
 	@GET
 	@Path("/api/repository/{id}")
 	@Produces({ "application/json", "application/xml" })
 	public VXRepository getRepository(@PathParam("id") Long id) {
-		VXAsset vXAsset = assetMgr.getXAsset(id);
-		return xRepositoryService.mapXAToPublicObject(vXAsset);
-	}
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.getRepository(" + id + ")");
+		}
+		
+		RangerService service = serviceREST.getService(id);
+		
+		VXRepository ret = serviceUtil.toVXRepository(service);
 
+		if(logger.isDebugEnabled()) {
+			logger.debug("<= PublicAPIs.getRepository(" + id + ")");
+		}
+		return ret;
+	}
+	
+	
 	@POST
 	@Path("/api/repository/")
 	@Produces({ "application/json", "application/xml" })
 	public VXRepository createRepository(VXRepository vXRepository) {
-		VXAsset vXAsset = xRepositoryService.mapPublicToXAObject(vXRepository);
-		vXAsset = assetMgr.createXAsset(vXAsset);
-		return xRepositoryService.mapXAToPublicObject(vXAsset);
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.createRepository(" + vXRepository + ")");
+		}
+		
+		VXAsset vXAsset  = serviceUtil.publicObjecttoVXAsset(vXRepository);
+		
+		RangerService service = serviceUtil.toRangerService(vXAsset);
+
+		RangerService createdService = serviceREST.createService(service);
+		
+		VXAsset retvXAsset = serviceUtil.toVXAsset(createdService);
+		
+		VXRepository ret = serviceUtil.vXAssetToPublicObject(retvXAsset);
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.createRepository(" + ret + ")");
+		}
+		
+		return ret;
 	}
 
+	
 	@PUT
 	@Path("/api/repository/{id}")
 	@Produces({ "application/json", "application/xml" })
 	public VXRepository updateRepository(VXRepository vXRepository,
 			@PathParam("id") Long id) {
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.updateRepository(" + id + ")");
+		}
+		
+		XXService existing = daoMgr.getXXService().getById(id);
+		if(existing == null) {
+			throw restErrorUtil.createRESTException("Repository not found for Id: " + id, MessageEnums.DATA_NOT_FOUND);
+		}
+
 		vXRepository.setId(id);
-		VXAsset vXAsset = xRepositoryService.mapPublicToXAObject(vXRepository);
-		vXAsset = assetMgr.updateXAsset(vXAsset);
-		return xRepositoryService.mapXAToPublicObject(vXAsset);
+		
+		VXAsset vXAsset  = serviceUtil.publicObjecttoVXAsset(vXRepository);
+
+		RangerService service = serviceUtil.toRangerService(vXAsset);
+		service.setVersion(existing.getVersion());
+
+		RangerService updatedService = serviceREST.updateService(service);
+		
+		VXAsset retvXAsset = serviceUtil.toVXAsset(updatedService);
+		
+		VXRepository ret = serviceUtil.vXAssetToPublicObject(retvXAsset);
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.updateRepository(" + ret + ")");
+		}
+		
+		return ret;
 	}
 
+	
 	@DELETE
 	@Path("/api/repository/{id}")
 	@PreAuthorize("hasRole('ROLE_SYS_ADMIN')")
@@ -137,88 +165,159 @@ public class PublicAPIs {
 	public void deleteRepository(@PathParam("id") Long id,
 			@Context HttpServletRequest request) {
 
-		String forceStr = request.getParameter("force");
-		boolean force = true;
-		if (!stringUtil.isEmpty(forceStr)) {
-			force = Boolean.parseBoolean(forceStr.trim());
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.deleteRepository(" + id + ")");
 		}
-		assetMgr.deleteXAsset(id, force);
+		
+		serviceREST.deleteService(id);
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.deleteRepository(" + id + ")");
+		}
 	}
-
-	// @POST
-	// @Path("/api/repository/testConfig")
-	// @Produces({ "application/xml", "application/json" })
-	public VXResponse testConfig(VXRepository vXRepository) {
-		VXAsset vXAsset = xRepositoryService.mapPublicToXAObject(vXRepository);
-		return assetMgr.testConfig(vXAsset);
-	}
-
+	
 	@GET
 	@Path("/api/repository/")
 	@Produces({ "application/json", "application/xml" })
 	public VXRepositoryList searchRepositories(
 			@Context HttpServletRequest request) {
-		SearchCriteria searchCriteria = searchUtil.extractCommonCriterias(
-				request, xAssetService.sortFields);
-		searchUtil.extractString(request, searchCriteria, "name",
-				"Repository Name", null);
-		searchUtil.extractBoolean(request, searchCriteria, "status",
-				"Activation Status");
-		searchUtil.extractString(request, searchCriteria, "type",
-				"Repository Type", null);
+	
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.searchRepositories()");
+		}
 
-		searchCriteria = xRepositoryService.getMappedSearchParams(request,
-				searchCriteria);
-		VXAssetList vXAssetList = assetMgr.searchXAssets(searchCriteria);
+		SearchFilter filter = searchUtil.getSearchFilterFromLegacyRequestForRepositorySearch(request, xAssetService.sortFields);
 
-		return xRepositoryService.mapToVXRepositoryList(vXAssetList);
+		List<RangerService> serviceList = serviceREST.getServices(filter);
+
+		VXRepositoryList ret = null;
+
+		if (serviceList != null) {
+			ret = serviceUtil.rangerServiceListToPublicObjectList(serviceList);
+		}
+
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.searchRepositories(): count=" + (ret == null ? 0 : ret.getListSize()));
+		}
+
+		return ret;
 	}
+
 
 	@GET
 	@Path("/api/repository/count")
 	@Produces({ "application/json", "application/xml" })
 	public VXLong countRepositories(@Context HttpServletRequest request) {
-		SearchCriteria searchCriteria = searchUtil.extractCommonCriterias(
-				request, xAssetService.sortFields);
 
-        ArrayList<Integer> valueList = new ArrayList<Integer>();
-        valueList.add(RangerConstants.STATUS_DISABLED);
-        valueList.add(RangerConstants.STATUS_ENABLED);
-        searchCriteria.addParam("status", valueList);
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.countRepositories()");
+		}
 
-		return assetMgr.getXAssetSearchCount(searchCriteria);
-	}
+		VXRepositoryList repositories = searchRepositories(request);
 
+		VXLong ret = new VXLong();
+		ret.setValue(repositories == null ? 0 : repositories.getResultSize());
+
+        if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.countRepositories(): count=" + ret);
+		}
+
+        return ret;
+	}	
+	
+
+	
 	@GET
 	@Path("/api/policy/{id}")
 	@Produces({ "application/json", "application/xml" })
 	public VXPolicy getPolicy(@PathParam("id") Long id) {
-		VXResource vXResource = assetMgr.getXResource(id);
-		return xPolicyService.mapXAToPublicObject(vXResource);
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.getPolicy() " + id);
+		}
+		
+		RangerPolicy  policy  = null;
+		RangerService service = null;
+
+		policy = serviceREST.getPolicy(id);
+		
+		if(policy != null) {
+			service = serviceREST.getServiceByName(policy.getService());
+		}
+
+		VXPolicy ret = serviceUtil.toVXPolicy(policy, service);
+	
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.getPolicy()" + ret);
+		}
+		
+		return ret;
 	}
+	
 
 	@POST
 	@Path("/api/policy")
 	@Produces({ "application/json", "application/xml" })
 	public VXPolicy createPolicy(VXPolicy vXPolicy) {
-		VXResource vXResource = xPolicyService.mapPublicToXAObject(vXPolicy,
-				AbstractBaseResourceService.OPERATION_CREATE_CONTEXT);
-		vXResource = assetMgr.createXResource(vXResource);
-		vXResource.setPermMapList(xPolicyService.updatePermGroup(vXResource));
-		return xPolicyService.mapXAToPublicObject(vXResource);
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.createPolicy()");
+		}
+		
+		RangerService service = serviceREST.getServiceByName(vXPolicy.getRepositoryName());
+		RangerPolicy  policy  = serviceUtil.toRangerPolicy(vXPolicy,service);
 
+		VXPolicy ret = null;
+		if(policy != null) {
+			if(logger.isDebugEnabled()) {
+				logger.debug("RANGERPOLICY: " + policy.toString());
+			}
+		
+			RangerPolicy  createdPolicy = serviceREST.createPolicy(policy);
+
+			ret = serviceUtil.toVXPolicy(createdPolicy, service);
+		}
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.createPolicy(" + policy + "): " + ret);
+		}
+	
+		return ret;
 	}
 
 	@PUT
 	@Path("/api/policy/{id}")
 	@Produces({ "application/json", "application/xml" })
 	public VXPolicy updatePolicy(VXPolicy vXPolicy, @PathParam("id") Long id) {
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.updatePolicy(): "  + vXPolicy );
+		}
+		
+		XXPolicy existing = daoMgr.getXXPolicy().getById(id);
+		if(existing == null) {
+			throw restErrorUtil.createRESTException("Policy not found for Id: " + id, MessageEnums.DATA_NOT_FOUND);
+		}
+
 		vXPolicy.setId(id);
-		VXResource vXResource = xPolicyService.mapPublicToXAObject(vXPolicy,
-				AbstractBaseResourceService.OPERATION_UPDATE_CONTEXT);
-		vXResource = assetMgr.updateXResource(vXResource);
-		vXResource.setPermMapList(xPolicyService.updatePermGroup(vXResource));
-		return xPolicyService.mapXAToPublicObject(vXResource);
+		
+		RangerService service = serviceREST.getServiceByName(vXPolicy.getRepositoryName());
+		RangerPolicy  policy  = serviceUtil.toRangerPolicy(vXPolicy,service);
+
+		VXPolicy ret = null;
+		if(policy != null) {
+			policy.setVersion(existing.getVersion());
+
+			RangerPolicy  updatedPolicy = serviceREST.updatePolicy(policy);
+
+			ret = serviceUtil.toVXPolicy(updatedPolicy, service);
+		}
+
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.updatePolicy(" + policy + "): " + ret);
+		}
+	
+		return ret;
 	}
 
 	@DELETE
@@ -227,92 +326,63 @@ public class PublicAPIs {
 	@RangerAnnotationClassName(class_name = VXResource.class)
 	public void deletePolicy(@PathParam("id") Long id,
 			@Context HttpServletRequest request) {
-		String forceStr = request.getParameter("force");
-		boolean force = true;
-		if (!stringUtil.isEmpty(forceStr)) {
-			force = Boolean.parseBoolean(forceStr.trim());
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.deletePolicy(): "  + id );
 		}
-		assetMgr.deleteXResource(id, force);
+		
+		serviceREST.deletePolicy(id);
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.deletePolicy(): "  + id );
+		}
 	}
 
 	@GET
 	@Path("/api/policy")
 	@Produces({ "application/json", "application/xml" })
 	public VXPolicyList searchPolicies(@Context HttpServletRequest request) {
-		SearchCriteria searchCriteria = searchUtil.extractCommonCriterias(
-				request, xResourceService.sortFields);
-
-		String resourceName = request.getParameter("resourceName");
-		if (!stringUtil.isEmpty(resourceName)) {
-			searchCriteria.getParamList().put("name", resourceName);
-		}
-		searchUtil.extractString(request, searchCriteria, "policyName",
-				"Policy name", StringUtil.VALIDATION_TEXT);
-		searchUtil.extractString(request, searchCriteria, "columns",
-				"Column name", StringUtil.VALIDATION_TEXT);
-		searchUtil.extractString(request, searchCriteria, "columnFamilies",
-				"Column Family", StringUtil.VALIDATION_TEXT);
-		searchUtil.extractString(request, searchCriteria, "tables", "Tables",
-				StringUtil.VALIDATION_TEXT);
-		searchUtil.extractString(request, searchCriteria, "udfs", "UDFs",
-				StringUtil.VALIDATION_TEXT);
-		searchUtil.extractString(request, searchCriteria, "databases",
-				"Databases", StringUtil.VALIDATION_TEXT);
-		searchUtil.extractString(request, searchCriteria, "groupName",
-				"Group Name", StringUtil.VALIDATION_TEXT);
-
-		String repositoryType = request.getParameter("repositoryType");
-		if (!stringUtil.isEmpty(repositoryType)) {
-			searchCriteria.getParamList().put("assetType",
-					AppConstants.getEnumFor_AssetType(repositoryType));
-		}
-
-		String isRec = request.getParameter("isRecursive");
-		if (isRec != null) {
-			boolean isRecursiveBool = restErrorUtil.parseBoolean(isRec,
-					"Invalid value for " + "isRecursive",
-					MessageEnums.INVALID_INPUT_DATA, null, "isRecursive");
-			int isRecursive = (isRecursiveBool == true) ? RangerConstants.BOOL_TRUE
-					: RangerConstants.BOOL_FALSE;
-			searchCriteria.getParamList().put("isRecursive", isRecursive);
-		}
-			
-		searchUtil.extractString(request, searchCriteria, "userName",
-				"User Name", StringUtil.VALIDATION_TEXT);
-		searchUtil.extractString(request, searchCriteria, "repositoryName",
-				"Repository Name", StringUtil.VALIDATION_TEXT);
 		
-		String resStatus = request.getParameter("isEnabled");
-		List<Integer> resList = new ArrayList<Integer>();
-		if (stringUtil.isEmpty(resStatus)) {
-			resList.add(RangerCommonEnums.STATUS_ENABLED);
-			resList.add(RangerCommonEnums.STATUS_DISABLED);
-		} else {
-			boolean policyStatus = restErrorUtil.parseBoolean(resStatus,
-					"Invalid value for " + "isEnabled",
-					MessageEnums.INVALID_INPUT_DATA, null, "isEnabled");
-			int policyStat = (policyStatus) ? RangerCommonEnums.STATUS_ENABLED
-					: RangerCommonEnums.STATUS_DISABLED;
-			resList.add(policyStat);
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.searchPolicies(): ");
 		}
-		searchCriteria.getParamList().put("resourceStatus", resList);
-		
-		searchCriteria.setDistinct(true);
 
-		VXResourceList vXResourceList = assetMgr
-				.searchXResources(searchCriteria);
-		return xPolicyService.mapToVXPolicyList(vXResourceList);
+		SearchFilter filter = searchUtil.getSearchFilterFromLegacyRequest(request, policyService.sortFields);
+
+		List<RangerPolicy> rangerPolicyList = serviceREST.getPolicies(filter);
+		
+		VXPolicyList vXPolicyList = null;
+
+		if (rangerPolicyList != null) {
+			vXPolicyList = serviceUtil.rangerPolicyListToPublic(rangerPolicyList);
+		}
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.searchPolicies(): "  + vXPolicyList );
+		}
+		
+		return vXPolicyList;
 	}
 
 	@GET
 	@Path("/api/policy/count")
 	@Produces({ "application/xml", "application/json" })
 	public VXLong countPolicies(@Context HttpServletRequest request) {
-		SearchCriteria searchCriteria = searchUtil.extractCommonCriterias(
-				request, xResourceService.sortFields);
+		
+		if(logger.isDebugEnabled()) {
+			logger.debug("==> PublicAPIs.countPolicies(): ");
+		}
 
+		VXPolicyList policies = searchPolicies(request);
 
-		return assetMgr.getXResourceSearchCount(searchCriteria);
+		VXLong vXlong = new VXLong();
+		vXlong.setValue(policies == null ? 0 : policies.getResultSize());
+
+		if(logger.isDebugEnabled()) {
+			logger.debug("<== PublicAPIs.countPolicies(): "  + request );
+		}
+
+		return vXlong;
 	}
 
 }

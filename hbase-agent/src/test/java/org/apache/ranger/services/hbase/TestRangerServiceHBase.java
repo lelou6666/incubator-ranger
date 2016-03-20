@@ -57,11 +57,10 @@ public class TestRangerServiceHBase {
 		buildHbaseConnectionConfig();
 		buildLookupContext();
 		
-		sd		 = new RangerServiceDef(sdName, "org.apache.ranger.services.hbase.RangerServiceHBase", "TestService", "test servicedef description", null, null, null, null, null);
-		svc   	 = new RangerService(sdName, serviceName, "unit test hbase resource lookup and validateConfig", configs);
+		sd		 = new RangerServiceDef(sdName, "org.apache.ranger.services.hbase.RangerServiceHBase", "TestService", "test servicedef description", null, null, null, null, null, null, null);
+		svc   	 = new RangerService(sdName, serviceName, "unit test hbase resource lookup and validateConfig", null, configs);
 		svcHBase = new RangerServiceHBase();
 		svcHBase.init(sd, svc);
-		svcHBase.init();
 	}
 	
 	@Test

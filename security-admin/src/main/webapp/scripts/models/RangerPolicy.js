@@ -83,6 +83,40 @@ define(function(require){
 			});
 		},
 
+		/** need to pass eventTime in queryParams(opt.data) */
+		fetchByEventTime : function(opt){
+			var queryParams = opt.data;
+			queryParams.policyId = this.get('id');
+			if(_.isUndefined(queryParams.eventTime)){
+				throw('eventTime can not be undefined');
+			}
+
+			opt.url = 'service/plugins/policies/eventTime';
+			return this.fetch(opt);
+		},
+
+		fetchByVersion : function(versionNo, opt){
+			if(_.isUndefined(versionNo)){
+				throw('versionNo can not be undefined');
+			}
+			opt.url = 'service/plugins/policy/'+this.get('id')+'/version/'+versionNo;
+			return this.fetch(opt);
+		},
+
+		fetchVersions : function(){
+			var versionList;
+			var url = 'service/plugins/policy/'+this.get('id')+'/versionList';
+			$.ajax({
+				url : url,
+				async : false,
+				dataType : 'JSON',
+				success : function(data){
+					versionList = data.value.split(',');
+				},
+			});
+			return versionList;
+		},
+
 		/** This models toString() */
 		toString : function(){
 			return this.get('name');

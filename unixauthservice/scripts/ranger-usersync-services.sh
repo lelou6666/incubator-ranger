@@ -21,19 +21,21 @@ if [[ -z $1 ]]; then
         exit;
 fi
 action=$1
-
+action=`echo $action | tr '[:lower:]' '[:upper:]'`
 realScriptPath=`readlink -f $0`
 realScriptDir=`dirname $realScriptPath`
 cd $realScriptDir
 cdir=`pwd`
 
-pidf=${cdir}/.mypid
+pidf=/var/run/ranger/usersync.pid
 
 
-if [ ${action^^} == "START" ]; then
+if [ "${action}" == "START" ]; then
 
 	#Export JAVA_HOME
-	. ${cdir}/conf/java_home.sh
+	if [ -f ${cdir}/conf/java_home.sh ]; then
+		. ${cdir}/conf/java_home.sh
+	fi
 
 	for custom_env_script in `find ${cdir}/conf/ -name "ranger-usersync-env*"`; do
         	if [ -f $custom_env_script ]; then
@@ -44,63 +46,59 @@ if [ ${action^^} == "START" ]; then
 	if [ "$JAVA_HOME" != "" ]; then
         	export PATH=$JAVA_HOME/bin:$PATH
 	fi
-	
-	logdir=`grep -P '^[ \t]*logdir[ \t]*=' ${cdir}/install.properties | awk -F= '{ print $2 }' | tr '\t' ' ' | sed -e 's:[ ]::g'`
-	if [ ! -d ${logdir} ]
-	then
-        	logdir=/var/log/ranger-usersync
-	fi
+
+        logdir=/var/log/ranger/usersync
+
 	cp="${cdir}/dist/*:${cdir}/lib/*:${cdir}/conf"
-	[ ! -d ${logdir} ] && mkdir -p ${logdir}
-	${cdir}/ranger-usersync-services.sh stop
+
+    if [ -f $pidf ]; then
+            PID=`cat $pidf`
+            if [ -z "`ps axf | grep ${PID} | grep -v grep`" ]; then
+                    rm -f ${pidf}
+            else
+                    kill -9 ${PID} > /dev/null 2>&1
+                    rm -f ${pidf}
+                    echo "Ranger Usersync Service [pid = ${PID}] has been stopped."
+            fi
+    fi
+
 	cd ${cdir}
 	umask 0077
-	nohup java -Dproc_rangerusersync ${JAVA_OPTS} -Dlogdir="${logdir}" -cp "${cp}" org.apache.ranger.authentication.UnixAuthenticationService -enableUnixAuth > ${logdir}/auth.log 2>&1 &
+	nohup java -Dproc_rangerusersync -Dlog4j.configuration=file:/etc/ranger/usersync/conf/log4j.xml ${JAVA_OPTS} -Dlogdir="${logdir}" -cp "${cp}" org.apache.ranger.authentication.UnixAuthenticationService -enableUnixAuth > ${logdir}/auth.log 2>&1 &
 	echo $! >  ${pidf}
+	chown ranger ${pidf}
 	sleep 5
-	port=`grep  '^[ ]*authServicePort' ${cdir}/conf/unixauthservice.properties | awk -F= '{ print $2 }' | awk '{ print $1 }'`
-	pid=`netstat -antp | grep LISTEN | grep  ${port} | awk '{ print $NF }' | awk -F/ '{ if ($2 == "java") { print $1 } }'`
+	pid=`cat $pidf`
+
 	if [ "${pid}" != "" ]
 	then
-        	echo "UnixAuthenticationService has started successfully."
+        	echo "Ranger Usersync Service has started successfully."
 	else
-        	echo "UnixAuthenticationService failed to start. Please refer to log files under ${logdir} for further details."
+        	echo "Ranger Usersync Service failed to start. Please refer to log files under ${logdir} for further details."
 	fi
 	exit;
 
-elif [ ${action^^} == "STOP" ]; then
-	port=`grep  '^[ ]*authServicePort' ${cdir}/conf/unixauthservice.properties | awk -F= '{ print $2 }' | awk '{ print $1 }'`
-	pid=`netstat -antp | grep LISTEN | grep  ${port} | awk '{ print $NF }' | awk -F/ '{ if ($2 == "java") { print $1 } }'`
-	if [ "${pid}" != "" ]
-	then
-        	kill -9 ${pid}
-	        echo "AuthenticationService [pid = ${pid}] has been stopped."
-	fi
-	if [ -f ${pidf} ]
-	then
-        	npid=`cat ${pidf}`
-	        if [ "${npid}" != "" ]
-        	then
-                	if [ "${pid}" != "${npid}" ]
-	                then
-        	                if [ -a /proc/${npid} ]
-                	        then
-                        	        echo "AuthenticationService [pid = ${npid}] has been stopped."
-                                	kill -9 ${npid} > /dev/null 2>&1
-	                                echo > ${pidf}
-        	                fi
-                	fi
-	        fi
-	fi
+elif [ "${action}" == "STOP" ]; then
+
+    if [ -f $pidf ]; then
+            pidf=/var/run/ranger/usersync.pid
+	        PID=`cat $pidf` > /dev/null 2>&1
+            kill -9 $PID > /dev/null 2>&1
+            rm -f $pidf
+            echo "Ranger Usersync Service [pid = ${PID}] has been stopped."
+    else
+            echo "Ranger Usersync Service not running"
+    fi
+
 	exit;
 	
-elif [ ${action^^} == "RESTART" ]; then
-	echo "Stopping Apache Ranger Usersync"
+elif [ "${action}" == "RESTART" ]; then
+	echo "Stopping Ranger Usersync"
 	${cdir}/ranger-usersync-services.sh stop
 	echo "Starting Apache Ranger Usersync"
 	${cdir}/ranger-usersync-services.sh start
 	exit;
-elif [ ${action^^} == "VERSION" ]; then
+elif [ "${action}" == "VERSION" ]; then
 	cd ${cdir}/lib
 	java -cp ranger-util-*.jar org.apache.ranger.common.RangerVersionInfo
 	exit

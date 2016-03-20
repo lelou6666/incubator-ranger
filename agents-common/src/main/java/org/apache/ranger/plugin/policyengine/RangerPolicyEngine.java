@@ -21,34 +21,47 @@ package org.apache.ranger.plugin.policyengine;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import org.apache.ranger.plugin.audit.RangerAuditHandler;
 import org.apache.ranger.plugin.model.RangerPolicy;
 import org.apache.ranger.plugin.model.RangerServiceDef;
+import org.apache.ranger.plugin.model.RangerPolicy.RangerPolicyResource;
 
 public interface RangerPolicyEngine {
-	public static final String GROUP_PUBLIC   = "public";
-	public static final String ANY_ACCESS     = "_any";
-	public static final String ADMIN_ACCESS   = "_admin";
-	public static final long   UNKNOWN_POLICY = -1;
+	String GROUP_PUBLIC   = "public";
+	String ANY_ACCESS     = "_any";
+	String ADMIN_ACCESS   = "_admin";
 
 	String getServiceName();
 
 	RangerServiceDef getServiceDef();
 
-	void setPolicies(String serviceName, RangerServiceDef serviceDef, List<RangerPolicy> policies);
-
-	void setDefaultAuditHandler(RangerAuditHandler auditHandler);
-
-	RangerAuditHandler getDefaultAuditHandler();
+	long getPolicyVersion();
 
 	RangerAccessResult createAccessResult(RangerAccessRequest request);
 
-	RangerAccessResult isAccessAllowed(RangerAccessRequest request);
+	void preProcess(RangerAccessRequest request);
 
-	Collection<RangerAccessResult> isAccessAllowed(Collection<RangerAccessRequest> requests);
+	void preProcess(Collection<RangerAccessRequest> requests);
 
-	RangerAccessResult isAccessAllowed(RangerAccessRequest request, RangerAuditHandler auditHandler);
+	RangerAccessResult isAccessAllowed(RangerAccessRequest request, RangerAccessResultProcessor resultProcessor);
 
-	Collection<RangerAccessResult> isAccessAllowed(Collection<RangerAccessRequest> requests, RangerAuditHandler auditHandler);
+	Collection<RangerAccessResult> isAccessAllowed(Collection<RangerAccessRequest> requests, RangerAccessResultProcessor resultProcessor);
+
+
+	boolean isAccessAllowed(RangerAccessResource resource, String user, Set<String> userGroups, String accessType);
+
+	boolean isAccessAllowed(Map<String, RangerPolicyResource> resources, String user, Set<String> userGroups, String accessType);
+
+	List<RangerPolicy> getExactMatchPolicies(RangerAccessResource resource);
+
+	List<RangerPolicy> getExactMatchPolicies(Map<String, RangerPolicyResource> resources);
+
+	List<RangerPolicy> getAllowedPolicies(String user, Set<String> userGroups, String accessType);
+
+	boolean preCleanup();
+
+	void cleanup();
+
 }

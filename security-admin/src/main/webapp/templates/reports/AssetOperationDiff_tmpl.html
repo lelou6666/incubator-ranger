@@ -19,7 +19,7 @@
 	<label class="no-margin label-size13-weightbold"> Date  &nbsp;&nbsp;:  {{objectCreatedDate}}</label>
 {{#compare action 'eq' 'create'}}
 	<label class="no-margin label-size13-weightbold" > Created By  &nbsp;&nbsp;:  {{userName}}</label>
-	<h5>Repository Details :</h5>
+	<h5>Service Details :</h5>
 	<div class="diff">
 		<div class="diff-left">
 			<h3>Fields</h3>
@@ -47,7 +47,7 @@
 		</div>
 	</div>
 
-	
+	{{#if isNewConnConfig}}
 	<h5>Connection Configurations :</h5>
 	<div class="diff">
 		<div class="diff-left">
@@ -71,10 +71,10 @@
 			</ol>
 		</div>
 	</div>
-
+	{{/if}}
 {{else}}
 	<label class="no-margin label-size13-weightbold" > Deleted By  &nbsp;&nbsp;:  {{userName}}</label>
-	<h4>Repository Details</h4>
+	<h4>Service Details</h4>
 	<div class="diff">
 		<div class="diff-left">
 			<h3>Fields</h3>
@@ -104,7 +104,7 @@
 	
 	</div>
 
-	
+	{{#if isPreviousConnConfig}}
 	<h4>Connection Configurations :</h4>
 	<div class="diff">
 		<div class="diff-left">
@@ -128,6 +128,7 @@
 			</ol>
 		</div>
 	</div>
+	{{/if}}
 
 {{/compare}}
 </div>	

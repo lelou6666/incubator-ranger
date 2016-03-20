@@ -33,9 +33,20 @@ define(function(require){
 		
     	template: ErrorView_tmpl,
         templateHelpers :function(){
+        	var msg = '', moreInfo = '';
+        	if(this.status == 401){
+        		msg = 'Access Denied (401)'
+            	moreInfo = "Sorry, you don't have enough privileges to view this page.";
+        	} else if(this.status == 204){
+        		msg = 'No Content (204)'
+                moreInfo = "Sorry, Please sync-up the users with your source directory.";
+            } else {
+        		msg = 'Page not found (404).'
+            	moreInfo = "Sorry, this page isn't here or has moved.";
+            }
         	return {
-        		restrictedAccess :this.restrictedAccess || false,
-        		pageNotFound :this.pageNotFound || false
+        		'msg' : msg,
+        		'moreInfo' : moreInfo
         	};
         },
     	/** ui selector cache */
@@ -59,7 +70,7 @@ define(function(require){
 		initialize: function(options) {
 			console.log("initialized a ErrorView ItemView");
 
-			_.extend(this, _.pick(options, 'restrictedAccess','pageNotFound'));
+			_.extend(this, _.pick(options, 'status'));
 
 			this.bindEvents();
 		},
@@ -74,9 +85,13 @@ define(function(require){
 		onRender: function() {
 			this.initializePlugins();
 			$('#r_breadcrumbs').hide();
+			 if(this.status == 204){
+				 this.ui.goBackBtn.hide();
+				 this.ui.home.hide();
+			 }
 		},
 		goBackClick : function(){
-			
+			history.back();
 		},
 
 		/** all post render plugin initialization */

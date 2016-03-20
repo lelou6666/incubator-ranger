@@ -51,22 +51,31 @@ public class GrantRevokeRequest implements Serializable {
 	private Boolean             delegateAdmin              = Boolean.FALSE;
 	private Boolean             enableAudit                = Boolean.TRUE;
 	private Boolean             replaceExistingPermissions = Boolean.FALSE;
+	private Boolean             isRecursive                = Boolean.FALSE;
+	private String              clientIPAddress            = null;
+	private String              clientType                 = null;
+	private String              requestData                = null;
+	private String              sessionId                  = null;
 
 
 	public GrantRevokeRequest() {
-		this(null, null, null, null, null, null, null, null);
+		this(null, null, null, null, null, null, null, null, null, null, null, null, null);
 	}
 
-	public GrantRevokeRequest(String grantor, Map<String, String> resource, Set<String> users, Set<String> groups, Set<String> accessTypes, Boolean delegateAdmin, Boolean enableAudit, Boolean replaceExistingPermissions) {
+	public GrantRevokeRequest(String grantor, Map<String, String> resource, Set<String> users, Set<String> groups, Set<String> accessTypes, Boolean delegateAdmin, Boolean enableAudit, Boolean replaceExistingPermissions, Boolean isRecursive, String clientIPAddress, String clientType, String requestData, String sessionId) {
 		setGrantor(grantor);
 		setResource(resource);
 		setUsers(users);
 		setGroups(groups);
 		setAccessTypes(accessTypes);
 		setDelegateAdmin(delegateAdmin);
-		setAccessTypes(accessTypes);
 		setEnableAudit(enableAudit);
 		setReplaceExistingPermissions(replaceExistingPermissions);
+		setIsRecursive(isRecursive);
+		setClientIPAddress(clientIPAddress);
+		setClientType(clientType);
+		setRequestData(requestData);
+		setSessionId(sessionId);
 	}
 
 	/**
@@ -136,7 +145,7 @@ public class GrantRevokeRequest implements Serializable {
 	 * @param accessTypes the accessTypes to set
 	 */
 	public void setAccessTypes(Set<String> accessTypes) {
-		this.accessTypes = accessTypes == null ? new HashSet<String>() : groups;
+		this.accessTypes = accessTypes == null ? new HashSet<String>() : accessTypes;
 	}
 
 	/**
@@ -179,6 +188,76 @@ public class GrantRevokeRequest implements Serializable {
 	 */
 	public void setReplaceExistingPermissions(Boolean replaceExistingPermissions) {
 		this.replaceExistingPermissions = replaceExistingPermissions == null ? Boolean.FALSE : replaceExistingPermissions;
+	}
+
+	/**
+	 * @return the isRecursive
+	 */
+	public Boolean getIsRecursive() {
+		return isRecursive;
+	}
+
+	/**
+	 * @param isRecursive the isRecursive to set
+	 */
+	public void setIsRecursive(Boolean isRecursive) {
+		this.isRecursive = isRecursive == null ? Boolean.FALSE : isRecursive;
+	}
+
+	/**
+	 * @return the clientIPAddress
+	 */
+	public String getClientIPAddress() {
+		return clientIPAddress;
+	}
+
+	/**
+	 * @param clientIPAddress the clientIPAddress to set
+	 */
+	public void setClientIPAddress(String clientIPAddress) {
+		this.clientIPAddress = clientIPAddress;
+	}
+
+	/**
+	 * @return the clientType
+	 */
+	public String getClientType() {
+		return clientType;
+	}
+
+	/**
+	 * @param clientType the clientType to set
+	 */
+	public void setClientType(String clientType) {
+		this.clientType = clientType;
+	}
+
+	/**
+	 * @return the requestData
+	 */
+	public String getRequestData() {
+		return requestData;
+	}
+
+	/**
+	 * @param requestData the requestData to set
+	 */
+	public void setRequestData(String requestData) {
+		this.requestData = requestData;
+	}
+
+	/**
+	 * @return the sessionId
+	 */
+	public String getSessionId() {
+		return sessionId;
+	}
+
+	/**
+	 * @param sessionId the sessionId to set
+	 */
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
 	}
 
 
@@ -231,6 +310,11 @@ public class GrantRevokeRequest implements Serializable {
 		sb.append("delegateAdmin={").append(delegateAdmin).append("} ");
 		sb.append("enableAudit={").append(enableAudit).append("} ");
 		sb.append("replaceExistingPermissions={").append(replaceExistingPermissions).append("} ");
+		sb.append("isRecursive={").append(isRecursive).append("} ");
+		sb.append("clientIPAddress={").append(clientIPAddress).append("} ");
+		sb.append("clientType={").append(clientType).append("} ");
+		sb.append("requestData={").append(requestData).append("} ");
+		sb.append("sessionId={").append(sessionId).append("} ");
 
 		sb.append("}");
 

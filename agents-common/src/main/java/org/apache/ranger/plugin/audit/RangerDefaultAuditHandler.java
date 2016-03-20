@@ -19,34 +19,34 @@
 
 package org.apache.ranger.plugin.audit;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.audit.provider.AuditProviderFactory;
-import org.apache.ranger.plugin.model.RangerServiceDef;
-import org.apache.ranger.plugin.model.RangerServiceDef.RangerResourceDef;
-import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
-import org.apache.ranger.plugin.policyengine.RangerAccessResult;
-import org.apache.ranger.plugin.policyengine.RangerResource;
+import org.apache.ranger.audit.provider.MiscUtil;
+import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
+import org.apache.ranger.authorization.hadoop.constants.RangerHadoopConstants;
+import org.apache.ranger.plugin.model.RangerTag;
+import org.apache.ranger.plugin.policyengine.*;
+import org.apache.ranger.plugin.util.RangerAccessRequestUtil;
 
 
-public class RangerDefaultAuditHandler implements RangerAuditHandler {
+public class RangerDefaultAuditHandler implements RangerAccessResultProcessor {
+	protected static final String RangerModuleName =  RangerConfiguration.getInstance().get(RangerHadoopConstants.AUDITLOG_RANGER_MODULE_ACL_NAME_PROP , RangerHadoopConstants.DEFAULT_RANGER_MODULE_ACL_NAME) ;
+
 	private static final Log LOG = LogFactory.getLog(RangerDefaultAuditHandler.class);
-
-	private static final String RESOURCE_SEP = "/";
-
+	static long sequenceNumber = 0;
 
 	public RangerDefaultAuditHandler() {
 	}
 
 	@Override
-	public void logAudit(RangerAccessResult result) {
+	public void processResult(RangerAccessResult result) {
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("==> RangerDefaultAuditHandler.logAudit(" + result + ")");
+			LOG.debug("==> RangerDefaultAuditHandler.processResult(" + result + ")");
 		}
 
 		AuthzAuditEvent event = getAuthzEvents(result);
@@ -54,14 +54,14 @@ public class RangerDefaultAuditHandler implements RangerAuditHandler {
 		logAuthzAudit(event);
 
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("<== RangerDefaultAuditHandler.logAudit(" + result + ")");
+			LOG.debug("<== RangerDefaultAuditHandler.processResult(" + result + ")");
 		}
 	}
 
 	@Override
-	public void logAudit(Collection<RangerAccessResult> results) {
+	public void processResults(Collection<RangerAccessResult> results) {
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("==> RangerDefaultAuditHandler.logAudit(" + results + ")");
+			LOG.debug("==> RangerDefaultAuditHandler.processResults(" + results + ")");
 		}
 
 		Collection<AuthzAuditEvent> events = getAuthzEvents(results);
@@ -69,7 +69,7 @@ public class RangerDefaultAuditHandler implements RangerAuditHandler {
 		logAuthzAudits(events);
 
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("<== RangerDefaultAuditHandler.logAudit(" + results + ")");
+			LOG.debug("<== RangerDefaultAuditHandler.processResults(" + results + ")");
 		}
 	}
 
@@ -84,9 +84,10 @@ public class RangerDefaultAuditHandler implements RangerAuditHandler {
 		RangerAccessRequest request = result != null ? result.getAccessRequest() : null;
 
 		if(request != null && result != null && result.getIsAudited()) {
-			RangerServiceDef serviceDef   = result.getServiceDef();
-			String           resourceType = getResourceName(request.getResource(), serviceDef);
-			String           resourcePath = getResourceValueAsString(request.getResource(), serviceDef);
+			//RangerServiceDef     serviceDef   = result.getServiceDef();
+			RangerAccessResource resource     = request.getResource();
+			String               resourceType = resource == null ? null : resource.getLeafName();
+			String               resourcePath = resource == null ? null : resource.getAsString();
 
 			ret = createAuthzAuditEvent();
 
@@ -97,16 +98,20 @@ public class RangerDefaultAuditHandler implements RangerAuditHandler {
 			ret.setRequestData(request.getRequestData());
 			ret.setEventTime(request.getAccessTime());
 			ret.setUser(request.getUser());
-			ret.setAccessType(request.getAction());
-			ret.setAccessResult((short)(result.getIsAllowed() ? 1 : 0));
-			ret.setPolicyId(result.getPolicyId());
-			ret.setAclEnforcer("ranger-acl"); // TODO: review
 			ret.setAction(request.getAccessType());
+			ret.setAccessResult((short) (result.getIsAllowed() ? 1 : 0));
+			ret.setPolicyId(result.getPolicyId());
+			ret.setAccessType(request.getAction());
 			ret.setClientIP(request.getClientIPAddress());
 			ret.setClientType(request.getClientType());
-			ret.setAgentHostname(null);
-			ret.setAgentId(null);
-			ret.setEventId(null);
+			ret.setSessionId(request.getSessionId());
+			ret.setAclEnforcer(RangerModuleName);
+			Set<String> tags = getTags(request);
+			if (tags != null) {
+				ret.setTags(tags);
+			}
+
+			populateDefaults(ret);
 		}
 
 		if(LOG.isDebugEnabled()) {
@@ -153,12 +158,33 @@ public class RangerDefaultAuditHandler implements RangerAuditHandler {
 		}
 
 		if(auditEvent != null) {
+			populateDefaults(auditEvent);
 			AuditProviderFactory.getAuditProvider().log(auditEvent);
 		}
 
 		if(LOG.isDebugEnabled()) {
 			LOG.debug("<== RangerDefaultAuditHandler.logAuthzAudit(" + auditEvent + ")");
 		}
+	}
+
+	private void populateDefaults(AuthzAuditEvent auditEvent) {
+		if( auditEvent.getAclEnforcer() == null || auditEvent.getAclEnforcer().isEmpty()) {
+			auditEvent.setAclEnforcer("ranger-acl"); // TODO: review
+		}
+
+		if (auditEvent.getAgentHostname() == null || auditEvent.getAgentHostname().isEmpty()) {
+			auditEvent.setAgentHostname(MiscUtil.getHostname());
+		}
+
+		if (auditEvent.getLogType() == null || auditEvent.getLogType().isEmpty()) {
+			auditEvent.setLogType("RangerAudit");
+		}
+
+		if (auditEvent.getEventId() == null || auditEvent.getEventId().isEmpty()) {
+			auditEvent.setEventId(MiscUtil.generateUniqueId());
+		}
+
+		auditEvent.setSeqNum(sequenceNumber++);
 	}
 
 	public void logAuthzAudits(Collection<AuthzAuditEvent> auditEvents) {
@@ -181,48 +207,15 @@ public class RangerDefaultAuditHandler implements RangerAuditHandler {
 		return new AuthzAuditEvent();
 	}
 
-	public String getResourceName(RangerResource resource, RangerServiceDef serviceDef) {
-		String ret = null;
+	protected final Set<String> getTags(RangerAccessRequest request) {
+		Set<String>     ret  = null;
+		List<RangerTag> tags = RangerAccessRequestUtil.getRequestTagsFromContext(request.getContext());
 
-		if(resource != null && serviceDef != null && serviceDef.getResources() != null) {
-			List<RangerResourceDef> resourceDefs = serviceDef.getResources();
+		if (CollectionUtils.isNotEmpty(tags)) {
+			ret = new HashSet<String>();
 
-			for(int idx = resourceDefs.size() - 1; idx >= 0; idx--) {
-				RangerResourceDef resourceDef = resourceDefs.get(idx);
-
-				if(resourceDef == null || !resource.exists(resourceDef.getName())) {
-					continue;
-				}
-
-				ret = resourceDef.getName();
-
-				break;
-			}
-		}
-		
-		return ret;
-	}
-
-	public String getResourceValueAsString(RangerResource resource, RangerServiceDef serviceDef) {
-		String ret = null;
-
-		if(resource != null && serviceDef != null && serviceDef.getResources() != null) {
-			StringBuilder sb = new StringBuilder();
-
-			for(RangerResourceDef resourceDef : serviceDef.getResources()) {
-				if(resourceDef == null || !resource.exists(resourceDef.getName())) {
-					continue;
-				}
-
-				if(sb.length() > 0) {
-					sb.append(RESOURCE_SEP);
-				}
-
-				sb.append(resource.getValue(resourceDef.getName()));
-			}
-
-			if(sb.length() > 0) {
-				ret = sb.toString();
+			for (RangerTag tag : tags) {
+				ret.add(tag.getType());
 			}
 		}
 

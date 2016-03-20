@@ -19,17 +19,15 @@
 
 package org.apache.ranger.authorization.knox;
 
-import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.ranger.authorization.knox.KnoxRangerPlugin.KnoxConstants.AccessType;
 import org.apache.ranger.authorization.knox.KnoxRangerPlugin.KnoxConstants.PluginConfiguration;
 import org.apache.ranger.authorization.knox.KnoxRangerPlugin.KnoxConstants.ResourceName;
-import org.apache.ranger.plugin.conditionevaluator.RangerIpMatcher;
+import org.apache.ranger.plugin.audit.RangerDefaultAuditHandler;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
-import org.apache.ranger.plugin.policyengine.RangerResourceImpl;
+import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
 import org.apache.ranger.plugin.service.RangerBasePlugin;
 
 public class KnoxRangerPlugin extends RangerBasePlugin {
@@ -43,7 +41,10 @@ public class KnoxRangerPlugin extends RangerBasePlugin {
 	@Override
 	synchronized public void init() {
 		if (!initialized) {
+			// mandatory call to base plugin
 			super.init();
+			// One time call to register the audit hander with the policy engine.
+			super.setResultProcessor(new RangerDefaultAuditHandler());
 			initialized = true;
 		}
 	}
@@ -84,7 +85,7 @@ public class KnoxRangerPlugin extends RangerBasePlugin {
 		
 		RangerAccessRequest build() {
 			// build resource
-			RangerResourceImpl resource = new RangerResourceImpl();
+			RangerAccessResourceImpl resource = new RangerAccessResourceImpl();
 			resource.setValue(ResourceName.Service, _service);
 			resource.setValue(ResourceName.Topology, _topology);
 			// build request
@@ -94,9 +95,6 @@ public class KnoxRangerPlugin extends RangerBasePlugin {
 			request.setUser(_user);
 			request.setUserGroups(_groups);
 			request.setResource(resource);
-			// build condition for IP address
-			Map<String, Object> conditions = Collections.singletonMap(RangerIpMatcher.ConditionName, (Object)_clientIp);
-			request.setContext(conditions);
 			
 			return request;
 		}

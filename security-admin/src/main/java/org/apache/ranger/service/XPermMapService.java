@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.ranger.biz.RangerBizUtil;
 import org.apache.ranger.common.AppConstants;
 import org.apache.ranger.common.SearchCriteria;
 import org.apache.ranger.common.SearchField;
@@ -58,6 +59,12 @@ public class XPermMapService extends XPermMapServiceBase<XXPermMap, VXPermMap> {
 
 	@Autowired
 	RangerDaoManager rangerDaoManager;
+
+	@Autowired
+	RangerBizUtil rangerBizUtil;
+
+	@Autowired
+	XResourceService xResourceService;
 
 	static HashMap<String, VTrxLogAttr> trxLogAttrs = new HashMap<String, VTrxLogAttr>();
 	static {
@@ -112,19 +119,7 @@ public class XPermMapService extends XPermMapServiceBase<XXPermMap, VXPermMap> {
 	
 	@Override
 	public VXPermMapList searchXPermMaps(SearchCriteria searchCriteria) {
-		VXPermMapList vXPermMapList = super.searchXPermMaps(searchCriteria);
-		if(vXPermMapList != null && vXPermMapList.getResultSize() != 0){
-			for(VXPermMap vXPermMap : vXPermMapList.getVXPermMaps()){
-				if(vXPermMap.getPermFor() == AppConstants.XA_PERM_FOR_GROUP) {
-					String groupName = getGroupName(vXPermMap.getGroupId());
-					vXPermMap.setGroupName(groupName);
-				} else if(vXPermMap.getPermFor() == AppConstants.XA_PERM_FOR_USER) {
-					String username = getUserName(vXPermMap.getUserId());
-					vXPermMap.setUserName(username);
-				}
-			}
-		}
-		return vXPermMapList;
+		return super.searchXPermMaps(searchCriteria);
 	}
 	
 	public String getGroupName(Long groupId){
@@ -150,7 +145,7 @@ public class XPermMapService extends XPermMapServiceBase<XXPermMap, VXPermMap> {
 	}
 	
 	public List<XXTrxLog> getTransactionLog(VXPermMap vObj, VXPermMap mObj, String action){
-		if(vObj == null && (action == null || !action.equalsIgnoreCase("update"))){
+		if(vObj == null || action == null || (action.equalsIgnoreCase("update") && mObj == null)){
 			return null;
 		}
 		
@@ -274,12 +269,12 @@ public class XPermMapService extends XPermMapServiceBase<XXPermMap, VXPermMap> {
 	
 	@Override
 	protected XXPermMap mapViewToEntityBean(VXPermMap vObj, XXPermMap mObj, int OPERATION_CONTEXT) {
-		super.mapViewToEntityBean(vObj, mObj, OPERATION_CONTEXT);
 		if(vObj!=null && mObj!=null){
+			super.mapViewToEntityBean(vObj, mObj, OPERATION_CONTEXT);
 			XXPortalUser xXPortalUser=null;
 			if(mObj.getAddedByUserId()==null || mObj.getAddedByUserId()==0){
 				if(!stringUtil.isEmpty(vObj.getOwner())){
-					xXPortalUser=rangerDaoManager.getXXPortalUser().findByLoginId(vObj.getOwner());	
+					xXPortalUser=rangerDaoManager.getXXPortalUser().findByLoginId(vObj.getOwner());
 					if(xXPortalUser!=null){
 						mObj.setAddedByUserId(xXPortalUser.getId());
 					}
@@ -287,10 +282,10 @@ public class XPermMapService extends XPermMapServiceBase<XXPermMap, VXPermMap> {
 			}
 			if(mObj.getUpdatedByUserId()==null || mObj.getUpdatedByUserId()==0){
 				if(!stringUtil.isEmpty(vObj.getUpdatedBy())){
-					xXPortalUser= rangerDaoManager.getXXPortalUser().findByLoginId(vObj.getUpdatedBy());			
+					xXPortalUser= rangerDaoManager.getXXPortalUser().findByLoginId(vObj.getUpdatedBy());
 					if(xXPortalUser!=null){
 						mObj.setUpdatedByUserId(xXPortalUser.getId());
-					}		
+					}
 				}
 			}
 		}
@@ -299,9 +294,9 @@ public class XPermMapService extends XPermMapServiceBase<XXPermMap, VXPermMap> {
 
 	@Override
 	protected VXPermMap mapEntityToViewBean(VXPermMap vObj, XXPermMap mObj) {
-		super.mapEntityToViewBean(vObj, mObj);
 		if(mObj!=null && vObj!=null){
-			XXPortalUser xXPortalUser=null;
+            super.mapEntityToViewBean(vObj, mObj);
+            XXPortalUser xXPortalUser=null;
 			if(stringUtil.isEmpty(vObj.getOwner())){
 				xXPortalUser= rangerDaoManager.getXXPortalUser().getById(mObj.getAddedByUserId());	
 				if(xXPortalUser!=null){

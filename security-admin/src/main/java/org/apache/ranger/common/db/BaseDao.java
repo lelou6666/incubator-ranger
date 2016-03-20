@@ -23,15 +23,20 @@
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
+import javax.persistence.Table;
 import javax.persistence.TypedQuery;
 
 import org.apache.log4j.Logger;
+import org.apache.ranger.biz.RangerBizUtil;
+import org.apache.ranger.common.AppConstants;
 import org.apache.ranger.db.RangerDaoManager;
 import org.apache.ranger.db.RangerDaoManagerBase;
 
@@ -153,16 +158,9 @@ public abstract class BaseDao<T> {
 			boolean userPrefFilter) {
 		// boolean filterEnabled = false;
 		List<T> rtrnList = null;
-		try {
-			// filterEnabled = enableVisiblityFilters(clazz, userPrefFilter);
+		// filterEnabled = enableVisiblityFilters(clazz, userPrefFilter);
 
-			rtrnList = query.getResultList();
-		} finally {
-			// if (filterEnabled) {
-			// disableVisiblityFilters(clazz);
-			// }
-
-		}
+		rtrnList = query.getResultList();
 
 		return rtrnList;
 	}
@@ -177,14 +175,8 @@ public abstract class BaseDao<T> {
 			Query query, boolean userPrefFilter) {
 		// boolean filterEnabled = false;
 		Long rtrnObj = null;
-		try {
-			// filterEnabled = enableVisiblityFilters(clazz, userPrefFilter);
-			rtrnObj = (Long) query.getSingleResult();
-		} finally {
-			// if (filterEnabled) {
-			// disableVisiblityFilters(clazz);
-			// }
-		}
+		// filterEnabled = enableVisiblityFilters(clazz, userPrefFilter);
+		rtrnObj = (Long) query.getSingleResult();
 
 		return rtrnObj;
 	}
@@ -208,6 +200,70 @@ public abstract class BaseDao<T> {
 				Long.class);
 		ret = qry.getSingleResult();
 		return ret;
+	}
+
+	public void updateSequence(String seqName, long nextValue) {
+		if(RangerBizUtil.getDBFlavor() == AppConstants.DB_FLAVOR_ORACLE) {
+			String[] queries = {
+					"ALTER SEQUENCE " + seqName + " INCREMENT BY " + (nextValue - 1),
+					"select " + seqName + ".nextval from dual",
+					"ALTER SEQUENCE " + seqName + " INCREMENT BY 1 NOCACHE NOCYCLE"
+			};
+
+			for(String query : queries) {
+				getEntityManager().createNativeQuery(query).executeUpdate();
+			}
+		} else if(RangerBizUtil.getDBFlavor() == AppConstants.DB_FLAVOR_POSTGRES) {
+			String query = "SELECT setval('" + seqName + "', " + nextValue + ")";
+
+			getEntityManager().createNativeQuery(query).getSingleResult();
+		}
+
+	}
+
+	public void setIdentityInsert(boolean identityInsert) {
+		if (RangerBizUtil.getDBFlavor() != AppConstants.DB_FLAVOR_SQLSERVER) {
+			logger.debug("Ignoring BaseDao.setIdentityInsert(). This should be executed if DB flavor is sqlserver.");
+			return;
+		}
+
+		EntityManager entityMgr = getEntityManager();
+
+		String identityInsertStr;
+		if (identityInsert) {
+			identityInsertStr = "ON";
+		} else {
+			identityInsertStr = "OFF";
+		}
+
+		Table table = tClass.getAnnotation(Table.class);
+
+		if(table == null) {
+			throw new NullPointerException("Required annotation `Table` not found");
+		}
+
+		String tableName = table.name();
+
+		Connection conn = entityMgr.unwrap(Connection.class);
+		try {
+			conn.createStatement().execute("SET IDENTITY_INSERT " + tableName + " " + identityInsertStr);
+		} catch (SQLException e) {
+			logger.error("Error while settion identity_insert " + identityInsertStr, e);
+		}
+	}
+
+	public void updateUserIDReference(String paramName,long oldID) {
+		Table table = tClass.getAnnotation(Table.class);
+		if(table == null) {
+			logger.warn("Required annotation `Table` not found");
+		}
+		String tableName = table.name();
+		String query = "update " + tableName + " set " + paramName+"=null"
+				+ " where " +paramName+"=" + oldID;
+		int count=getEntityManager().createNativeQuery(query).executeUpdate();
+		if(count>0){
+			logger.warn(count + " records updated in table '" + tableName + "' with: set " + paramName + "=null where " + paramName + "=" + oldID);
+		}
 	}
 
 }

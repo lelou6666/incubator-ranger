@@ -19,9 +19,7 @@
 
  package org.apache.ranger.authorization.hadoop.utils;
 
-import java.lang.String;
 import java.util.List;
-import java.io.IOException;
 
 import org.apache.hadoop.security.alias.CredentialProvider;
 import org.apache.hadoop.security.alias.CredentialProviderFactory;
@@ -34,19 +32,20 @@ public class RangerCredentialProvider {
 
   private static Log LOG = LogFactory.getLog(RangerCredentialProvider.class);
 
-  private static RangerCredentialProvider  me = null;
+  private static volatile RangerCredentialProvider  me = null;
 
   
   public static RangerCredentialProvider getInstance()  {
-	  if ( me == null) {
+      RangerCredentialProvider result = me;
+	  if ( result == null) {
 		  synchronized(RangerCredentialProvider.class) {
-			  RangerCredentialProvider temp = me;
-			  if ( temp == null){
-				  me = new RangerCredentialProvider();
+			  result = me;
+			  if ( result == null){
+				  me = result = new RangerCredentialProvider();
 			  }
 		  }
 	  }
-	return me;
+	return result;
   }
   
   public char[] getCredentialString(String url, String alias)  {

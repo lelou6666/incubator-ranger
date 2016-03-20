@@ -297,24 +297,23 @@ public class StormClient {
 		return ret;
 	}
 
-	public static HashMap<String, Object> testConnection(String serviceName,
+	public static HashMap<String, Object> connectionTest(String serviceName,
 			Map<String, String> configs) {
 
-		List<String> strList = new ArrayList<String>();
 		String errMsg = errMessage;
 		boolean connectivityStatus = false;
 		HashMap<String, Object> responseData = new HashMap<String, Object>();
 
 		StormClient stormClient = getStormClient(serviceName,
 				configs);
-		strList = getStormResources(stormClient, "",null);
+		List<String> strList = getStormResources(stormClient, "",null);
 
 		if (strList != null) {
 			connectivityStatus = true;
 		}
 
 		if (connectivityStatus) {
-			String successMsg = "TestConnection Successful";
+			String successMsg = "ConnectionTest Successful";
 			BaseClient.generateResponseDataMap(connectivityStatus, successMsg,
 					successMsg, null, null, responseData);
 		} else {
@@ -329,8 +328,10 @@ public class StormClient {
 	public static StormClient getStormClient(String serviceName,
 			Map<String, String> configs) {
 		StormClient stormClient = null;
-		LOG.debug("Getting StormClient for datasource: " + serviceName
-				+ "configMap: " + configs);
+		if(LOG.isDebugEnabled()){
+			LOG.debug("Getting StormClient for datasource: " + serviceName);
+			LOG.debug("configMap: " + BaseClient.getMaskedConfigMap(configs));
+		}
 		String errMsg = errMessage;
 		if (configs == null || configs.isEmpty()) {
 			String msgDesc = "Could not connect as Connection ConfigMap is empty.";
@@ -366,8 +367,7 @@ public class StormClient {
 			}
 
 			if (topologyName != null) {
-				String finalTopologyNameMatching = (topologyName == null) ? ""
-						: topologyName.trim();
+				String finalTopologyNameMatching = topologyName.trim();
 				resultList = stormClient
 						.getTopologyList(finalTopologyNameMatching,stormTopologyList);
 				if (resultList != null) {

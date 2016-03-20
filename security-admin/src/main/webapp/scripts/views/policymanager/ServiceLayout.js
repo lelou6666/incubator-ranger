@@ -22,13 +22,13 @@ define(function(require){
     'use strict';
 
 	var Backbone			= require('backbone');
-
 	var XALinks 			= require('modules/XALinks');
 	var XAEnums 			= require('utils/XAEnums');
 	var XAUtil				= require('utils/XAUtils');
 	var SessionMgr 			= require('mgrs/SessionMgr');
+	
 	var RangerServiceList 	= require('collections/RangerServiceList');
-	var RangerService 	= require('models/RangerService');
+	var RangerService 		= require('models/RangerService');
 	
 	var ServicemanagerlayoutTmpl = require('hbs!tmpl/common/ServiceManagerLayout_tmpl');
 	return Backbone.Marionette.Layout.extend(
@@ -39,14 +39,18 @@ define(function(require){
     	template: ServicemanagerlayoutTmpl,
 
 		templateHelpers: function(){
-			var groupedServices = this.services.groupBy("type");
 			return {
-				isSysAdmin : SessionMgr.isSystemAdmin(),
+				operation 	: SessionMgr.isSystemAdmin() || SessionMgr.isKeyAdmin(),
 				serviceDefs : this.collection.models,
-				services : groupedServices
+				services 	: this.services.groupBy("type")
 			};
 		},
-    	breadCrumbs :[XALinks.get('ServiceManager')],
+    	breadCrumbs :function(){
+    		if(this.type == "tag"){
+    			return [XALinks.get('TagBasedServiceManager')];
+    		}
+    		return [XALinks.get('ServiceManager')];
+    	},
 
 		/** Layout sub regions */
     	regions: {},
@@ -69,7 +73,7 @@ define(function(require){
 		initialize: function(options) {
 			console.log("initialized a Servicemanagerlayout Layout");
 			this.services = new RangerServiceList();	
-			_.extend(this, _.pick(options, 'collection'));
+			_.extend(this, _.pick(options, 'collection','type'));
 			this.bindEvents();
 			this.initializeServices();
 		},

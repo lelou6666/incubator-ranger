@@ -28,52 +28,65 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.codehaus.jackson.annotate.JsonAutoDetect;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonAutoDetect.Visibility;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 
-@JsonAutoDetect(getterVisibility=Visibility.NONE, setterVisibility=Visibility.NONE, fieldVisibility=Visibility.ANY)
-@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL )
+@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown=true)
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
 public class RangerPolicy extends RangerBaseModelObject implements java.io.Serializable {
+
+	// For future use
 	private static final long serialVersionUID = 1L;
 
-	private String                            service        = null;
-	private String                            name           = null;
-	private String                            description    = null;
-	private Boolean                           isAuditEnabled = null;
-	private Map<String, RangerPolicyResource> resources      = null;
-	private List<RangerPolicyItem>            policyItems    = null;
+	private String                            service        	= null;
+	private String                            name           	= null;
+	private Integer                           policyType     	= null;
+	private String                            description    	= null;
+	private String							  resourceSignature = null;
+	private Boolean                           isAuditEnabled 	= null;
+	private Map<String, RangerPolicyResource> resources      	= null;
+	private List<RangerPolicyItem>            policyItems    	= null;
+	private List<RangerPolicyItem>            denyPolicyItems	= null;
+	private List<RangerPolicyItem>            allowExceptions	= null;
+	private List<RangerPolicyItem>            denyExceptions	= null;
 
 
 	/**
-	 * @param type
+	 * @param
 	 */
 	public RangerPolicy() {
-		this(null, null, null, null, null);
+		this(null, null, null, null, null, null, null);
 	}
 
 	/**
-	 * @param type
+	 * @param service
 	 * @param name
+	 * @param policyType
 	 * @param description
 	 * @param resources
 	 * @param policyItems
+	 * @param resourceSignature TODO
 	 */
-	public RangerPolicy(String service, String name, String description, Map<String, RangerPolicyResource> resources, List<RangerPolicyItem> policyItems) {
+	public RangerPolicy(String service, String name, Integer policyType, String description, Map<String, RangerPolicyResource> resources, List<RangerPolicyItem> policyItems, String resourceSignature) {
 		super();
 
 		setService(service);
 		setName(name);
+		setPolicyType(policyType);
 		setDescription(description);
+		setResourceSignature(resourceSignature);
 		setIsAuditEnabled(null);
 		setResources(resources);
 		setPolicyItems(policyItems);
+		setDenyPolicyItems(null);
+		setAllowExceptions(null);
+		setDenyExceptions(null);
 	}
 
 	/**
@@ -84,10 +97,15 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 
 		setService(other.getService());
 		setName(other.getName());
+		setPolicyType(other.getPolicyType());
 		setDescription(other.getDescription());
+		setResourceSignature(other.getResourceSignature());
 		setIsAuditEnabled(other.getIsAuditEnabled());
 		setResources(other.getResources());
 		setPolicyItems(other.getPolicyItems());
+		setDenyPolicyItems(other.getDenyPolicyItems());
+		setAllowExceptions(other.getAllowExceptions());
+		setDenyExceptions(other.getDenyExceptions());
 	}
 
 	/**
@@ -98,7 +116,7 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 	}
 
 	/**
-	 * @param type the type to set
+	 * @param service the type to set
 	 */
 	public void setService(String service) {
 		this.service = service;
@@ -119,6 +137,20 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 	}
 
 	/**
+	 * @return the policyType
+	 */
+	public Integer getPolicyType() {
+		return policyType;
+	}
+
+	/**
+	 * @param policyType the policyType to set
+	 */
+	public void setPolicyType(Integer policyType) {
+		this.policyType = policyType;
+	}
+
+	/**
 	 * @return the description
 	 */
 	public String getDescription() {
@@ -131,6 +163,20 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 	public void setDescription(String description) {
 		this.description = description;
 	}
+	
+	/**
+	 * @return the resourceSignature
+	 */
+	public String getResourceSignature() {
+		return resourceSignature;
+	}
+
+	/**
+	 * @param resourceSignature the resourceSignature to set
+	 */
+	public void setResourceSignature(String resourceSignature) {
+		this.resourceSignature = resourceSignature;
+	}
 
 	/**
 	 * @return the isAuditEnabled
@@ -140,7 +186,7 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 	}
 
 	/**
-	 * @param isEnabled the isEnabled to set
+	 * @param isAuditEnabled the isEnabled to set
 	 */
 	public void setIsAuditEnabled(Boolean isAuditEnabled) {
 		this.isAuditEnabled = isAuditEnabled == null ? Boolean.TRUE : isAuditEnabled;
@@ -154,7 +200,7 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 	}
 
 	/**
-	 * @param configs the resources to set
+	 * @param resources the resources to set
 	 */
 	public void setResources(Map<String, RangerPolicyResource> resources) {
 		if(this.resources == null) {
@@ -202,6 +248,90 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 		}
 	}
 
+	/**
+	 * @return the denyPolicyItems
+	 */
+	public List<RangerPolicyItem> getDenyPolicyItems() {
+		return denyPolicyItems;
+	}
+
+	/**
+	 * @param denyPolicyItems the denyPolicyItems to set
+	 */
+	public void setDenyPolicyItems(List<RangerPolicyItem> denyPolicyItems) {
+		if(this.denyPolicyItems == null) {
+			this.denyPolicyItems = new ArrayList<RangerPolicyItem>();
+		}
+
+		if(this.denyPolicyItems == denyPolicyItems) {
+			return;
+		}
+
+		this.denyPolicyItems.clear();
+
+		if(denyPolicyItems != null) {
+			for(RangerPolicyItem policyItem : denyPolicyItems) {
+				this.denyPolicyItems.add(policyItem);
+			}
+		}
+	}
+
+	/**
+	 * @return the allowExceptions
+	 */
+	public List<RangerPolicyItem> getAllowExceptions() {
+		return allowExceptions;
+	}
+
+	/**
+	 * @param allowExceptions the allowExceptions to set
+	 */
+	public void setAllowExceptions(List<RangerPolicyItem> allowExceptions) {
+		if(this.allowExceptions == null) {
+			this.allowExceptions = new ArrayList<RangerPolicyItem>();
+		}
+
+		if(this.allowExceptions == allowExceptions) {
+			return;
+		}
+
+		this.allowExceptions.clear();
+
+		if(allowExceptions != null) {
+			for(RangerPolicyItem policyItem : allowExceptions) {
+				this.allowExceptions.add(policyItem);
+			}
+		}
+	}
+
+	/**
+	 * @return the denyExceptions
+	 */
+	public List<RangerPolicyItem> getDenyExceptions() {
+		return denyExceptions;
+	}
+
+	/**
+	 * @param denyExceptions the denyExceptions to set
+	 */
+	public void setDenyExceptions(List<RangerPolicyItem> denyExceptions) {
+		if(this.denyExceptions == null) {
+			this.denyExceptions = new ArrayList<RangerPolicyItem>();
+		}
+
+		if(this.denyExceptions == denyExceptions) {
+			return;
+		}
+
+		this.denyExceptions.clear();
+
+		if(denyExceptions != null) {
+			for(RangerPolicyItem policyItem : denyExceptions) {
+				this.denyExceptions.add(policyItem);
+			}
+		}
+	}
+
 	@Override
 	public String toString( ) {
 		StringBuilder sb = new StringBuilder();
@@ -218,7 +348,9 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 
 		sb.append("service={").append(service).append("} ");
 		sb.append("name={").append(name).append("} ");
+		sb.append("policyType={").append(policyType).append("} ");
 		sb.append("description={").append(description).append("} ");
+		sb.append("resourceSignature={").append(resourceSignature).append("} ");
 		sb.append("isAuditEnabled={").append(isAuditEnabled).append("} ");
 
 		sb.append("resources={");
@@ -241,12 +373,47 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 		}
 		sb.append("} ");
 
+		sb.append("denyPolicyItems={");
+		if(denyPolicyItems != null) {
+			for(RangerPolicyItem policyItem : denyPolicyItems) {
+				if(policyItem != null) {
+					policyItem.toString(sb);
+				}
+			}
+		}
+		sb.append("} ");
+
+		sb.append("allowExceptions={");
+		if(allowExceptions != null) {
+			for(RangerPolicyItem policyItem : allowExceptions) {
+				if(policyItem != null) {
+					policyItem.toString(sb);
+				}
+			}
+		}
+		sb.append("} ");
+
+		sb.append("denyExceptions={");
+		if(denyExceptions != null) {
+			for(RangerPolicyItem policyItem : denyExceptions) {
+				if(policyItem != null) {
+					policyItem.toString(sb);
+				}
+			}
+		}
+		sb.append("} ");
+
 		sb.append("}");
 
 		return sb;
 	}
 
 
+	@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+	@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+	@JsonIgnoreProperties(ignoreUnknown=true)
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class RangerPolicyResource implements java.io.Serializable {
 		private static final long serialVersionUID = 1L;
 
@@ -370,8 +537,54 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 
 			return sb;
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((isExcludes == null) ? 0 : isExcludes.hashCode());
+			result = prime * result
+					+ ((isRecursive == null) ? 0 : isRecursive.hashCode());
+			result = prime * result
+					+ ((values == null) ? 0 : values.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			RangerPolicyResource other = (RangerPolicyResource) obj;
+			if (isExcludes == null) {
+				if (other.isExcludes != null)
+					return false;
+			} else if (!isExcludes.equals(other.isExcludes))
+				return false;
+			if (isRecursive == null) {
+				if (other.isRecursive != null)
+					return false;
+			} else if (!isRecursive.equals(other.isRecursive))
+				return false;
+			if (values == null) {
+				if (other.values != null)
+					return false;
+			} else if (!values.equals(other.values))
+				return false;
+			return true;
+		}
+		
 	}
 
+	@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+	@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+	@JsonIgnoreProperties(ignoreUnknown=true)
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class RangerPolicyItem implements java.io.Serializable {
 		private static final long serialVersionUID = 1L;
 
@@ -411,6 +624,8 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 				return;
 			}
 
+			this.accesses.clear();
+
 			if(accesses != null) {
 				for(RangerPolicyItemAccess access : accesses) {
 					this.accesses.add(access);
@@ -434,6 +649,8 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 			if(this.users == users) {
 				return;
 			}
+
+			this.users.clear();
 
 			if(users != null) {
 				for(String user : users) {
@@ -459,6 +676,8 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 				return;
 			}
 
+			this.groups.clear();
+
 			if(groups != null) {
 				for(String group : groups) {
 					this.groups.add(group);
@@ -482,6 +701,8 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 			if(this.conditions == conditions) {
 				return;
 			}
+
+			this.conditions.clear();
 
 			if(conditions != null) {
 				for(RangerPolicyItemCondition condition : conditions) {
@@ -561,8 +782,67 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 
 			return sb;
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((accesses == null) ? 0 : accesses.hashCode());
+			result = prime * result
+					+ ((conditions == null) ? 0 : conditions.hashCode());
+			result = prime * result
+					+ ((delegateAdmin == null) ? 0 : delegateAdmin.hashCode());
+			result = prime * result
+					+ ((groups == null) ? 0 : groups.hashCode());
+			result = prime * result + ((users == null) ? 0 : users.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			RangerPolicyItem other = (RangerPolicyItem) obj;
+			if (accesses == null) {
+				if (other.accesses != null)
+					return false;
+			} else if (!accesses.equals(other.accesses))
+				return false;
+			if (conditions == null) {
+				if (other.conditions != null)
+					return false;
+			} else if (!conditions.equals(other.conditions))
+				return false;
+			if (delegateAdmin == null) {
+				if (other.delegateAdmin != null)
+					return false;
+			} else if (!delegateAdmin.equals(other.delegateAdmin))
+				return false;
+			if (groups == null) {
+				if (other.groups != null)
+					return false;
+			} else if (!groups.equals(other.groups))
+				return false;
+			if (users == null) {
+				if (other.users != null)
+					return false;
+			} else if (!users.equals(other.users))
+				return false;
+			return true;
+		}
+		
 	}
 
+	@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+	@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+	@JsonIgnoreProperties(ignoreUnknown=true)
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class RangerPolicyItemAccess implements java.io.Serializable {
 		private static final long serialVersionUID = 1L;
 
@@ -627,8 +907,46 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 
 			return sb;
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((isAllowed == null) ? 0 : isAllowed.hashCode());
+			result = prime * result + ((type == null) ? 0 : type.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			RangerPolicyItemAccess other = (RangerPolicyItemAccess) obj;
+			if (isAllowed == null) {
+				if (other.isAllowed != null)
+					return false;
+			} else if (!isAllowed.equals(other.isAllowed))
+				return false;
+			if (type == null) {
+				if (other.type != null)
+					return false;
+			} else if (!type.equals(other.type))
+				return false;
+			return true;
+		}
+		
 	}
 
+	@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+	@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+	@JsonIgnoreProperties(ignoreUnknown=true)
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class RangerPolicyItemCondition implements java.io.Serializable {
 		private static final long serialVersionUID = 1L;
 
@@ -666,14 +984,23 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 		}
 
 		/**
-		 * @param value the value to set
+		 * @param values the value to set
 		 */
 		public void setValues(List<String> values) {
-			if (CollectionUtils.isEmpty(values)) {
+			if (this.values == null) {
 				this.values = new ArrayList<String>();
 			}
-			else {
-				this.values = new ArrayList<String>(values);
+
+			if(this.values == values) {
+				return;
+			}
+
+			this.values.clear();
+
+			if(values != null) {
+				for(String value : values) {
+					this.values.add(value);
+				}
 			}
 		}
 
@@ -700,5 +1027,38 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 
 			return sb;
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((type == null) ? 0 : type.hashCode());
+			result = prime * result
+					+ ((values == null) ? 0 : values.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			RangerPolicyItemCondition other = (RangerPolicyItemCondition) obj;
+			if (type == null) {
+				if (other.type != null)
+					return false;
+			} else if (!type.equals(other.type))
+				return false;
+			if (values == null) {
+				if (other.values != null)
+					return false;
+			} else if (!values.equals(other.values))
+				return false;
+			return true;
+		}
+		
 	}
 }

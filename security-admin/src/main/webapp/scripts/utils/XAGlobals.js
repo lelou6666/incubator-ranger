@@ -44,14 +44,11 @@ define(function(require){
 	XAGlobals.version = 0;//0 : production version 1: any other
 	XAGlobals.AppTabs = {
 			Dashboard 			: { value:1, valStr: 'Dashboard'},
-			PolicyManager		: { value:2, valStr: 'Policy'},
-			Users 				: { value:3, valStr: 'Users'},
-//			Reports 			: { value:4, valStr: 'Reports'},
-			Config 				: { value:5, valStr: 'Config'},
-			Assets				: { value:6, valStr: 'Assets'},
-			Analytics			: { value:7, valStr: 'Analytics'},
-			Audit				: { value:8, valStr: 'Analytics'},
-			None				: { value:9, valStr: 'None'}
+			AccessManager		: { value:2, valStr: 'Access Manager'},
+			Audit				: { value:3, valStr: 'Audit'},
+			Encryption 			: { value:4, valStr: 'Encryption'},
+			Settings			: { value:5, valStr: 'Settings'},
+			None				: { value:6, valStr: 'None'}
 		};
 
 	XAGlobals.BooleanValue = {
@@ -62,6 +59,18 @@ define(function(require){
 	XAGlobals.hardcoded.HDFSAssetId = 1;
 	XAGlobals.hardcoded.HBaseAssetId = 2;
 	XAGlobals.hardcoded.HiveAssetId = 3;
+	XAGlobals.DenyControllerActions = ['userManagerAction','userCreateAction','userEditAction','groupCreateAction',
+	                                   'groupEditAction','auditReportAction','loginSessionDetail','serviceCreateAction','serviceEditAction','modulePermissionsAction','modulePermissionEditAction'];
+	
+	XAGlobals.ListOfModuleActions = {
+			'Access Manager' : { 'Resource Based Policies' : ['serviceManagerAction','serviceCreateAction','serviceEditAction', 'policyManageAction','RangerPolicyCreateAction','RangerPolicyEditAction'],
+								 'Reports' : ['userAccessReportAction'],
+								'Tag Based Policies' : ['serviceManagerAction','serviceCreateAction','serviceEditAction', 'policyManageAction','RangerPolicyCreateAction','RangerPolicyEditAction']},
+			'Audit' 		 : ['auditReportAction','loginSessionDetail'],
+			'Encryption'     : {'Key Manager' : ['kmsManagerAction','kmsKeyCreateAction'] },
+			'Settings'		 : {'Users/Groups' : ['userManagerAction','userCreateAction','userEditAction','groupCreateAction','groupEditAction'],
+								'Permissions' : ['modulePermissionsAction','modulePermissionEditAction'] },
+		};
 	
 	return XAGlobals;
 });

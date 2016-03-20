@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.ranger.plugin.model.RangerPolicy.RangerPolicyItemCondition;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 
 /**
@@ -37,20 +36,22 @@ import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
  * @author alal
  *
  */
-public class RangerIpMatcher implements RangerConditionEvaluator {
+public class RangerIpMatcher extends RangerAbstractConditionEvaluator {
 
 	private static final Log LOG = LogFactory.getLog(RangerIpMatcher.class);
 	private List<String> _exactIps = new ArrayList<String>();
 	private List<String> _wildCardIps = new ArrayList<String>();
 	private boolean _allowAny = false;
-	public static final String ConditionName = "ip-range";
 	
 	@Override
-	public void init(final RangerPolicyItemCondition condition) {
+	public void init() {
 		if(LOG.isDebugEnabled()) {
 			LOG.debug("==> RangerIpMatcher.init(" + condition + ")");
 		}
 
+		super.init();
+
+		// NOTE: this evaluator does not use conditionDef!
 		if (condition == null) {
 			LOG.debug("init: null policy condition! Will match always!");
 			_allowAny = true;
@@ -201,17 +202,12 @@ public class RangerIpMatcher implements RangerConditionEvaluator {
 
 		String ip = null;
 		if (request == null) {
-			LOG.debug("isMatched: Unexpected: null request.  Implicitly matched!");
-		} else if (request.getContext() == null) {
-			LOG.debug("isMatched: Context map of request is null.  Ok. Implicitly matched!");
-		} else if (CollectionUtils.isEmpty(request.getContext().entrySet())) {
-			LOG.debug("isMatched: Missing context on request.  Ok. Condition isn't applicable.  Implicitly matched!");
-		} else if (!request.getContext().containsKey(ConditionName)) {
-			if (LOG.isDebugEnabled()) {
-				LOG.debug("isMatched: Unexpected: Context did not have data for condition[" + ConditionName + "]. Implicitly matched!");
-			}
+			LOG.debug("isMatched: Unexpected: null request object!");
 		} else {
-			ip = (String)request.getContext().get(ConditionName);
+			ip = request.getClientIPAddress();
+			if (ip == null) {
+				LOG.debug("isMatched: Unexpected: Client ip in request object is null!");
+			}
 		}
 
 		if(LOG.isDebugEnabled()) {

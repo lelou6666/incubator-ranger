@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.ranger.plugin.client.HadoopException;
 import org.apache.ranger.plugin.model.RangerService;
 import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.service.RangerBaseService;
@@ -35,9 +36,6 @@ public class RangerServiceHdfs extends RangerBaseService {
 
 	private static final Log LOG = LogFactory.getLog(RangerServiceHdfs.class);
 	
-	Map<String, String> configs;
-	String			    service;
-	
 	public RangerServiceHdfs() {
 		super();
 	}
@@ -45,22 +43,21 @@ public class RangerServiceHdfs extends RangerBaseService {
 	@Override
 	public void init(RangerServiceDef serviceDef, RangerService service) {
 		super.init(serviceDef, service);
-		init();
 	}
 
 	@Override
 	public HashMap<String,Object> validateConfig() throws Exception {
 		HashMap<String, Object> ret = new HashMap<String, Object>();
-		
+		String 	serviceName  	    = getServiceName();
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("<== RangerServiceHdfs.validateConfig Service: (" + service + " )");
+			LOG.debug("<== RangerServiceHdfs.validateConfig Service: (" + serviceName + " )");
 		}
 		
 		if ( configs != null) {
 			try  {
-				ret = HdfsResourceMgr.testConnection(service, configs);
-			} catch (Exception e) {
-				LOG.error("<== RangerServiceHdfs.validateConfig Error:" + e);
+				ret = HdfsResourceMgr.connectionTest(serviceName, configs);
+			} catch (HadoopException e) {
+				LOG.error("<== RangerServiceHdfs.validateConfig Error: " + e.getMessage(),e);
 				throw e;
 			}
 		}
@@ -75,14 +72,17 @@ public class RangerServiceHdfs extends RangerBaseService {
 	@Override
 	public List<String> lookupResource(ResourceLookupContext context) throws Exception {
 		List<String> ret = new ArrayList<String>();
-	
+		String 	serviceName  	   = getServiceName();
+		String	serviceType		   = getServiceType();
+		Map<String,String> configs = getConfigs();
+		
 		if(LOG.isDebugEnabled()) {
 			LOG.debug("<== RangerServiceHdfs.lookupResource Context: (" + context + ")");
 		}
 		
 		if (context != null) {
 			try {
-				ret  = HdfsResourceMgr.getHdfsResources(service, configs,context);
+				ret  = HdfsResourceMgr.getHdfsResources(serviceName, serviceType, configs,context);
 			} catch (Exception e) {
 			  LOG.error( "<==RangerServiceHdfs.lookupResource Error : " + e);
 			  throw e;
@@ -95,12 +95,6 @@ public class RangerServiceHdfs extends RangerBaseService {
 		
 		return ret;
 	}
-	
-	public void init() {
-		service  = getService().getName();
-		configs  = getService().getConfigs();
-	}
-	
 }
 
 

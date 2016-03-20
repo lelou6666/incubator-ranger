@@ -22,15 +22,18 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.ranger.authorization.hadoop.constants.RangerHadoopConstants;
 import org.apache.ranger.common.SearchCriteria;
 import org.apache.ranger.common.SearchField;
 import org.apache.ranger.common.SearchField.DATA_TYPE;
 import org.apache.ranger.common.SearchField.SEARCH_TYPE;
-import org.apache.ranger.common.SearchUtil;
 import org.apache.ranger.common.SortField;
 import org.apache.ranger.common.SortField.SORT_ORDER;
 import org.apache.ranger.db.RangerDaoManager;
 import org.apache.ranger.entity.XXAccessAudit;
+import org.apache.ranger.entity.XXService;
+import org.apache.ranger.entity.XXServiceDef;
 import org.apache.ranger.view.VXAccessAudit;
 import org.apache.ranger.view.VXAccessAuditList;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,20 +44,10 @@ import org.springframework.stereotype.Service;
 @Scope("singleton")
 public class XAccessAuditService extends XAccessAuditServiceBase<XXAccessAudit, VXAccessAudit>{
 	public static final String NAME = "XAccessAudit";
-	public List<SortField> sortFields = new ArrayList<SortField>();
-	public List<SearchField> searchFields = new ArrayList<SearchField>();
-
-	@Autowired
-	protected SearchUtil searchUtil;
-	
 	@Autowired
 	RangerDaoManager appDaoMgr;
-
-	protected String queryStr;
 	protected final String distinctCountQueryStr;
 	protected final String distinctQueryStr;
-	protected String countQueryStr;
-
 
 	public XAccessAuditService() {
 		countQueryStr = "SELECT COUNT(obj) FROM XXAccessAudit  obj ";
@@ -96,6 +89,7 @@ public class XAccessAuditService extends XAccessAuditServiceBase<XXAccessAudit, 
 				DATA_TYPE.DATE, SEARCH_TYPE.GREATER_EQUAL_THAN));
 		searchFields.add(new SearchField("endDate", "obj.eventTime", 
 				DATA_TYPE.DATE, SEARCH_TYPE.LESS_EQUAL_THAN));
+		searchFields.add(new SearchField("tags", "obj.tags", DATA_TYPE.STRING, SEARCH_TYPE.PARTIAL));
 		sortFields.add(new SortField("eventTime", "obj.eventTime", true, SORT_ORDER.DESC));
 }
 
@@ -118,6 +112,10 @@ public class XAccessAuditService extends XAccessAuditServiceBase<XXAccessAudit, 
 		mObj.setResourceType(vObj.getResourceType());
 		mObj.setClientIP(vObj.getClientIP());
 		mObj.setClientType(vObj.getClientType());
+		mObj.setSequenceNumber( vObj.getSequenceNumber());
+		mObj.setEventCount( vObj.getEventCount());
+		mObj.setEventDuration( vObj.getEventDuration());
+		mObj.setTags(vObj.getTags());
 		return mObj;
 	}
 
@@ -139,6 +137,17 @@ public class XAccessAuditService extends XAccessAuditServiceBase<XXAccessAudit, 
 		vObj.setResourceType( mObj.getResourceType());
 		vObj.setClientIP( mObj.getClientIP());
 		vObj.setClientType( mObj.getClientType());
+		vObj.setSequenceNumber( mObj.getSequenceNumber());
+		vObj.setEventCount( mObj.getEventCount());
+		vObj.setEventDuration( mObj.getEventDuration());
+		vObj.setTags(mObj.getTags());
+
+		XXService xService = daoManager.getXXService().findByName(mObj.getRepoName());
+		if (xService != null) {
+			XXServiceDef xServiceDef = daoManager.getXXServiceDef().getById(xService.getType());
+			vObj.setServiceType(xServiceDef.getName());
+		}
+
 		return vObj;
 	}
 
@@ -147,21 +156,29 @@ public class XAccessAuditService extends XAccessAuditServiceBase<XXAccessAudit, 
 	 * @return
 	 */
 	public VXAccessAuditList searchXAccessAudits(SearchCriteria searchCriteria) {
-		VXAccessAuditList returnList = new VXAccessAuditList();
-		List<VXAccessAudit> xAccessAuditList = new ArrayList<VXAccessAudit>();
+        VXAccessAuditList returnList = new VXAccessAuditList();
+        List<VXAccessAudit> xAccessAuditList = new ArrayList<VXAccessAudit>();
 
-		List<XXAccessAudit> resultList = (List<XXAccessAudit>)searchResources(searchCriteria,
-				searchFields, sortFields, returnList);
+        List<XXAccessAudit> resultList = (List<XXAccessAudit>) searchResources(searchCriteria,
+                searchFields, sortFields, returnList);
 
-		// Iterate over the result list and create the return list
-		for (XXAccessAudit gjXAccessAudit : resultList) {
-			VXAccessAudit vXAccessAudit = populateViewBean(gjXAccessAudit);
-			xAccessAuditList.add(vXAccessAudit);
-		}
+        // Iterate over the result list and create the return list
+        for (XXAccessAudit gjXAccessAudit : resultList) {
+            VXAccessAudit vXAccessAudit = populateViewBean(gjXAccessAudit);
 
-		returnList.setVXAccessAudits(xAccessAuditList);
-		return returnList;
-	}
+            if(vXAccessAudit != null) {
+                if(StringUtils.equalsIgnoreCase(vXAccessAudit.getAclEnforcer(), RangerHadoopConstants.DEFAULT_XASECURE_MODULE_ACL_NAME)) {
+                    vXAccessAudit.setAclEnforcer(RangerHadoopConstants.DEFAULT_RANGER_MODULE_ACL_NAME);
+                }
+
+                xAccessAuditList.add(vXAccessAudit);
+            }
+        }
+
+
+        returnList.setVXAccessAudits(xAccessAuditList);
+        return returnList;
+    }
 	
 	public VXAccessAudit populateViewBean(XXAccessAudit gjXAccessAudit) {
 		VXAccessAudit vXAccessAudit = new VXAccessAudit();

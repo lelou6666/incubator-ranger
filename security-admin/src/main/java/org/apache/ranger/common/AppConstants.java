@@ -364,6 +364,15 @@ public class AppConstants extends RangerCommonEnums {
 	 * DB Favor Oracle
 	 */
 	public static final int DB_FLAVOR_ORACLE = 2;
+	/**
+	 * DB Favor Postgres
+	 */
+	public static final int DB_FLAVOR_POSTGRES = 3;
+	/**
+	 * DB Favor SQLServer
+	 */
+	public static final int DB_FLAVOR_SQLSERVER = 4;
+	public static final int DB_FLAVOR_SQLANYWHERE = 5;
 
 
 	/***************************************************************
@@ -507,9 +516,70 @@ public class AppConstants extends RangerCommonEnums {
 	public static final int CLASS_TYPE_XA_SERVICE_DEF = 1033;
 
 	/**
+	 * CLASS_TYPE_RANGER_MODULE_DEF is an element of enum ClassTypes. Its value is "CLASS_TYPE_RANGER_MODULE_DEF".
+	 */
+	public static final int CLASS_TYPE_RANGER_MODULE_DEF = 1034;
+	/**
+	 * CLASS_TYPE_RANGER_USER_PERMISSION is an element of enum ClassTypes. Its value is "CLASS_TYPE_RANGER_USER_PERMISSION".
+	 */
+	public static final int CLASS_TYPE_RANGER_USER_PERMISSION = 1035;
+	/**
+	 * CLASS_TYPE_RANGER_GROUP_PERMISSION is an element of enum ClassTypes. Its value is "CLASS_TYPE_RANGER_GROUP_PERMISSION".
+	 */
+	public static final int CLASS_TYPE_RANGER_GROUP_PERMISSION = 1036;
+	/**
+	 * CLASS_TYPE_XA_KMS_KEY is an element of enum ClassTypes. Its value is "CLASS_TYPE_XA_KMS_KEY".
+	 */
+	public static final int CLASS_TYPE_XA_KMS_KEY = 1037;
+	/**
+	 * CLASS_TYPE_RANGER_POLICY_WITH_ASSIGNED_ID is an element of enum ClassTypes. Its value is "CLASS_TYPE_RANGER_POLICY_WITH_ASSIGNED_ID".
+	 */
+	public static final int CLASS_TYPE_RANGER_POLICY_WITH_ASSIGNED_ID = 1038;
+	/**
+	 * CLASS_TYPE_RANGER_SERVICE_WITH_ASSIGNED_ID is an element of enum ClassTypes. Its value is "CLASS_TYPE_RANGER_SERVICE_WITH_ASSIGNED_ID".
+	 */
+	public static final int CLASS_TYPE_RANGER_SERVICE_WITH_ASSIGNED_ID = 1039;
+	/**
+	 * CLASS_TYPE_RANGER_SERVICE_DEF_WITH_ASSIGNED_ID is an element of enum ClassTypes. Its value is "CLASS_TYPE_RANGER_SERVICE_DEF_WITH_ASSIGNED_ID".
+	 */
+	public static final int CLASS_TYPE_RANGER_SERVICE_DEF_WITH_ASSIGNED_ID = 1040;
+	/**
+	 * Class type of XXTagDef
+	 */
+	public static final int CLASS_TYPE_XA_TAG_DEF = 1041;
+	/**
+	 * Class type of XXTagAttributeDef
+	 */
+	public static final int CLASS_TYPE_XA_TAG_ATTR_DEF = 1042;
+	/**
+	 * Class type of XXServiceResource
+	 */
+	public static final int CLASS_TYPE_XA_SERVICE_RESOURCE = 1043;
+	/**
+	 * Class type of XXServiceResourceElement
+	 */
+	public static final int CLASS_TYPE_XA_SERVICE_RESOURCE_ELEMENT = 1044;
+	/**
+	 * Class type of XXServiceResourceElementValue
+	 */
+	public static final int CLASS_TYPE_XA_SERVICE_RESOURCE_ELEMENT_VALUE = 1045;
+	/**
+	 * Class type of XXTag
+	 */
+	public static final int CLASS_TYPE_XA_TAG = 1046;
+	/**
+	 * Class type of XXTagAttribute
+	 */
+	public static final int CLASS_TYPE_XA_TAG_ATTR = 1047;
+	/**
+	 * Class type of XXTagResourceMap
+	 */
+	public static final int CLASS_TYPE_XA_TAG_RESOURCE_MAP = 1048;
+
+	/**
 	 * Max value for enum ClassTypes_MAX
 	 */
-	public static final int ClassTypes_MAX = 1033;
+	public static final int ClassTypes_MAX = 1048;
 	
 	/***************************************************************
 	 * Enum values for Default SortOrder
@@ -525,6 +595,7 @@ public class AppConstants extends RangerCommonEnums {
 	public static final int HIST_OBJ_STATUS_DELETED = 3;
 	public static final int MAX_HIST_OBJ_STATUS = 3;
 
+	public static final String Masked_String = "*****";
 
 
 	static public String getLabelFor_AssetType( int elementValue ) {

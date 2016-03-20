@@ -68,6 +68,28 @@ public class RESTErrorUtil {
 		return restException;
 	}
 
+	public WebApplicationException generateRESTException(VXResponse gjResponse) {
+		Response errorResponse = Response
+				.status(gjResponse.getStatusCode())
+				.entity(gjResponse).build();
+
+		WebApplicationException restException = new WebApplicationException(
+				errorResponse);
+		restException.fillInStackTrace();
+		UserSessionBase userSession = ContextUtil.getCurrentUserSession();
+		Long sessionId = null;
+		String loginId = null;
+		if (userSession != null) {
+			loginId = userSession.getLoginId();
+			sessionId = userSession.getSessionId();
+		}
+
+		logger.info("Request failed. SessionId=" + sessionId + ", loginId="
+				+ loginId + ", logMessage=" + gjResponse.getMsgDesc(),
+				restException);
+
+		return restException;
+	}
 	/**
 	 * 
 	 * @param logMessage
@@ -123,7 +145,7 @@ public class RESTErrorUtil {
 			if (stringUtil.isEmpty(value)) {
 				return null;
 			} else {
-				return new Integer(value.trim());
+				return Integer.valueOf(value.trim());
 			}
 		} catch (Throwable t) {
 			throw createRESTException(errorMessage, messageEnum, objectId,
@@ -136,9 +158,9 @@ public class RESTErrorUtil {
 			String fieldName) {
 		try {
 			if (stringUtil.isEmpty(value)) {
-				return new Integer(defaultValue);
+				return Integer.valueOf(defaultValue);
 			} else {
-				return new Integer(value.trim());
+				return Integer.valueOf(value.trim());
 			}
 		} catch (Throwable t) {
 			throw createRESTException(errorMessage, messageEnum, objectId,
@@ -150,7 +172,7 @@ public class RESTErrorUtil {
 		if (stringUtil.isEmpty(value)) {
 			return defaultValue;
 		}
-		return new Long(value.trim());
+		return Long.valueOf(value.trim());
 	}
 
 	public Long parseLong(String value, String errorMessage,
@@ -159,7 +181,7 @@ public class RESTErrorUtil {
 			if (stringUtil.isEmpty(value)) {
 				return null;
 			} else {
-				return new Long(value.trim());
+				return Long.valueOf(value.trim());
 			}
 		} catch (Throwable t) {
 			throw createRESTException(errorMessage, messageEnum, objectId,
@@ -267,6 +289,15 @@ public class RESTErrorUtil {
 		return webAppEx;
 	}
 
+	public WebApplicationException createRESTException(String errorMessage) {
+		VXResponse gjResponse = new VXResponse();
+		gjResponse.setStatusCode(VXResponse.STATUS_ERROR);
+		gjResponse.setMsgDesc(errorMessage);
+		WebApplicationException webAppEx = createRESTException(gjResponse);
+		logger.info("Operation error. response=" + gjResponse, webAppEx);
+		return webAppEx;
+	}
+
 	public WebApplicationException createRESTException(String errorMessage,
 			MessageEnums messageEnum) {
 		List<VXMessage> messageList = new ArrayList<VXMessage>();
@@ -343,5 +374,31 @@ public class RESTErrorUtil {
 			throw createRESTException(errorMessage, messageEnum, objectId,
 					fieldName, value);
 		}
+	}
+
+	public WebApplicationException createRESTException(String errorMessage,
+				MessageEnums messageEnum, Long objectId, String fieldName,
+				String logMessage,int statusCode)
+	{
+		List<VXMessage> messageList = new ArrayList<VXMessage>();
+		messageList.add(messageEnum.getMessage(objectId, fieldName));
+		VXResponse vResponse = new VXResponse();
+		vResponse.setStatusCode(vResponse.STATUS_ERROR);
+		vResponse.setMsgDesc(errorMessage);
+		vResponse.setMessageList(messageList);
+		Response errorResponse = Response.status(statusCode).entity(vResponse).build();
+		WebApplicationException restException = new WebApplicationException(errorResponse);
+		restException.fillInStackTrace();
+		UserSessionBase userSession = ContextUtil.getCurrentUserSession();
+		Long sessionId = null;
+		String loginId = null;
+		if (userSession != null) {
+			loginId = userSession.getLoginId();
+			sessionId = userSession.getSessionId();
+		}
+		logger.info("Request failed. SessionId=" + sessionId + ", loginId="
+				+ loginId + ", logMessage=" + vResponse.getMsgDesc(),
+				restException);
+		return restException;
 	}
 }

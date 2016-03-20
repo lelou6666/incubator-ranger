@@ -23,7 +23,7 @@ function getInstallProperty() {
     do
         if [ -f "${file}" ]
         then
-            propertyValue=`grep "^${propertyName}" ${file} | awk -F= '{  sub("^[ \t]*", "", $2); sub("[ \t]*$", "", $2); print $2 }'`
+            propertyValue=`grep "^${propertyName}[ \t]*=" ${file} | awk -F= '{  sub("^[ \t]*", "", $2); sub("[ \t]*$", "", $2); print $2 }'`
             if [ "${propertyValue}" != "" ]
             then
                 break
@@ -121,14 +121,48 @@ INSTALL_ARGS="${PROJ_INSTALL_DIR}/install.properties"
 COMPONENT_INSTALL_ARGS="${PROJ_INSTALL_DIR}/${COMPONENT_NAME}-install.properties"
 JAVA=$JAVA_HOME/bin/java
 
+PLUGIN_DEPENDENT_LIB_DIR=lib/"${PROJ_NAME}-${COMPONENT_NAME}-impl"
+PROJ_LIB_PLUGIN_DIR=${PROJ_INSTALL_DIR}/${PLUGIN_DEPENDENT_LIB_DIR}
+
 HCOMPONENT_INSTALL_DIR_NAME=$(getInstallProperty 'COMPONENT_INSTALL_DIR_NAME')
+
+
+CUSTOM_USER=$(getInstallProperty 'CUSTOM_USER')
+CUSTOM_USER=${CUSTOM_USER// }
+
+CUSTOM_GROUP=$(getInstallProperty 'CUSTOM_GROUP')
+CUSTOM_GROUP=${CUSTOM_GROUP// }
+
+
+
+if [ ! -z "${CUSTOM_USER}" ] && [ ! -z "${CUSTOM_GROUP}" ]
+then
+  echo "Custom user and group is available, using custom user and group."
+  CFG_OWNER_INF="${CUSTOM_USER}:${CUSTOM_GROUP}"
+elif [ ! -z "${CUSTOM_USER}" ] && [ -z "${CUSTOM_GROUP}" ]
+then
+  echo "Custom user is available, using custom user and default group."
+  CFG_OWNER_INF="${CUSTOM_USER}:${HCOMPONENT_NAME}"
+elif [ -z  "${CUSTOM_USER}" ] && [ ! -z  "${CUSTOM_GROUP}" ]
+then
+  echo "Custom group is available, using default user and custom group."
+  CFG_OWNER_INF="${HCOMPONENT_NAME}:${CUSTOM_GROUP}"
+else
+  echo "Custom user and group are not available, using default user and group."
+  CFG_OWNER_INF="${HCOMPONENT_NAME}:${HCOMPONENT_NAME}"
+fi
 
 if [ "${HCOMPONENT_INSTALL_DIR_NAME}" = "" ]
 then
 	HCOMPONENT_INSTALL_DIR_NAME=${HCOMPONENT_NAME}
 fi
 
-hdir=${PROJ_INSTALL_DIR}/../${HCOMPONENT_INSTALL_DIR_NAME}
+firstletter=${HCOMPONENT_INSTALL_DIR_NAME:0:1}
+if [ "$firstletter" = "/" ]; then
+    hdir=${HCOMPONENT_INSTALL_DIR_NAME}
+else
+    hdir=${PROJ_INSTALL_DIR}/../${HCOMPONENT_INSTALL_DIR_NAME}
+fi
 
 #
 # TEST - START
@@ -142,11 +176,30 @@ fi
 #
 HCOMPONENT_INSTALL_DIR=`(cd ${hdir} ; pwd)`
 HCOMPONENT_LIB_DIR=${HCOMPONENT_INSTALL_DIR}/lib
-if [ "${HCOMPONENT_NAME}" = "knox" ]
-then
+if [ "${HCOMPONENT_NAME}" = "knox" ]; then
 	HCOMPONENT_LIB_DIR=${HCOMPONENT_INSTALL_DIR}/ext
+elif [ "${HCOMPONENT_NAME}" = "solr" ]; then
+    HCOMPONENT_LIB_DIR=${HCOMPONENT_INSTALL_DIR}/solr-webapp/webapp/WEB-INF/lib
+elif [ "${HCOMPONENT_NAME}" = "kafka" ]; then
+    HCOMPONENT_LIB_DIR=${HCOMPONENT_INSTALL_DIR}/libs
+elif [ "${HCOMPONENT_NAME}" = "storm" ]; then
+    HCOMPONENT_LIB_DIR=${HCOMPONENT_INSTALL_DIR}/extlib-daemon
 fi
+
 HCOMPONENT_CONF_DIR=${HCOMPONENT_INSTALL_DIR}/conf
+if [ "${HCOMPONENT_NAME}" = "solr" ]; then
+    HCOMPONENT_CONF_DIR=${HCOMPONENT_INSTALL_DIR}/solr-webapp/webapp/WEB-INF/classes
+    if [ ! -d $HCOMPONENT_CONF_DIR ]; then	
+	install_owner=`ls -ld | cut -f 3 -d " "`
+	echo "INFO: Creating $HCOMPONENT_CONF_DIR" 
+	mkdir -p $HCOMPONENT_CONF_DIR
+	echo "INFO: Changing ownership of  $HCOMPONENT_CONF_DIR to $install_owner" 
+	chown $install_owner:$install_owner $HCOMPONENT_CONF_DIR
+    fi    
+elif [ "${HCOMPONENT_NAME}" = "kafka" ]; then
+    HCOMPONENT_CONF_DIR=${HCOMPONENT_INSTALL_DIR}/config
+fi
+
 HCOMPONENT_ARCHIVE_CONF_DIR=${HCOMPONENT_CONF_DIR}/.archive
 SET_ENV_SCRIPT=${HCOMPONENT_CONF_DIR}/${SET_ENV_SCRIPT_NAME}
 
@@ -175,7 +228,7 @@ fi
 ambari_hive_install="N"
 if  [ "${HCOMPONENT_NAME}" = "hive" ]
 then
-	HCOMPONENT_CONF_SERVER_DIR="${HCOMPONENT_CONF_DIR}"/../conf.server
+	HCOMPONENT_CONF_SERVER_DIR="${HCOMPONENT_CONF_DIR}"/conf.server
 	if [ -d "${HCOMPONENT_CONF_SERVER_DIR}" ]
 	then 
 		ambari_hive_install="Y"
@@ -220,6 +273,8 @@ create_jceks() {
 	
 	rm -f ${tempFile}
 }
+
+log "${HCOMPONENT_NAME}: lib folder=$HCOMPONENT_LIB_DIR conf folder=$HCOMPONENT_CONF_DIR"
 
 #
 # If there is a set-ranger-${COMPONENT}-env.sh, install it
@@ -348,9 +403,30 @@ then
     	export XAAUDIT_DB_JDBC_DRIVER="com.mysql.jdbc.Driver"
 	elif [ "${db_flavor}" = "ORACLE" ]
 	then
-    	export XAAUDIT_DB_JDBC_URL="jdbc:oracle:thin:\@//${audit_db_hostname}"
+		count=$(grep -o ":" <<< "$audit_db_hostname" | wc -l)
+		#if [[ ${count} -eq 2 ]] ; then
+		if [ ${count} -eq 2 ] || [ ${count} -eq 0 ]; then
+			#jdbc:oracle:thin:@[HOST][:PORT]:SID or #jdbc:oracle:thin:@GL
+			newPropertyValue="jdbc:oracle:thin:@${audit_db_hostname}"
+		else
+			#jdbc:oracle:thin:@//[HOST][:PORT]/SERVICE
+			newPropertyValue="jdbc:oracle:thin:@//${audit_db_hostname}"
+		fi
+		export XAAUDIT_DB_JDBC_URL=${newPropertyValue}
     	export XAAUDIT_DB_JDBC_DRIVER="oracle.jdbc.OracleDriver"
-    else
+    elif [ "${db_flavor}" = "POSTGRES" ]
+	then
+		export XAAUDIT_DB_JDBC_URL="jdbc:postgresql://${audit_db_hostname}/${audit_db_name}"
+		export XAAUDIT_DB_JDBC_DRIVER="org.postgresql.Driver"
+	elif [ "${db_flavor}" = "MSSQL" ]
+	then
+		export XAAUDIT_DB_JDBC_URL="jdbc:sqlserver://${audit_db_hostname};databaseName=${audit_db_name}"
+		export XAAUDIT_DB_JDBC_DRIVER="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+	elif [ "${db_flavor}" = "SQLA" ]
+	then
+		export XAAUDIT_DB_JDBC_URL="jdbc:sqlanywhere:database=${audit_db_name};host=${audit_db_hostname}"
+		export XAAUDIT_DB_JDBC_DRIVER="sap.jdbc4.sqlanywhere.IDriver"
+	else
         echo "Audit is not specified with a valid db_flavor: [${db_flavor}]. Ignoring audit ..."
         export XAAUDIT_DB_JDBC_URL="jdbc:${db_flavor}://${audit_db_hostname}/${audit_db_name}"
         export XAAUDIT_DB_JDBC_DRIVER="com.unknown.driver.${db_flavor}"
@@ -418,6 +494,10 @@ then
 			fi
 		fi
 	done
+	if [ "${HCOMPONENT_NAME}" = "hbase" ] || [ "${HCOMPONENT_NAME}" = "storm" ];
+	then
+		chmod 644 ${HCOMPONENT_CONF_DIR}/*
+	fi
 fi
 
 #
@@ -427,11 +507,10 @@ fi
 if [ "${action}" = "enable" ]
 then
 
-	if [ -d "${PROJ_LIB_DIR}" ]
-	then
+	#if [ -d "${PROJ_LIB_DIR}" ]
+	#then
 		dt=`date '+%Y%m%d%H%M%S'`
-		dbJar=$(getInstallProperty 'SQL_CONNECTOR_JAR')
-		for f in ${PROJ_LIB_DIR}/*.jar ${dbJar}
+		for f in ${PROJ_LIB_DIR}/*.jar
 		do
 			if [ -f "${f}" ]
 			then	
@@ -447,7 +526,23 @@ then
 				fi
 			fi
 		done
-	fi
+		
+		# ADD SQL CONNECTOR JAR TO PLUGIN DEPENDENCY JAR FOLDER
+		dbJar=$(getInstallProperty 'SQL_CONNECTOR_JAR')
+		if [ -f "${dbJar}" ]
+		then	
+			bn=`basename ${dbJar}`
+			if [ -f ${PROJ_LIB_PLUGIN_DIR}/${bn} ]
+			then
+			 	rm ${PROJ_LIB_PLUGIN_DIR}/${bn} 
+			fi
+			if [ ! -f ${PROJ_LIB_PLUGIN_DIR}/${bn} ]
+			then
+			    ln -s ${dbJar} ${PROJ_LIB_PLUGIN_DIR}/${bn}
+			fi
+		fi
+
+	#fi
 
 	#
 	# Encrypt the password and keep it secure in Credential Provider API

@@ -21,7 +21,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.lang.reflect.Field;
 
+import org.apache.hadoop.security.alias.CredentialShell;
 import org.apache.ranger.credentialapi.buildks;
 import org.junit.Test;
 
@@ -45,9 +47,11 @@ public class Testbuildks {
     assertEquals("PassworD123", pw);
     assertTrue(pw.equals("PassworD123"));
     boolean getCredentialPassed = pw.equals("PassworD123");
-    
-    String[] argsDeleteCommand = {"delete", "TestCredential1", "-provider", "jceks://file@/" +keystoreFile };
-    int rc3=buildksOBJ.deleteCredential(argsDeleteCommand);
+
+    String[] argsDeleteCommand = new String[] {"delete", "TestCredential1", "-provider", "jceks://file@/" +keystoreFile };
+	boolean  isSilentMode      = true;
+
+    int rc3=buildksOBJ.deleteCredential(argsDeleteCommand, isSilentMode);
     assertEquals(0, rc3);
     assertTrue(rc3==0);
    

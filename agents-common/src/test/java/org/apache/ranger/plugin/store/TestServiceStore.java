@@ -21,6 +21,7 @@ package org.apache.ranger.plugin.store;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
 import java.util.List;
 
 import org.apache.ranger.plugin.model.RangerPolicy;
@@ -47,7 +48,21 @@ public class TestServiceStore {
 
 	@BeforeClass
 	public static void setupTest() throws Exception {
-		String fileStoreDir = "file://" + System.getProperty("java.io.tmpdir");;
+		
+		
+		File file = File.createTempFile("fileStore", "dir") ;
+		
+		if (file.exists()) {
+			file.delete() ;
+		}
+		
+		file.deleteOnExit(); 
+		
+		file.mkdirs() ;
+		
+		String fileStoreDir =  file.getAbsolutePath() ;
+		
+		System.out.println("Using fileStoreDirectory as [" + fileStoreDir + "]") ;
 
 		svcStore = new ServiceFileStore(fileStoreDir);
 		svcStore.init();
@@ -76,7 +91,7 @@ public class TestServiceStore {
 
 		int initSdCount = sds == null ? 0 : sds.size();
 
-		RangerServiceDef sd = new RangerServiceDef(sdName, "org.apache.ranger.services.TestService", "TestService", "test servicedef description", null, null, null, null, null);
+		RangerServiceDef sd = new RangerServiceDef(sdName, "org.apache.ranger.services.TestService", "TestService", "test servicedef description", null, null, null, null, null, null, null);
 
 		RangerServiceDef createdSd = svcStore.createServiceDef(sd);
 		assertNotNull("createServiceDef() failed", createdSd != null);
@@ -108,7 +123,7 @@ public class TestServiceStore {
 
 		int initServiceCount = services == null ? 0 : services.size();
 
-		RangerService svc = new RangerService(sdName, serviceName, "test service description", null);
+		RangerService svc = new RangerService(sdName, serviceName, "test service description", null, null);
 
 		RangerService createdSvc = svcStore.createService(svc);
 		assertNotNull("createService() failed", createdSvc);
@@ -138,7 +153,7 @@ public class TestServiceStore {
 
 		int initPolicyCount = policies == null ? 0 : policies.size();
 
-		RangerPolicy policy = new RangerPolicy(updatedSvc.getName(), policyName, "test policy description", null, null);
+		RangerPolicy policy = new RangerPolicy(updatedSvc.getName(), policyName, 0, "test policy description", null, null, null);
 		policy.getResources().put("path", new RangerPolicyResource("/demo/test/finance", Boolean.FALSE, Boolean.TRUE));
 
 		RangerPolicyItem item1 = new RangerPolicyItem();
@@ -235,17 +250,27 @@ public class TestServiceStore {
 		policies = svcStore.getPolicies(filter);
 		assertEquals("getPolicies(filter=origPolicyName) failed", 1, policies == null ? 0 : policies.size());
 		filter = null;
+		
+		String osName = System.getProperty("os.name") ;
+		boolean windows = (osName != null && osName.toLowerCase().startsWith("windows")) ;
 
-		svcStore.deletePolicy(policy.getId());
-		policies = svcStore.getPolicies(filter);
-		assertEquals("deletePolicy() failed", initPolicyCount, policies == null ? 0 : policies.size());
+		if (! windows ) {
 
-		svcStore.deleteService(svc.getId());
-		services = svcStore.getServices(filter);
-		assertEquals("deleteService() failed", initServiceCount, services == null ? 0 : services.size());
-
-		svcStore.deleteServiceDef(sd.getId());
-		sds = svcStore.getServiceDefs(filter);
-		assertEquals("deleteServiceDef() failed", initSdCount, sds == null ? 0 : sds.size());
+			svcStore.deletePolicy(policy.getId());
+			
+			policies = svcStore.getPolicies(filter);
+			
+			assertEquals("deletePolicy() failed", initPolicyCount, policies == null ? 0 : policies.size());
+			
+	
+			svcStore.deleteService(svc.getId());
+			services = svcStore.getServices(filter);
+			assertEquals("deleteService() failed", initServiceCount, services == null ? 0 : services.size());
+	
+			svcStore.deleteServiceDef(sd.getId());
+			sds = svcStore.getServiceDefs(filter);
+			assertEquals("deleteServiceDef() failed", initSdCount, sds == null ? 0 : sds.size());
+		
+		}
 	}
 }

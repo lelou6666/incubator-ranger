@@ -17,20 +17,46 @@
  */
 package org.apache.ranger.audit.provider;
 
+import java.util.Collection;
 import java.util.Properties;
 
 import org.apache.ranger.audit.model.AuditEventBase;
+import org.apache.ranger.audit.model.AuthzAuditEvent;
 
 
-public class DummyAuditProvider implements AuditProvider {
+public class DummyAuditProvider implements AuditHandler {
 	@Override
 	public void init(Properties prop) {
 		// intentionally left empty
 	}
 
 	@Override
-	public void log(AuditEventBase event) {
+	public boolean log(AuditEventBase event) {
 		// intentionally left empty
+		return true;
+	}
+
+	@Override
+	public boolean log(Collection<AuditEventBase> events) {
+		for (AuditEventBase event : events) {
+			log(event);
+		}
+		return true;
+	}
+
+	@Override
+	public boolean logJSON(String event) {
+		AuditEventBase eventObj = MiscUtil.fromJson(event,
+				AuthzAuditEvent.class);
+		return log(eventObj);
+	}
+
+	@Override
+	public boolean logJSON(Collection<String> events) {
+		for (String event : events) {
+			logJSON(event);
+		}
+		return false;
 	}
 
 	@Override
@@ -49,17 +75,32 @@ public class DummyAuditProvider implements AuditProvider {
 	}
 
 	@Override
-	public boolean isFlushPending() {
-		return false;
-	}
-	
-	@Override
-	public long getLastFlushTime() {
-		return 0;
-	}
-
-	@Override
 	public void flush() {
 		// intentionally left empty
 	}
+
+	/* (non-Javadoc)
+	 * @see org.apache.ranger.audit.provider.AuditProvider#init(java.util.Properties, java.lang.String)
+	 */
+	@Override
+	public void init(Properties prop, String basePropertyName) {
+		// intentionally left empty		
+	}
+
+	/* (non-Javadoc)
+	 * @see org.apache.ranger.audit.provider.AuditProvider#waitToComplete(long)
+	 */
+	@Override
+	public void waitToComplete(long timeout) {
+		// intentionally left empty		
+	}
+
+	/* (non-Javadoc)
+	 * @see org.apache.ranger.audit.provider.AuditProvider#getName()
+	 */
+	@Override
+	public String getName() {
+		return this.getClass().getName();
+	}
+
 }

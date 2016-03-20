@@ -21,30 +21,54 @@ package org.apache.ranger.plugin.util;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 
 
 public class SearchFilter {
-	public static final String LOGIN_USER      = "loginUser";     // search
 	public static final String SERVICE_TYPE    = "serviceType";   // search, sort
 	public static final String SERVICE_TYPE_ID = "serviceTypeId"; // search, sort
 	public static final String SERVICE_NAME    = "serviceName";   // search, sort
 	public static final String SERVICE_ID      = "serviceId";     // search, sort
 	public static final String POLICY_NAME     = "policyName";    // search, sort
 	public static final String POLICY_ID       = "policyId";      // search, sort
-	public static final String STATUS          = "status";        // search
+	public static final String IS_ENABLED      = "isEnabled";     // search
+	public static final String IS_RECURSIVE    = "isRecursive";   // search
+	public static final String TAG_SERVICE_NAME = "tagServiceName";  // search
+	public static final String TAG_SERVICE_ID  = "tagServiceId";  // search
 	public static final String USER            = "user";          // search
 	public static final String GROUP           = "group";         // search
 	public static final String RESOURCE_PREFIX = "resource:";     // search
+	public static final String POL_RESOURCE    = "polResource";   // search
+	public static final String POLICY_NAME_PARTIAL = "policyNamePartial";    // search, sort
 	public static final String CREATE_TIME     = "createTime";    // sort
 	public static final String UPDATE_TIME     = "updateTime";    // sort
 	public static final String START_INDEX     = "startIndex";
 	public static final String PAGE_SIZE       = "pageSize";
 	public static final String SORT_BY         = "sortBy";
+	public static final String RESOURCE_SIGNATURE = "resourceSignature:";     // search
+	public static final String POLICY_TYPE = "policyType"; // search
 
-	private Map<String, String> params = null;
+	public static final String TAG_DEF_ID                = "tagDefId";            // search
+	public static final String TAG_DEF_GUID              = "tagDefGuid";          // search
+	public static final String TAG_TYPE                  = "tagType";             // search
+	public static final String TAG_ID                    = "tagId";               // search
+	public static final String TAG_GUID                  = "tagGuid";             // search
+	public static final String TAG_RESOURCE_ID           = "resourceId";          // search
+	public static final String TAG_RESOURCE_GUID         = "resourceGuid";        // search
+	public static final String TAG_RESOURCE_SERVICE_NAME = "resourceServiceName"; // search
+	public static final String TAG_RESOURCE_SIGNATURE    = "resourceSignature";   // search
+	public static final String TAG_MAP_ID                = "tagResourceMapId";    // search
+	public static final String TAG_MAP_GUID              = "tagResourceMapGuid";  // search
+
+	private Map<String, String> params     = null;
+	private int                 startIndex = 0;
+	private int                 maxRows    = Integer.MAX_VALUE;
+	private boolean             getCount   = true;
+	private String              sortBy     = null;
+	private String              sortType   = null;
 
 	public SearchFilter() {
 		this(null);
@@ -68,6 +92,18 @@ public class SearchFilter {
 
 	public String getParam(String name) {
 		return params == null ? null : params.get(name);
+	}
+
+	public Long getParamAsLong(String name) {
+
+		String stringValue =  params == null ? null : params.get(name);
+		Long ret = null;
+		try {
+			ret = Long.valueOf(stringValue);
+		} catch (NumberFormatException exception) {
+			// Ignore
+		}
+		return ret;
 	}
 
 	public void setParam(String name, String value) {
@@ -112,5 +148,82 @@ public class SearchFilter {
 
 	public boolean isEmpty() {
 		return MapUtils.isEmpty(params);
+	}
+	
+	public int getStartIndex() {
+		return startIndex;
+	}
+	
+	public void setStartIndex(int startIndex) {
+		this.startIndex = startIndex;
+	}
+
+	public int getMaxRows() {
+		return maxRows;
+	}
+
+	public void setMaxRows(int maxRows) {
+		this.maxRows = maxRows;
+	}
+	
+	public boolean isGetCount() {
+		return getCount;
+	}
+
+	public void setGetCount(boolean getCount) {
+		this.getCount = getCount;
+	}
+	
+	public String getSortBy() {
+		return sortBy;
+	}
+
+	public void setSortBy(String sortBy) {
+		this.sortBy = sortBy;
+	}
+	
+	public String getSortType() {
+		return sortType;
+	}
+
+	public void setSortType(String sortType) {
+		this.sortType = sortType;
+	}
+
+	@Override
+	public boolean equals(Object object) {
+		if (object == null || !(object instanceof SearchFilter)) {
+			return false;
+		}
+		SearchFilter that = (SearchFilter)object;
+		return Objects.equals(params, that.params);
+	}
+	
+	@Override
+	public int hashCode() {
+		return Objects.hash(params);
+	}
+	
+	@Override
+	public String toString( ) {
+		StringBuilder sb = new StringBuilder();
+
+		toString(sb);
+
+		return sb.toString();
+	}
+
+	public StringBuilder toString(StringBuilder sb) {
+		sb.append("SearchFilter={");
+
+		sb.append("getCount={").append(getCount).append("} ");
+		sb.append("maxRows={").append(maxRows).append("} ");
+		sb.append("params={").append(params).append("} ");
+		sb.append("sortBy={").append(sortBy).append("} ");
+		sb.append("sortType={").append(sortType).append("} ");
+		sb.append("startIndex={").append(startIndex).append("} ");
+		sb.append("}");
+
+		return sb;
 	}
 }

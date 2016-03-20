@@ -57,10 +57,8 @@ define(function(require){
 			return _.extend(attrs,{
 				name : {
 					type		: 'Text',
-					title		: 'Repository Name *',
-					validators	: ['required'],
-					editorAttrs 	:{ maxlength: 255},
-
+					title		: 'Service Name *',
+					validators	: ['required',{type:'regexp',regexp:/^[a-zA-Z0-9\s_-]{1,512}$/,message :"Name should be less than 512 characters and special characters are not allowed."}],
 				},
 				description : {
 					type		: 'TextArea',
@@ -75,8 +73,53 @@ define(function(require){
 						var nvPairs = XAUtils.enumToSelectPairs(activeStatus);
 						callback(_.sortBy(nvPairs, function(n){ return !n.val; }));
 					}
+				},
+				tagService : {
+					type : 'Select2Remote',
+					title : 'Select Tag Service',
+					pluginAttr : this.getPluginAttr(),
+					options    : function(callback, editor){
+	                    callback();
+	                }
+					
 				}
 			});
+		},
+		getPluginAttr : function(){
+			return { closeOnSelect : true,
+			placeholder : 'Select Tag Service',
+			maximumSelectionSize : 1,
+			width :'220px',
+			tokenSeparators: [",", " "],
+			allowClear: true,
+			initSelection : function (element, callback) {
+				callback( { id:element.val(), text:element.val() })
+			},
+			ajax: { 
+				url: "service/plugins/services",
+				dataType: 'json',
+				data: function (term, page) {
+					return { name : term, serviceType : 'tag' };
+				},
+				results: function (data, page) { 
+					var results = [];
+					if(data.resultSize != "0"){
+						results = data.services.map(function(m, i){	return {id : m.name, text: m.name};	});
+						return {results : results};
+					}
+					return {results : results};
+				}
+			},	
+			formatResult : function(result){
+				return result.text;
+			},
+			formatSelection : function(result){
+				return result.text;
+			},
+			formatNoMatches: function(result){
+				return 'No tag service found.';
+			}
+			};
 		},
 
 		/** This models toString() */

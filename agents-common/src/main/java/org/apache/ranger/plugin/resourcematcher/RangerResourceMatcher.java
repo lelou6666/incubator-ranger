@@ -23,15 +23,13 @@ import org.apache.ranger.plugin.model.RangerPolicy.RangerPolicyResource;
 import org.apache.ranger.plugin.model.RangerServiceDef.RangerResourceDef;
 
 public interface RangerResourceMatcher {
-	void init(RangerResourceDef resourceDef, RangerPolicyResource policyResource, String optionsString);
+	void setResourceDef(RangerResourceDef resourceDef);
 
-	RangerResourceDef getResourceDef();
+	void setPolicyResource(RangerPolicyResource policyResource);
 
-	RangerPolicyResource getPolicyResource();
-
-	String getOptionsString();
+	void init();
 
 	boolean isMatch(String resource);
 
-	boolean isSingleAndExactMatch(String resource);
+	boolean isCompleteMatch(String resource);
 }

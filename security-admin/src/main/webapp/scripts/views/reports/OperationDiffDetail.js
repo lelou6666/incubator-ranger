@@ -27,9 +27,9 @@ define(function(require){
 	var PolicyOperationDiff_tmpl 		= require('hbs!tmpl/reports/PolicyOperationDiff_tmpl');
 	var PolicyUpdateOperationDiff_tmpl 	= require('hbs!tmpl/reports/PolicyUpdateOperationDiff_tmpl');
 	var PolicyDeleteUpdateOperationDiff_tmpl 	= require('hbs!tmpl/reports/PolicyDeleteOperationDiff_tmpl');
-	var KnoxPolicyOperationDiff_tmpl 		= require('hbs!tmpl/reports/KnoxPolicyOperationDiff_tmpl');
-	var KnoxPolicyUpdateOperationDiff_tmpl 	= require('hbs!tmpl/reports/KnoxPolicyUpdateOperationDiff_tmpl');
-	var KnoxPolicyDeleteUpdateOperationDiff_tmpl 	= require('hbs!tmpl/reports/KnoxPolicyDeleteOperationDiff_tmpl');
+	var KnoxPolicyOperationDiff_tmpl 			= require('hbs!tmpl/reports/KnoxPolicyOperationDiff_tmpl');
+	var KnoxPolicyUpdateOperationDiff_tmpl 		= require('hbs!tmpl/reports/KnoxPolicyUpdateOperationDiff_tmpl');
+	var KnoxPolicyDeleteUpdateOperationDiff_tmpl= require('hbs!tmpl/reports/KnoxPolicyDeleteOperationDiff_tmpl');
 	var AssetOperationDiff_tmpl 		= require('hbs!tmpl/reports/AssetOperationDiff_tmpl');
 	var AssetUpdateOperationDiff_tmpl 	= require('hbs!tmpl/reports/AssetUpdateOperationDiff_tmpl');
 	var UserOperationDiff_tmpl 			= require('hbs!tmpl/reports/UserOperationDiff_tmpl');
@@ -55,7 +55,9 @@ define(function(require){
         	if(this.templateType == XAEnums.ClassTypes.CLASS_TYPE_XA_ASSET.value){
         		obj = $.extend(obj, {
         			newConnConfig 		: this.newConnConfig,
-        			previousConnConfig 	: this.previousConnConfig
+        			previousConnConfig 	: this.previousConnConfig,
+        			isNewConnConfig		: _.isEmpty(this.newConnConfig) ? false : true,
+   					isPreviousConnConfig: _.isEmpty(this.previousConnConfig) ? false : true
         		});
         	}
         	if(this.templateType == XAEnums.ClassTypes.CLASS_TYPE_XA_RESOURCE.value){
@@ -76,7 +78,6 @@ define(function(require){
         				newGroupList 		: this.newGroupList,
         				previousGroupList 	: this.previousGroupList,
         				isGroup 			: this.isGroup
-        			
         		});
         	}
         	
@@ -109,7 +110,6 @@ define(function(require){
 			
 			_.extend(this, _.pick(options, 'classType','objectName','objectId','objectCreatedDate','action','userName'));
 			this.bindEvents();
-			//this.initializeDiffOperation();
 			this.getTemplateForView();
 			
 		},
@@ -126,7 +126,6 @@ define(function(require){
 			//remove last comma from Perms
 			_.each(this.ui.diff.find('ol li'),function(m){
 				var text = $(m).text().replace(/,(?=[^,]*$)/, '');
-				//$(m).text(text);
 				$(m).find('span').last().remove();
 			});
 			_.each(this.ui.policyDiff.find('ol li'),function(m){
@@ -135,13 +134,14 @@ define(function(require){
 			});
 		},
 		getTemplateForView : function(){
-			if(this.classType == XAEnums.ClassTypes.CLASS_TYPE_XA_ASSET.value){
+			if(this.classType == XAEnums.ClassTypes.CLASS_TYPE_XA_ASSET.value
+					|| this.classType == XAEnums.ClassTypes.CLASS_TYPE_RANGER_SERVICE.value){
 				this.templateType=XAEnums.ClassTypes.CLASS_TYPE_XA_ASSET.value;
 				if(this.action == 'create'){
 					this.template = AssetOperationDiff_tmpl;
-				}else if(this.action == 'update'){
+				} else if(this.action == 'update'){
 					this.template = AssetUpdateOperationDiff_tmpl;
-				}else{
+				} else {
 					this.template = AssetOperationDiff_tmpl;
 				}
 				this.assetDiffOperation();
@@ -150,9 +150,9 @@ define(function(require){
 				this.templateType=XAEnums.ClassTypes.CLASS_TYPE_XA_RESOURCE.value;
 				if(this.action == 'create'){
 					this.template = PolicyOperationDiff_tmpl;
-				}else if(this.action == 'update'){
+				} else if(this.action == 'update'){
 					this.template = PolicyUpdateOperationDiff_tmpl;
-				}else{
+				} else{
 					this.template = PolicyDeleteUpdateOperationDiff_tmpl;
 				}
 				this.resourceDiffOperation();
@@ -162,9 +162,9 @@ define(function(require){
 					|| this.classType == XAEnums.ClassTypes.CLASS_TYPE_PASSWORD_CHANGE.value){
 				if(this.action == 'create' || this.action == 'delete'){
 					this.template = UserOperationDiff_tmpl;	
-				}else if(this.action == 'update' || this.action == "password change"){
+				} else if(this.action == 'update' || this.action == "password change"){
 					this.template = UserUpdateOperationDiff_tmpl;
-				}else{
+				} else{
 					this.template = UserOperationDiff_tmpl;
 				}
 				this.userDiffOperation();
@@ -173,14 +173,11 @@ define(function(require){
 			if(this.classType == XAEnums.ClassTypes.CLASS_TYPE_XA_GROUP.value){
 				if(this.action == 'create'){
 					this.template = GroupOperationDiff_tmpl;
-					//this.groupDiffOperation();
-				}else if(this.action == 'update'){
+				} else if(this.action == 'update'){
 					this.template = GroupUpdateOperationDiff_tmpl;
-				}else{
+				} else{
 					this.template = GroupOperationDiff_tmpl;
 				}
-				//this.template=GroupUpdateOperationDiff_tmpl;
-			//	this.groupDiffOperation();
 				this.templateType = XAEnums.ClassTypes.CLASS_TYPE_XA_GROUP.value;
 			} 
 		},
@@ -201,7 +198,13 @@ define(function(require){
 			if(this.action == 'create' || this.action == 'delete'){
 				this.newConnConfig 		= this.removeUnwantedFromObject(this.newConnConfig);
 				this.previousConnConfig = this.removeUnwantedFromObject(this.previousConnConfig);
+			}else{
+				var tmp = this.newConnConfig, tmp1 = {};
+				_.each(tmp,function(val, name){ tmp1[name] = ""; });
+				_.each(this.previousConnConfig,function(val, name){ tmp1[name]=val; });
+				this.previousConnConfig = tmp1;
 			}
+			
 		},
 		resourceDiffOperation : function(){
 			var that = this, modelColl = [];
@@ -209,10 +212,8 @@ define(function(require){
 			this.userList = [],this.groupList = [];
 			this.collection.each(function(m){
 				var attrName = m.get('attributeName'), type = 'permType';
-				if(attrName == "IP Address")
-					type = 'ipAddress';
+				if(attrName == "IP Address")	type = 'ipAddress';
 				if(m.get('attributeName') == 'Permission Type' || m.get('attributeName') == "IP Address"){
-//				if(m.get('attributeName') == 'Permission Type'){
 					if(m.get('parentObjectClassType') == XAEnums.ClassTypes.CLASS_TYPE_XA_GROUP.value){
 						if(m.get('action') != 'delete'){
 							if(m.get('action') == 'create'){
@@ -231,8 +232,7 @@ define(function(require){
 						}
 						if($.inArray(m.get('parentObjectName'),that.groupList) < 0)
 							that.groupList.push(m.get('parentObjectName'));
-					}
-					else{
+					} else {
 						if(m.get('action') != 'delete'){
 							if(m.get('action') == 'create'){
 								var obj = {userName : m.get('parentObjectName')};
@@ -255,11 +255,12 @@ define(function(require){
 					}
 					modelColl.push(m);
 					
-				}else if(m.get('attributeName') == 'Repository Type'){
-					if(m.get('action') != 'delete')
+				} else if(m.get('attributeName') == 'Repository Type'){
+					if(m.get('action') != 'delete'){
 						that.repositoryType = m.get('newValue');
-					else
+					} else {
 						that.repositoryType = m.get('previousValue');
+					}
 					modelColl.push(m);
 					if(that.repositoryType == XAEnums.AssetType.ASSET_KNOX.label && m.get('action') == "create")//XAEnums.AssetType.ASSET_KNOX.value)
 						that.template = KnoxPolicyOperationDiff_tmpl;
@@ -267,18 +268,18 @@ define(function(require){
 						that.template = KnoxPolicyUpdateOperationDiff_tmpl;
 					if(that.repositoryType == XAEnums.AssetType.ASSET_KNOX.label && m.get('action') == "delete")
 						that.template = KnoxPolicyDeleteUpdateOperationDiff_tmpl;
-				}else if(m.get('attributeName') == 'Policy Name'){
-					if(m.get('action') != 'delete')
+				} else if(m.get('attributeName') == 'Policy Name'){
+					if(m.get('action') != 'delete'){
 						that.policyName = m.get('newValue');
-					else
+					} else {
 						that.policyName = m.get('previousValue');
+					}
 					if(m.get('newValue') == m.get('previousValue'))
 						modelColl.push(m);
 				}
-				
+			
 				if(_.isUndefined(m.get('attributeName')))
 					modelColl.push(m);
-				//if(m.get('attributeName') == 'Column Type')
 			});
 			
 			this.newGroupPermList 		= _.groupBy(this.newGroupPermList, 'groupName');
@@ -288,15 +289,7 @@ define(function(require){
 			
 			this.removeUnwantedElement();
 			this.createEqualLengthArr();
-			console.log('UserList');
-			console.log(this.userList);
-			console.log('GroupList');
-			console.log(this.groupList);
 			
-			console.log(this.newGroupPermList);
-			console.log(this.previousGroupPermList);
-			console.log(this.newUserPermList);
-			console.log(this.previousUserPermList);
 			if(!_.isEmpty(this.newGroupPermList) || !_.isEmpty(this.previousGroupPermList))
 				this.isGroupPerm = true;
 			if(!_.isEmpty(this.newUserPermList) || !_.isEmpty(this.previousUserPermList))
@@ -355,31 +348,29 @@ define(function(require){
 					if(m.get('action') == 'delete' || m.get('action') == 'update')
 						that.previousGroupList.push(m.get('parentObjectName'));
 					modelArr.push(m);
-				}else if(m.get('attributeName') == 'User Role'){
+				} else if(m.get('attributeName') == 'User Role'){
 					var newRole =  m.get('newValue').replace(/[[\]]/g,'');
 					var prevRole = m.get('previousValue').replace(/[[\]]/g,'');
 					if( newRole == "ROLE_USER")
 						m.set('newValue',XAEnums.UserRoles.ROLE_USER.label)
 					else if(newRole == "ROLE_SYS_ADMIN")
 						m.set('newValue',XAEnums.UserRoles.ROLE_SYS_ADMIN.label)
+					else if(newRole == "ROLE_KEY_ADMIN")
+						m.set('newValue',XAEnums.UserRoles.ROLE_KEY_ADMIN.label)
 					if(prevRole == "ROLE_USER")
 						m.set('previousValue',XAEnums.UserRoles.ROLE_USER.label)
 					else if(prevRole == "ROLE_SYS_ADMIN")
 						m.set('previousValue',XAEnums.UserRoles.ROLE_SYS_ADMIN.label)
-				}else{
+					else if(prevRole == "ROLE_KEY_ADMIN")
+						m.set('previousValue',XAEnums.UserRoles.ROLE_KEY_ADMIN.label)
+				} else {
 					if(!m.has('attributeName'))
 						modelArr.push(m);
 				}
-				//TODO
-			/*	if(m.get('action') == 'update'){
-					if(m.get('previousValue') == 'null'){
-						m.set('previousValue', '');	
-					}
-						
-				}*/
 			});
-			if(!_.isEmpty(this.newGroupList) || !_.isEmpty(this.previousGroupList))
+			if(!_.isEmpty(this.newGroupList) || !_.isEmpty(this.previousGroupList)){
 				this.isGroup = true;
+			}
 			this.collection.remove(modelArr);
 		},
 		groupDiffOperation : function(){

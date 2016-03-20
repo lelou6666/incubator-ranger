@@ -87,6 +87,10 @@ public class VXAccessAudit extends VXDataObject implements java.io.Serializable 
 	 */
 	protected int repoType;
 	/**
+	 * Service Type ~~ repoType
+	 */
+	protected String serviceType;
+	/**
 	 * Reason of result
 	 */
 	protected String resultReason;
@@ -120,6 +124,15 @@ public class VXAccessAudit extends VXDataObject implements java.io.Serializable 
 	 */
 	protected String resourceType;
 
+	protected long sequenceNumber;
+
+	protected long eventCount;
+	
+	//event duration in ms
+	protected long eventDuration;
+	
+	protected String tags;
+	
 	/**
 	 * Default constructor. This will set all the attributes to default value.
 	 */
@@ -298,6 +311,20 @@ public class VXAccessAudit extends VXDataObject implements java.io.Serializable 
 	}
 
 	/**
+	 * @return the serviceType
+	 */
+	public String getServiceType() {
+		return serviceType;
+	}
+
+	/**
+	 * @param serviceType the serviceType to set
+	 */
+	public void setServiceType(String serviceType) {
+		this.serviceType = serviceType;
+	}
+
+	/**
 	 * This method sets the value to the member attribute <b>resultReason</b>.
 	 * You cannot set null to the attribute.
 	 * @param resultReason Value to set member attribute <b>resultReason</b>
@@ -433,6 +460,45 @@ public class VXAccessAudit extends VXDataObject implements java.io.Serializable 
 		return this.resourceType;
 	}
 
+	public long getSequenceNumber() {
+		return sequenceNumber;
+	}
+
+	public void setSequenceNumber(long sequenceNumber) {
+		this.sequenceNumber = sequenceNumber;
+	}
+
+	public long getEventCount() {
+		return eventCount;
+	}
+
+	public void setEventCount(long eventCount) {
+		this.eventCount = eventCount;
+	}
+
+	public long getEventDuration() {
+		return eventDuration;
+	}
+
+	public void setEventDuration(long eventDuration) {
+		this.eventDuration = eventDuration;
+	}
+
+	/**
+	 * @return the tags
+	 */
+	public String getTags() {
+		return tags;
+	}
+
+	/**
+	 * @param tags
+	 *            the tags to set
+	 */
+	public void setTags(String tags) {
+		this.tags = tags;
+	}
+
 	@Override
 	public int getMyClassType( ) {
 	    return AppConstants.CLASS_TYPE_XA_ACCESS_AUDIT;
@@ -455,6 +521,7 @@ public class VXAccessAudit extends VXDataObject implements java.io.Serializable 
 		str += "policyId={" + policyId + "} ";
 		str += "repoName={" + repoName + "} ";
 		str += "repoType={" + repoType + "} ";
+		str += "serviceType={" + serviceType + "} ";
 		str += "resultReason={" + resultReason + "} ";
 		str += "sessionId={" + sessionId + "} ";
 		str += "eventTime={" + eventTime + "} ";
@@ -463,6 +530,10 @@ public class VXAccessAudit extends VXDataObject implements java.io.Serializable 
 		str += "requestData={" + requestData + "} ";
 		str += "resourcePath={" + resourcePath + "} ";
 		str += "resourceType={" + resourceType + "} ";
+		str += "sequenceNumber={" + sequenceNumber + "}";
+		str += "eventCount={" + eventCount + "}";
+		str += "eventDuration={" + eventDuration + "}";
+		str += "tags={" + tags + "}";
 		str += "}";
 		return str;
 	}

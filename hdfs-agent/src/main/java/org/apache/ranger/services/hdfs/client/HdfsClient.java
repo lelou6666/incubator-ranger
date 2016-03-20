@@ -22,11 +22,8 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.security.PrivilegedExceptionAction;
+import java.util.*;
 
 import javax.security.auth.Subject;
 
@@ -44,30 +41,39 @@ import org.apache.ranger.plugin.client.HadoopException;
 public class HdfsClient extends BaseClient {
 
 	private static final Log LOG = LogFactory.getLog(HdfsClient.class) ;
+  private Configuration conf;
+  private static List<String> rangerInternalPropertyKeys = Arrays.asList("username",
+    "password", "keytabfile");
 
-  public HdfsClient(String serviceName) {
-		super(serviceName) ;
-	}
-	
 	public HdfsClient(String serviceName, Map<String,String> connectionProperties) {
 		super(serviceName,connectionProperties, "hdfs-client") ;
+    conf = new Configuration() ;
+    Set<String> rangerInternalPropertyKeys = getConfigHolder().getRangerInternalPropertyKeys();
+    for (Map.Entry<String, String> entry: connectionProperties.entrySet())  {
+      String key = entry.getKey();
+      String value = entry.getValue();
+      if (rangerInternalPropertyKeys.contains(key)) {
+         // skip
+      }  else {
+        conf.set(key, value);
+      }
+    }
+
 	}
 	
-	private List<String> listFilesInternal(String baseDir, String fileMatching, final List<String> pathList) {
+	private List<String> listFilesInternal(String baseDir, String fileMatching, final List<String> pathList) throws  HadoopException {
 		List<String> fileList = new ArrayList<String>() ;
-		ClassLoader prevCl = Thread.currentThread().getContextClassLoader() ;
 		String errMsg = " You can still save the repository and start creating "
 				+ "policies, but you would not be able to use autocomplete for "
 				+ "resource names. Check xa_portal.log for more info.";
 		try {
-			Thread.currentThread().setContextClassLoader(getConfigHolder().getClassLoader());
 			String dirPrefix = (baseDir.endsWith("/") ? baseDir : (baseDir + "/")) ;
 			String filterRegEx = null;
 			if (fileMatching != null && fileMatching.trim().length() > 0) {
 				filterRegEx = fileMatching.trim() ;
 			}
 			
-			Configuration conf = new Configuration() ;
+
 			UserGroupInformation.setConfiguration(conf);
 			
 			FileSystem fs = null ;
@@ -119,8 +125,6 @@ public class HdfsClient extends BaseClient {
 				
 				throw hdpException;
 			}
-			finally {
-			}
 		} catch (IOException ioe) {
 			String msgDesc = "listFilesInternal: Unable to get listing of files for directory "
 					+ baseDir + fileMatching 
@@ -147,21 +151,17 @@ public class HdfsClient extends BaseClient {
 			}
 			throw hdpException;
 		}
-		finally {
-			Thread.currentThread().setContextClassLoader(prevCl);
-		}
 		return fileList ;
 	}
 
 
-	public List<String> listFiles(final String baseDir, final String fileMatching, final List<String> pathList) {
+	public List<String> listFiles(final String baseDir, final String fileMatching, final List<String> pathList) throws Exception {
 
-		PrivilegedAction<List<String>> action = new PrivilegedAction<List<String>>() {
+		PrivilegedExceptionAction<List<String>> action = new PrivilegedExceptionAction<List<String>>() {
 			@Override
-			public List<String> run() {
+			public List<String> run() throws Exception {
 				return listFilesInternal(baseDir, fileMatching, pathList) ;
 			}
-			
 		};
 		return Subject.doAs(getLoginSubject(),action) ;
 	}
@@ -177,8 +177,13 @@ public class HdfsClient extends BaseClient {
 		String baseDir = args[1] ;
 		String fileNameToMatch = (args.length == 2 ? null : args[2]) ;
 		
-		HdfsClient fs = new HdfsClient(repositoryName) ;
-		List<String> fsList = fs.listFiles(baseDir, fileNameToMatch,null) ;
+		HdfsClient fs = new HdfsClient(repositoryName, null) ;
+		List<String> fsList = null;
+		try {
+			fsList = fs.listFiles(baseDir, fileNameToMatch,null);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		if (fsList != null && fsList.size() > 0) {
 			for(String s : fsList) {
 				System.out.println(s) ;
@@ -189,31 +194,108 @@ public class HdfsClient extends BaseClient {
 		}
 	}
 
-	public static HashMap<String, Object> testConnection(String serviceName,
-			Map<String, String> configs) {
+	public static HashMap<String, Object> connectionTest(String serviceName,
+			Map<String, String> configs) throws Exception {
 
-		HashMap<String, Object> responseData = new HashMap<String, Object>();
-		boolean connectivityStatus = false;
-		HdfsClient connectionObj = new HdfsClient(serviceName, configs);
-		if (connectionObj != null) {
-			List<String> testResult = connectionObj.listFiles("/", null,null);
+	LOG.info("===> HdfsClient.testConnection()" );
+    HashMap<String, Object> responseData = new HashMap<String, Object>();
+    boolean connectivityStatus = false;
+
+    String validateConfigsMsg = null;
+    try {
+      validateConnectionConfigs(configs);
+    } catch (IllegalArgumentException e)  {
+      validateConfigsMsg = e.getMessage();
+    }
+
+    if (validateConfigsMsg == null) {
+
+		  HdfsClient connectionObj = new HdfsClient(serviceName, configs);
+		  if (connectionObj != null) {
+			List<String> testResult = null;
+			try {
+				 testResult = connectionObj.listFiles("/", null,null);
+			} catch (HadoopException e) {
+				LOG.error("<== HdfsClient.testConnection() error " + e.getMessage(),e );
+					throw e;
+			}
+
 			if (testResult != null && testResult.size() != 0) {
-				connectivityStatus = true;
+			  	connectivityStatus = true;
 			}
 		}
+    }
+        String testconnMsg = null;
 		if (connectivityStatus) {
-			String successMsg = "TestConnection Successful";
-			generateResponseDataMap(connectivityStatus, successMsg, successMsg,
+			testconnMsg = "ConnectionTest Successful";
+			generateResponseDataMap(connectivityStatus, testconnMsg, testconnMsg,
 					null, null, responseData);
 		} else {
-			String failureMsg = "Unable to retrieve any files using given parameters, "
-					+ "You can still save the repository and start creating policies, "
-					+ "but you would not be able to use autocomplete for resource names. "
-					+ "Check xa_portal.log for more info.";
-			generateResponseDataMap(connectivityStatus, failureMsg, failureMsg,
+			testconnMsg = "Unable to retrieve any files using given parameters, "
+				+ "You can still save the repository and start creating policies, "
+				+ "but you would not be able to use autocomplete for resource names. "
+				+ "Check xa_portal.log for more info. ";
+      String additionalMsg = (validateConfigsMsg != null)  ?
+        validateConfigsMsg : testconnMsg;
+			generateResponseDataMap(connectivityStatus, testconnMsg, additionalMsg,
 					null, null, responseData);
 		}
+		LOG.info("<== HdfsClient.testConnection(): Status " + testconnMsg );
 		return responseData;
 	}
+
+  public static void validateConnectionConfigs(Map<String, String> configs)
+      throws IllegalArgumentException {
+
+    // username
+    String username = configs.get("username") ;
+    if ((username == null || username.isEmpty()))  {
+      throw new IllegalArgumentException("Value for username not specified");
+    }
+
+    // password
+    String password = configs.get("password") ;
+    if ((password == null || password.isEmpty()))  {
+      throw new IllegalArgumentException("Value for password not specified");
+    }
+
+    // hadoop.security.authentication
+    String authentication = configs.get("hadoop.security.authentication") ;
+    if ((authentication == null || authentication.isEmpty()))  {
+      throw new IllegalArgumentException("Value for hadoop.security.authentication not specified");
+    }
+
+    String fsDefaultName = configs.get("fs.default.name") ;
+    fsDefaultName = (fsDefaultName == null) ? "" : fsDefaultName.trim();
+    if (fsDefaultName.isEmpty())  {
+      throw new IllegalArgumentException("Value for neither fs.default.name is specified");
+    }
+
+    String dfsNameservices = configs.get("dfs.nameservices");
+    dfsNameservices = (dfsNameservices == null) ? "" : dfsNameservices.trim();
+    if (!dfsNameservices.isEmpty()) {
+      String proxyProvider = configs.get("dfs.client.failover.proxy.provider." + dfsNameservices);
+      proxyProvider =   (proxyProvider == null) ? "" : proxyProvider.trim();
+      if (proxyProvider.isEmpty())  {
+        throw new IllegalArgumentException("Value for " + "dfs.client.failover.proxy.provider." + dfsNameservices + " not specified");
+      }
+
+      String dfsNameNodes = configs.get("dfs.ha.namenodes." + dfsNameservices);
+      dfsNameNodes = (dfsNameNodes == null) ? "" : dfsNameNodes.trim();
+      if (dfsNameNodes.isEmpty())  {
+        throw new IllegalArgumentException("Value for " + "dfs.ha.namenodes." + proxyProvider + " not specified");
+      }
+      String[] dfsNameNodeElements = dfsNameNodes.split(",");
+      for (String dfsNameNodeElement : dfsNameNodeElements)  {
+        String nameNodeUrlKey = "dfs.namenode.rpc-address." +
+            dfsNameservices + "." + dfsNameNodeElement.trim();
+        String nameNodeUrl =  configs.get(nameNodeUrlKey);
+        nameNodeUrl = (nameNodeUrl == null) ? "" : nameNodeUrl.trim();
+        if (nameNodeUrl.isEmpty())  {
+          throw new IllegalArgumentException("Value for " + nameNodeUrlKey + " not specified");
+        }
+      }
+    }
+  }
 
 }

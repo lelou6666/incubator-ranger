@@ -57,11 +57,8 @@ public class SearchUtil {
 	String defaultDateFormat="MM/dd/yyyy";
 
 	public SearchUtil() {
-		minInListLength = PropertiesUtil.getIntProperty(
-				"xa.db.min_inlist", minInListLength);
-		defaultDateFormat = PropertiesUtil.getProperty(
-				"xa.ui.defaultDateformat", defaultDateFormat);
-		
+		minInListLength = PropertiesUtil.getIntProperty("ranger.db.min_inlist", minInListLength);
+		defaultDateFormat = PropertiesUtil.getProperty("ranger.ui.defaultDateformat", defaultDateFormat);
 	}
 
 	@Deprecated
@@ -73,6 +70,7 @@ public class SearchUtil {
 				request.getParameter("startIndex"), 0,
 				"Invalid value for parameter startIndex",
 				MessageEnums.INVALID_INPUT_DATA, null, "startIndex");
+		startIndex = startIndex < 0 ? 0 : startIndex;
 		searchCriteria.setStartIndex(startIndex);
 
 		int pageSize = restErrorUtil.parseInt(request.getParameter("pageSize"),
@@ -123,6 +121,7 @@ public class SearchUtil {
 				request.getParameter("startIndex"), 0,
 				"Invalid value for parameter startIndex",
 				MessageEnums.INVALID_INPUT_DATA, null, "startIndex");
+		startIndex = startIndex < 0 ? 0 : startIndex;
 		searchCriteria.setStartIndex(startIndex);
 
 		int pageSize = restErrorUtil.parseInt(request.getParameter("pageSize"),
@@ -267,7 +266,7 @@ public class SearchUtil {
 					"Invalid value for " + userFriendlyParamName,
 					MessageEnums.INVALID_INPUT_DATA, null, paramName);
 
-			restErrorUtil.validateMinMax(value, 0, maxValue,
+			restErrorUtil.validateMinMax(value == null ? Integer.valueOf(-1) : value, 0, maxValue,
 					"Invalid value for " + userFriendlyParamName, null,
 					paramName);
 			valueList.add(value);
@@ -532,9 +531,8 @@ public class SearchUtil {
 						&& (((Collection) paramValue).size()) >=1) {
 					whereClause.append(" and ")
 							.append(searchField.getFieldName())
-							.append(" in ( :")
-							.append(searchField.getClientFieldName())
-							.append(")");
+							.append(" in :")
+							.append(searchField.getClientFieldName());
 				}
 			}
 			else if (searchField.getDataType() == SearchField.DATA_TYPE.INTEGER) {

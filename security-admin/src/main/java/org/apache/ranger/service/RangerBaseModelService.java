@@ -1,21 +1,54 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.ranger.service;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.TypeVariable;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.ranger.biz.RangerBizUtil;
 import org.apache.ranger.common.ContextUtil;
 import org.apache.ranger.common.DateUtil;
 import org.apache.ranger.common.MessageEnums;
 import org.apache.ranger.common.RESTErrorUtil;
+import org.apache.ranger.common.RangerSearchUtil;
+import org.apache.ranger.common.SearchField;
+import org.apache.ranger.common.SortField;
 import org.apache.ranger.common.StringUtil;
 import org.apache.ranger.common.db.BaseDao;
+import org.apache.ranger.common.view.VList;
 import org.apache.ranger.db.RangerDaoManager;
+import org.apache.ranger.entity.XXAccessTypeDef;
 import org.apache.ranger.entity.XXDBBase;
+import org.apache.ranger.entity.XXGroup;
+import org.apache.ranger.entity.XXPolicyConditionDef;
 import org.apache.ranger.entity.XXPortalUser;
+import org.apache.ranger.entity.XXResourceDef;
 import org.apache.ranger.plugin.model.RangerBaseModelObject;
+import org.apache.ranger.plugin.store.PList;
+import org.apache.ranger.plugin.util.SearchFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public abstract class RangerBaseModelService<T extends XXDBBase, V extends RangerBaseModelObject> {
@@ -30,12 +63,26 @@ public abstract class RangerBaseModelService<T extends XXDBBase, V extends Range
 
 	@Autowired
 	protected RESTErrorUtil restErrorUtil;
+	
+	@Autowired
+	protected RangerSearchUtil searchUtil;
+	
+	@Autowired
+	RangerBizUtil bizUtil;
 
 	public static final int OPERATION_CREATE_CONTEXT = 1;
 	public static final int OPERATION_UPDATE_CONTEXT = 2;
+	public static final int OPERATION_DELETE_CONTEXT = 3;
 
 	protected Class<T> tEntityClass;
 	protected Class<V> tViewClass;
+	private Boolean populateExistingBaseFields;
+	protected String tClassName;
+	
+	public List<SortField> sortFields = new ArrayList<SortField>();
+	public List<SearchField> searchFields = new ArrayList<SearchField>();
+	protected final String countQueryStr;
+	protected String queryStr;
 
 	BaseDao<T> entityDao;
 
@@ -56,6 +103,15 @@ public abstract class RangerBaseModelService<T extends XXDBBase, V extends Range
 		} else {
 			LOG.fatal("Cannot find class for template", new Throwable());
 		}
+		
+		if (tEntityClass != null) {
+			tClassName = tEntityClass.getName();
+		}
+
+		populateExistingBaseFields = false;
+		
+		countQueryStr = "SELECT COUNT(obj) FROM " + tClassName + " obj ";
+		queryStr = "SELECT obj FROM " + tClassName + " obj ";
 	}
 
 	protected abstract T mapViewToEntityBean(V viewBean, T t,
@@ -92,99 +148,61 @@ public abstract class RangerBaseModelService<T extends XXDBBase, V extends Range
 		}
 		return entityDao;
 	}
-
+	
 	protected V populateViewBean(T entityObj) {
 		V vObj = createViewObject();
 		vObj.setId(entityObj.getId());
 		vObj.setCreateTime(entityObj.getCreateTime());
 		vObj.setUpdateTime(entityObj.getUpdateTime());
-
-		if (entityObj.getAddedByUserId() != null) {
-			XXPortalUser tUser = daoMgr.getXXPortalUser().getById(
-					entityObj.getUpdatedByUserId());
-			if (!stringUtil.isEmpty(tUser.getPublicScreenName())) {
-				vObj.setCreatedBy(tUser.getPublicScreenName());
-			} else {
-				if (!stringUtil.isEmpty(tUser.getFirstName())) {
-					if (!stringUtil.isEmpty(tUser.getLastName())) {
-						vObj.setCreatedBy(tUser.getFirstName() + " "
-								+ tUser.getLastName());
-					} else {
-						vObj.setCreatedBy(tUser.getFirstName());
-					}
-				} else {
-					vObj.setCreatedBy(tUser.getLoginId());
-				}
-			}
-		}
-		if (entityObj.getUpdatedByUserId() != null) {
-			XXPortalUser tUser = daoMgr.getXXPortalUser().getById(
-					entityObj.getUpdatedByUserId());
-			if (!stringUtil.isEmpty(tUser.getPublicScreenName())) {
-				vObj.setUpdatedBy(tUser.getPublicScreenName());
-			} else {
-				if (!stringUtil.isEmpty(tUser.getFirstName())) {
-					if (!stringUtil.isEmpty(tUser.getLastName())) {
-						vObj.setUpdatedBy(tUser.getFirstName() + " "
-								+ tUser.getLastName());
-					} else {
-						vObj.setUpdatedBy(tUser.getFirstName());
-					}
-				} else {
-					vObj.setUpdatedBy(tUser.getLoginId());
-				}
-			}
-		}
+		vObj.setCreatedBy(getUserScreenName(entityObj.getAddedByUserId()));
+		vObj.setUpdatedBy(getUserScreenName(entityObj.getUpdatedByUserId()));
 		
 		return mapEntityToViewBean(vObj, entityObj);
 	}
 
-	protected T populateEntityBean(V vObj, int operationContext) {
-		T entityObj;
+	protected T populateEntityBeanForCreate(T entityObj, V vObj) {
+		if(!populateExistingBaseFields) {
+			entityObj.setCreateTime(DateUtil.getUTCDate());
+			entityObj.setUpdateTime(entityObj.getCreateTime());
+			entityObj.setAddedByUserId(ContextUtil.getCurrentUserId());
+			entityObj.setUpdatedByUserId(entityObj.getAddedByUserId());
+		} else if(populateExistingBaseFields) {
+			XXPortalUser createdByUser = daoMgr.getXXPortalUser().findByLoginId(vObj.getCreatedBy());
+			XXPortalUser updByUser     = daoMgr.getXXPortalUser().findByLoginId(vObj.getUpdatedBy());
 
-		Date createTime = null;
-		Date updTime = null;
-		Long createdById = null;
-		Long updById = null;
-
-		if (operationContext == OPERATION_CREATE_CONTEXT) {
-			entityObj = createEntityObject();
-
-			createTime = DateUtil.getUTCDate();
-			updTime = DateUtil.getUTCDate();
-			createdById = ContextUtil.getCurrentUserId();
-			updById = ContextUtil.getCurrentUserId();
-		} else if (operationContext == OPERATION_UPDATE_CONTEXT) {
-			entityObj = getDao().getById(vObj.getId());
-
-			if (entityObj == null) {
-				throw restErrorUtil.createRESTException(
-						"No Object found to update.",
-						MessageEnums.DATA_NOT_FOUND);
-			}
-
-			createTime = entityObj.getCreateTime();
-			if (createTime == null) {
-				createTime = DateUtil.getUTCDate();
-			}
-			updTime = DateUtil.getUTCDate();
-
-			createdById = entityObj.getAddedByUserId();
-			if (createdById == null) {
-				createdById = ContextUtil.getCurrentUserId();
-			}
-			updById = ContextUtil.getCurrentUserId();
-		} else {
-			throw restErrorUtil.createRESTException(
-					"Error while populating EntityBean",
-					MessageEnums.INVALID_INPUT_DATA);
+			entityObj.setId(vObj.getId());
+			entityObj.setCreateTime(vObj.getCreateTime() != null ? vObj.getCreateTime() : DateUtil.getUTCDate());
+			entityObj.setUpdateTime(vObj.getUpdateTime() != null ? vObj.getUpdateTime() : DateUtil.getUTCDate());
+			entityObj.setAddedByUserId(createdByUser != null ? createdByUser.getId() : ContextUtil.getCurrentUserId());
+			entityObj.setUpdatedByUserId(updByUser != null ? updByUser.getId() : ContextUtil.getCurrentUserId());
 		}
-		entityObj.setAddedByUserId(createdById);
-		entityObj.setUpdatedByUserId(updById);
-		entityObj.setCreateTime(createTime);
-		entityObj.setUpdateTime(updTime);
 
-		return mapViewToEntityBean(vObj, entityObj, operationContext);
+		return mapViewToEntityBean(vObj, entityObj, OPERATION_CREATE_CONTEXT);
+	}
+
+	protected T populateEntityBeanForUpdate(T entityObj, V vObj) {
+		if (entityObj == null) {
+			throw restErrorUtil.createRESTException(
+					"No Object found to update.",
+					MessageEnums.DATA_NOT_FOUND);
+		}
+
+		T ret = mapViewToEntityBean(vObj, entityObj, OPERATION_UPDATE_CONTEXT);
+
+		if (ret.getCreateTime() == null) {
+			ret.setCreateTime(DateUtil.getUTCDate());
+		}
+
+		if (ret.getAddedByUserId() == null) {
+			ret.setAddedByUserId(ContextUtil.getCurrentUserId());
+		}
+
+		if(!populateExistingBaseFields) {
+			ret.setUpdateTime(DateUtil.getUTCDate());
+			ret.setUpdatedByUserId(ContextUtil.getCurrentUserId());
+		}
+
+		return ret;
 	}
 
 	protected abstract void validateForCreate(V vObj);
@@ -193,7 +211,10 @@ public abstract class RangerBaseModelService<T extends XXDBBase, V extends Range
 
 	public T preCreate(V vObj) {
 		validateForCreate(vObj);
-		return populateEntityBean(vObj, OPERATION_CREATE_CONTEXT);
+
+		T entityObj = createEntityObject();
+
+		return populateEntityBeanForCreate(entityObj, vObj);
 	}
 
 	public V postCreate(T xObj) {
@@ -237,7 +258,7 @@ public abstract class RangerBaseModelService<T extends XXDBBase, V extends Range
 					viewBaseBean.getId(), null, "preUpdate: id not found.");
 		}
 		validateForUpdate(viewBaseBean, resource);
-		return populateEntityBean(viewBaseBean, OPERATION_UPDATE_CONTEXT);
+		return populateEntityBeanForUpdate(resource, viewBaseBean);
 	}
 	
 	public boolean delete(V vObj) {
@@ -272,5 +293,187 @@ public abstract class RangerBaseModelService<T extends XXDBBase, V extends Range
 		}
 		return resource;
 	}
+
+	public Boolean getPopulateExistingBaseFields() {
+		return populateExistingBaseFields;
+	}
+
+	public void setPopulateExistingBaseFields(Boolean populateExistingBaseFields) {
+		this.populateExistingBaseFields = populateExistingBaseFields;
+	}
 	
+	/*
+	 * Search Operations 
+	 * 
+	 */
+	
+	protected List<T> searchResources(SearchFilter searchCriteria,
+			List<SearchField> searchFieldList, List<SortField> sortFieldList,
+			VList vList) {
+
+		// Get total count of the rows which meet the search criteria
+		long count = -1;
+		if (searchCriteria.isGetCount()) {
+			count = getCountForSearchQuery(searchCriteria, searchFieldList);
+			if (count == 0) {
+				return Collections.emptyList();
+			}
+		}
+		
+		String sortClause = searchUtil.constructSortClause(searchCriteria, sortFieldList);
+
+		String q = queryStr;
+		Query query = createQuery(q, sortClause, searchCriteria, searchFieldList, false);
+
+		List<T> resultList = getDao().executeQueryInSecurityContext(tEntityClass, query);		
+
+		if (vList != null) {
+			vList.setResultSize(resultList.size());
+			vList.setPageSize(query.getMaxResults());
+			vList.setSortBy(searchCriteria.getSortBy());
+			vList.setSortType(searchCriteria.getSortType());
+			vList.setStartIndex(query.getFirstResult());
+			vList.setTotalCount(count);
+		}
+		return resultList;
+	}
+
+	protected List<T> searchRangerObjects(SearchFilter searchCriteria, List<SearchField> searchFieldList, List<SortField> sortFieldList, PList<V> pList) {
+
+		// Get total count of the rows which meet the search criteria
+		long count = -1;
+		if (searchCriteria.isGetCount()) {
+			count = getCountForSearchQuery(searchCriteria, searchFieldList);
+			if (count == 0) {
+				return Collections.emptyList();
+			}
+		}
+
+		String sortClause = searchUtil.constructSortClause(searchCriteria, sortFieldList);
+
+		String q = queryStr;
+		Query query = createQuery(q, sortClause, searchCriteria, searchFieldList, false);
+
+		List<T> resultList = getDao().executeQueryInSecurityContext(tEntityClass, query);
+
+		if (pList != null) {
+			pList.setResultSize(resultList.size());
+			pList.setPageSize(query.getMaxResults());
+			pList.setSortBy(searchCriteria.getSortBy());
+			pList.setSortType(searchCriteria.getSortType());
+			pList.setStartIndex(query.getFirstResult());
+			pList.setTotalCount(count);
+		}
+		return resultList;
+	}
+
+	protected long getCountForSearchQuery(SearchFilter searchCriteria, List<SearchField> searchFieldList) {
+
+		String q = countQueryStr;
+		Query query = createQuery(q, null, searchCriteria, searchFieldList, true);
+		Long count = getDao().executeCountQueryInSecurityContext(tEntityClass, query);
+
+		if (count == null) {
+			return 0;
+		}
+		return count.longValue();
+	}
+	
+	protected Query createQuery(String searchString, String sortString, SearchFilter searchCriteria, 
+			List<SearchField> searchFieldList, boolean isCountQuery) {
+		
+		EntityManager em = getDao().getEntityManager();
+		Query query = searchUtil.createSearchQuery(em, searchString, sortString, searchCriteria, 
+				searchFieldList, getClassType(), false, isCountQuery);
+		return query;
+	}
+	
+	protected int getClassType() {
+		return bizUtil.getClassType(tEntityClass);
+	}
+	
+
+	protected String getUserScreenName(Long userId) {
+		String ret = null;
+
+		XXPortalUser xPortalUser = userId == null ? null : daoMgr.getXXPortalUser().getById(userId);
+
+		if(xPortalUser != null) {
+			ret = xPortalUser.getPublicScreenName();
+
+			if (stringUtil.isEmpty(ret)) {
+				ret = xPortalUser.getFirstName();
+
+				if(stringUtil.isEmpty(ret)) {
+					ret = xPortalUser.getLoginId();
+				} else {
+					if(!stringUtil.isEmpty(xPortalUser.getLastName())) {
+						ret += (" " + xPortalUser.getLastName());
+					}
+				}
+			}
+		}
+
+		return ret;
+	}
+
+	protected String getUserName(Long userId) {
+		String ret = null;
+
+		XXPortalUser xPortalUser = userId == null ? null : daoMgr.getXXPortalUser().getById(userId);
+
+		if(xPortalUser != null) {
+			ret = xPortalUser.getLoginId();
+		}
+
+		return ret;
+	}
+
+	protected String getGroupName(Long groupId) {
+		String ret = null;
+
+		XXGroup xGroup = groupId == null ? null : daoMgr.getXXGroup().getById(groupId);
+
+		if(xGroup != null) {
+			ret = xGroup.getName();
+		}
+
+		return ret;
+	}
+
+	protected String getAccessTypeName(Long accessTypeDefId) {
+		String ret = null;
+
+		XXAccessTypeDef accessTypeDef = accessTypeDefId == null ? null : daoMgr.getXXAccessTypeDef().getById(accessTypeDefId);
+
+		if(accessTypeDef != null) {
+			ret = accessTypeDef.getName();
+		}
+
+		return ret;
+	}
+
+	protected String getConditionName(Long conditionDefId) {
+		String ret = null;
+
+		XXPolicyConditionDef conditionDef = conditionDefId == null ? null : daoMgr.getXXPolicyConditionDef().getById(conditionDefId);
+
+		if(conditionDef != null) {
+			ret = conditionDef.getName();
+		}
+
+		return ret;
+	}
+
+	protected String getResourceName(Long resourceDefId) {
+		String ret = null;
+
+		XXResourceDef resourceDef = resourceDefId == null ? null : daoMgr.getXXResourceDef().getById(resourceDefId);
+
+		if(resourceDef != null) {
+			ret = resourceDef.getName();
+		}
+
+		return ret;
+	}
 }

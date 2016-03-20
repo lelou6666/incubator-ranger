@@ -240,6 +240,19 @@ public class XXAccessAudit extends XXDBBase implements java.io.Serializable {
 	@Column(name="RESOURCE_TYPE"   , length=255)
 	protected String resourceType;
 
+	@Column(name="SEQ_NUM")
+	protected long sequenceNumber;
+
+	@Column(name="EVENT_COUNT")
+	protected long eventCount;
+
+	//event duration in ms
+	@Column(name="EVENT_DUR_MS")
+	protected long eventDuration;
+
+	@Column(name="tags")
+	protected String tags;
+	
 	/**
 	 * Default constructor. This will set all the attributes to default value.
 	 */
@@ -559,6 +572,38 @@ public class XXAccessAudit extends XXDBBase implements java.io.Serializable {
 		return this.resourceType;
 	}
 
+
+	public long getSequenceNumber() {
+		return sequenceNumber;
+	}
+	public void setSequenceNumber(long sequenceNumber) {
+		this.sequenceNumber = sequenceNumber;
+	}
+	public long getEventCount() {
+		return eventCount;
+	}
+	public void setEventCount(long eventCount) {
+		this.eventCount = eventCount;
+	}
+	public long getEventDuration() {
+		return eventDuration;
+	}
+	public void setEventDuration(long eventDuration) {
+		this.eventDuration = eventDuration;
+	}
+	
+	/**
+	 * @return the tags
+	 */
+	public String getTags() {
+		return tags;
+	}
+	/**
+	 * @param tags the tags to set
+	 */
+	public void setTags(String tags) {
+		this.tags = tags;
+	}
 	/**
 	 * This return the bean content in string format
 	 * @return formatedStr
@@ -585,6 +630,10 @@ public class XXAccessAudit extends XXDBBase implements java.io.Serializable {
 		str += "requestData={" + requestData + "} ";
 		str += "resourcePath={" + resourcePath + "} ";
 		str += "resourceType={" + resourceType + "} ";
+		str += "sequenceNumber={" + sequenceNumber + "}";
+		str += "eventCount={" + eventCount + "}";
+		str += "eventDuration={" + eventDuration + "}";
+		str += "tags={" + tags + "}";
 		str += "}";
 		return str;
 	}
@@ -645,6 +694,9 @@ public class XXAccessAudit extends XXDBBase implements java.io.Serializable {
         	if ((this.resourceType == null && other.resourceType != null) || (this.resourceType != null && !this.resourceType.equals(other.resourceType))) {
             		return false;
         	}
+			if ((this.tags == null && other.tags != null) || (this.tags != null && !this.tags.equals(other.tags))) {
+				return false;
+			}
 		return true;
 	}
 	public static String getEnumName(String fieldName ) {

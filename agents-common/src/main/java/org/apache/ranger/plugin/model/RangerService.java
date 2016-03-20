@@ -33,8 +33,8 @@ import org.codehaus.jackson.annotate.JsonAutoDetect.Visibility;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 
-@JsonAutoDetect(getterVisibility=Visibility.NONE, setterVisibility=Visibility.NONE, fieldVisibility=Visibility.ANY)
-@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL )
+@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown=true)
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -44,16 +44,20 @@ public class RangerService extends RangerBaseModelObject implements java.io.Seri
 	private String              type             = null;
 	private String              name             = null;
 	private String              description      = null;
+	private String              tagService       = null;
 	private Map<String, String> configs          = null;
 	private Long                policyVersion    = null;
 	private Date                policyUpdateTime = null;
+	private Long                tagVersion    = null;
+	private Date                tagUpdateTime = null;
+
 
 
 	/**
-	 * @param type
+	 * @param
 	 */
 	public RangerService() {
-		this(null, null, null, null);
+		this(null, null, null, null, null);
 	}
 
 	/**
@@ -61,13 +65,15 @@ public class RangerService extends RangerBaseModelObject implements java.io.Seri
 	 * @param name
 	 * @param description
 	 * @param configs
+	 * @param tagService
 	 */
-	public RangerService(String type, String name, String description, Map<String, String> configs) {
+	public RangerService(String type, String name, String description, String tagService, Map<String, String> configs) {
 		super();
 
 		setType(type);
 		setName(name);
 		setDescription(description);
+		setTagService(tagService);
 		setConfigs(configs);
 	}
 
@@ -81,6 +87,7 @@ public class RangerService extends RangerBaseModelObject implements java.io.Seri
 		setName(other.getName());
 		setDescription(other.getDescription());
 		setConfigs(other.getConfigs());
+		setTagService(other.tagService);
 	}
 
 	/**
@@ -123,6 +130,20 @@ public class RangerService extends RangerBaseModelObject implements java.io.Seri
 	 */
 	public void setDescription(String description) {
 		this.description = description;
+	}
+
+	/**
+	 * @return the tagService
+	 */
+	public String getTagService() {
+		return tagService;
+	}
+
+	/**
+	 * @param tagService the tagServiceName to set
+	 */
+	public void setTagService(String tagService) {
+		this.tagService = tagService;
 	}
 
 	/**
@@ -181,6 +202,35 @@ public class RangerService extends RangerBaseModelObject implements java.io.Seri
 		this.policyUpdateTime = policyUpdateTime;
 	}
 
+	/**
+	 * @return the tagVersion
+	 */
+	public Long getTagVersion() {
+		return tagVersion;
+	}
+
+	/**
+	 * @param tagVersion the tagVersion to set
+	 */
+	public void setTagVersion(Long tagVersion) {
+		this.tagVersion = tagVersion;
+	}
+
+
+	/**
+	 * @return the tagUpdateTime
+	 */
+	public Date getTagUpdateTime() {
+		return tagUpdateTime;
+	}
+
+	/**
+	 * @param tagUpdateTime the policyUpdateTime to set
+	 */
+	public void setTagUpdateTime(Date tagUpdateTime) {
+		this.tagUpdateTime = tagUpdateTime;
+	}
+
 	@Override
 	public String toString( ) {
 		StringBuilder sb = new StringBuilder();
@@ -197,6 +247,7 @@ public class RangerService extends RangerBaseModelObject implements java.io.Seri
 		sb.append("name={").append(name).append("} ");
 		sb.append("type={").append(type).append("} ");
 		sb.append("description={").append(description).append("} ");
+		sb.append("tagService={").append(tagService).append("} ");
 
 		sb.append("configs={");
 		if(configs != null) {
@@ -208,6 +259,9 @@ public class RangerService extends RangerBaseModelObject implements java.io.Seri
 
 		sb.append("policyVersion={").append(policyVersion).append("} ");
 		sb.append("policyUpdateTime={").append(policyUpdateTime).append("} ");
+
+		sb.append("tagVersion={").append(tagVersion).append("} ");
+		sb.append("tagUpdateTime={").append(tagUpdateTime).append("} ");
 
 		sb.append("}");
 

@@ -21,9 +21,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.lang.reflect.Field;
 
-import org.apache.ranger.credentialapi.CredentialReader;
-import org.apache.ranger.credentialapi.buildks;
+import org.apache.hadoop.security.alias.CredentialShell;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,13 +44,12 @@ public class TestCredentialReader {
     assertEquals( "PassworD123", password);
     assertTrue(password,"PassworD123".equals(password));
     //delete after use
-    String[] argsdeleteCommand = {"delete", "TestCredential2", "-provider", "jceks://file@/" + keystoreFile};
+    
+    String[] argsdeleteCommand = new String[] {"delete", "TestCredential2", "-provider", "jceks://file@/" + keystoreFile};
+    
 	buildks buildksOBJ=new buildks();
-	buildksOBJ.deleteCredential(argsdeleteCommand);
+	buildksOBJ.deleteCredential(argsdeleteCommand, true);
     
   }
-  
-  
- 
   
 }

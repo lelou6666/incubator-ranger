@@ -52,8 +52,7 @@ ExceptionMappingAuthenticationFailureHandler {
     public RangerAuthFailureHandler() {
 	super();
 	if (ajaxLoginfailurePage == null) {
-	    ajaxLoginfailurePage = PropertiesUtil.getProperty(
-		    "xa.ajax.auth.failure.page", "/ajax_failure.jsp");
+		ajaxLoginfailurePage = PropertiesUtil.getProperty("ranger.ajax.auth.failure.page", "/ajax_failure.jsp");
 	}
     }
 
@@ -77,12 +76,23 @@ ExceptionMappingAuthenticationFailureHandler {
 	
 		response.setContentType("application/json;charset=UTF-8");
 		response.setHeader("Cache-Control", "no-cache");
+		response.setHeader("X-Frame-Options", "DENY");
 		String jsonResp = "";
 		try {
+			String msg = exception.getMessage();
 			VXResponse vXResponse = new VXResponse();
-			vXResponse.setStatusCode(HttpServletResponse.SC_UNAUTHORIZED);
-			vXResponse.setMsgDesc("Bad Credentials");
-
+			if(msg!=null && !msg.isEmpty()){
+				if(msg.equalsIgnoreCase("Bad credentials")){
+					vXResponse.setStatusCode(HttpServletResponse.SC_UNAUTHORIZED);
+					vXResponse.setMsgDesc("The username or password you entered is incorrect..");
+				}else if(msg.contains("Could not get JDBC Connection; nested exception is java.sql.SQLException: Connections could not be acquired from the underlying database!")){
+					vXResponse.setStatusCode(HttpServletResponse.SC_UNAUTHORIZED);
+					vXResponse.setMsgDesc("Unable to connect to DB..");
+				}else if(msg.contains("Communications link failure")){
+					vXResponse.setStatusCode(HttpServletResponse.SC_UNAUTHORIZED);
+					vXResponse.setMsgDesc("Unable to connect to DB..");
+				}
+			}
 			jsonResp = jsonUtil.writeObjectAsString(vXResponse);
 			response.getWriter().write(jsonResp);
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

@@ -103,16 +103,25 @@ public class XUserService extends XUserServiceBase<XXUser, VXUser> {
 				"XXPortalUser xXPortalUser", "xXPortalUser.loginId = obj.name "));
 		
 		searchFields.add(new SearchField("userRoleList", "xXPortalUserRole.userRole",
-				SearchField.DATA_TYPE.STRING, SearchField.SEARCH_TYPE.FULL,
+				SearchField.DATA_TYPE.STR_LIST, SearchField.SEARCH_TYPE.FULL,
 				"XXPortalUser xXPortalUser, XXPortalUserRole xXPortalUserRole", 
 				"xXPortalUser.id=xXPortalUserRole.userId and xXPortalUser.loginId = obj.name "));
 		
-		
-		createdByUserId = new Long(PropertiesUtil.getIntProperty(
-				"xa.xuser.createdByUserId", 1));
+		searchFields.add(new SearchField("isVisible", "obj.isVisible",
+				SearchField.DATA_TYPE.INTEGER, SearchField.SEARCH_TYPE.FULL ));
 
-		hiddenPasswordString = PropertiesUtil.getProperty("xa.password.hidden",
-				"*****");
+		searchFields.add(new SearchField("status", "xXPortalUser.status",
+				SearchField.DATA_TYPE.INTEGER, SearchField.SEARCH_TYPE.FULL,
+				"XXPortalUser xXPortalUser", "xXPortalUser.loginId = obj.name "));
+		searchFields.add(new SearchField("userRole", "xXPortalUserRole.userRole",
+				SearchField.DATA_TYPE.STRING, SearchField.SEARCH_TYPE.FULL,
+				"XXPortalUser xXPortalUser, XXPortalUserRole xXPortalUserRole",
+				"xXPortalUser.id=xXPortalUserRole.userId and xXPortalUser.loginId = obj.name "));
+
+		
+		createdByUserId = Long.valueOf(PropertiesUtil.getIntProperty("ranger.xuser.createdByUserId", 1));
+
+		hiddenPasswordString = PropertiesUtil.getProperty("ranger.password.hidden","*****");
 
 		sortFields.add(new SortField("name", "obj.name",true,SortField.SORT_ORDER.ASC));
 		
@@ -198,6 +207,7 @@ public class XUserService extends XUserServiceBase<XXUser, VXUser> {
 	@Override
 	public VXUser populateViewBean(XXUser xUser) {
 		VXUser vObj = super.populateViewBean(xUser);
+		vObj.setIsVisible(xUser.getIsVisible());
 		String userName = vObj.getName();
 		populateUserAttributes(userName, vObj);
 		populateGroupList(xUser.getId(), vObj);
@@ -228,8 +238,7 @@ public class XUserService extends XUserServiceBase<XXUser, VXUser> {
 			if (xXPortalUser != null) {
 				vObj.setFirstName(xXPortalUser.getFirstName());
 				vObj.setLastName(xXPortalUser.getLastName());
-				vObj.setPassword(PropertiesUtil
-						.getProperty("xa.password.hidden"));
+				vObj.setPassword(PropertiesUtil.getProperty("ranger.password.hidden"));
 				String emailAddress = xXPortalUser.getEmailAddress();
 				if (emailAddress != null
 						&& stringUtil.validateEmail(emailAddress)) {
@@ -257,8 +266,8 @@ public class XUserService extends XUserServiceBase<XXUser, VXUser> {
 
 	public List<XXTrxLog> getTransactionLog(VXUser vObj, VXPortalUser mObj,
 			String action) {
-		if (vObj == null
-				&& (action == null || !action.equalsIgnoreCase("update"))) {
+
+		if (vObj == null || action == null || (action.equalsIgnoreCase("update") && mObj == null)) {
 			return null;
 		}
 
@@ -329,7 +338,7 @@ public class XUserService extends XUserServiceBase<XXUser, VXUser> {
 							break;
 						}
 					}
-					if (oldValue.equalsIgnoreCase(value)) {
+					if (oldValue == null || oldValue.equalsIgnoreCase(value)) {
 						continue;
 					}
 					if (fieldName.equalsIgnoreCase("emailAddress")) {

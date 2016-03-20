@@ -21,7 +21,7 @@ if [[ -z $1 ]]; then
 	exit;
 fi
 action=$1
-
+action=`echo $action | tr '[:lower:]' '[:upper:]'`
 realScriptPath=`readlink -f $0`
 realScriptDir=`dirname $realScriptPath`
 XAPOLICYMGR_DIR=`(cd $realScriptDir/..; pwd)`
@@ -52,28 +52,35 @@ then
         mkdir logs
 fi
 
-if [ ${action^^} == "START" ]; then
-	java -Dproc_rangeradmin ${JAVA_OPTS} -Dcatalina.base=${XAPOLICYMGR_EWS_DIR} -cp "${XAPOLICYMGR_EWS_DIR}/webapp/WEB-INF/classes/conf:${XAPOLICYMGR_EWS_DIR}/lib/*:${RANGER_JAAS_LIB_DIR}/*:${RANGER_JAAS_CONF_DIR}:${JAVA_HOME}/lib/*" org.apache.ranger.server.tomcat.EmbeddedServer > logs/catalina.out 2>&1 &
+start() {
+	java -Dproc_rangeradmin ${JAVA_OPTS} -Dlogdir=${XAPOLICYMGR_EWS_DIR}/logs/ -Dcatalina.base=${XAPOLICYMGR_EWS_DIR} -cp "${XAPOLICYMGR_EWS_DIR}/webapp/WEB-INF/classes/conf:${XAPOLICYMGR_EWS_DIR}/lib/*:${RANGER_JAAS_LIB_DIR}/*:${RANGER_JAAS_CONF_DIR}:${JAVA_HOME}/lib/*:$CLASSPATH" org.apache.ranger.server.tomcat.EmbeddedServer > logs/catalina.out 2>&1 &
 	echo "Apache Ranger Admin has started."
-	exit
-elif [ ${action^^} == "STOP" ]; then
-	java ${JAVA_OPTS} -Dcatalina.base=${XAPOLICYMGR_EWS_DIR} -cp "${XAPOLICYMGR_EWS_DIR}/webapp/WEB-INF/classes/conf:${XAPOLICYMGR_EWS_DIR}/lib/*:${RANGER_JAAS_LIB_DIR}/*:${RANGER_JAAS_CONF_DIR}" org.apache.ranger.server.tomcat.StopEmbeddedServer > logs/catalina.out 2>&1
+}
+
+stop(){
+	java ${JAVA_OPTS} -Dcatalina.base=${XAPOLICYMGR_EWS_DIR} -cp "${XAPOLICYMGR_EWS_DIR}/webapp/WEB-INF/classes/conf:${XAPOLICYMGR_EWS_DIR}/lib/*:${RANGER_JAAS_LIB_DIR}/*:${RANGER_JAAS_CONF_DIR}:$CLASSPATH" org.apache.ranger.server.tomcat.StopEmbeddedServer > logs/catalina.out 2>&1
 	echo "Apache Ranger Admin has been stopped."
-	exit
-elif [ ${action^^} == "RESTART" ]; then
+
+}
+
+if [ "${action}" == "START" ]; then
+	start;
+	exit;
+elif [ "${action}" == "STOP" ]; then
+	stop;
+	exit;
+elif [ "${action}" == "RESTART" ]; then
 	echo "Restarting Apache Ranger Admin"
-	java ${JAVA_OPTS} -Dcatalina.base=${XAPOLICYMGR_EWS_DIR} -cp "${XAPOLICYMGR_EWS_DIR}/webapp/WEB-INF/classes/conf:${XAPOLICYMGR_EWS_DIR}/lib/*:${RANGER_JAAS_LIB_DIR}/*:${RANGER_JAAS_CONF_DIR}" org.apache.ranger.server.tomcat.StopEmbeddedServer > logs/catalina.out 2>&1
-	echo "Apache Ranger Admin has been stopped."
-	echo "Starting Apache Ranger Admin.."
-	java -Dproc_rangeradmin ${JAVA_OPTS} -Dcatalina.base=${XAPOLICYMGR_EWS_DIR} -cp "${XAPOLICYMGR_EWS_DIR}/webapp/WEB-INF/classes/conf:${XAPOLICYMGR_EWS_DIR}/lib/*:${RANGER_JAAS_LIB_DIR}/*:${RANGER_JAAS_CONF_DIR}:${JAVA_HOME}/lib/*" org.apache.ranger.server.tomcat.EmbeddedServer > logs/catalina.out 2>&1 &
-	echo "Apache Ranger Admin has started successfully."
-	exit
-elif [ ${action^^} == "VERSION" ]; then
+	stop;
+	sleep 2
+	start;
+	exit;
+elif [ "${action}" == "VERSION" ]; then
 	cd ${XAPOLICYMGR_EWS_DIR}/webapp/WEB-INF/lib
 	java -cp ranger-util-*.jar org.apache.ranger.common.RangerVersionInfo
-	exit
-else 
-        echo "Invalid argument [$1];"
-        echo "Usage: Only start | stop | restart | version, are supported."
-        exit;
+	exit;
+else
+    echo "Invalid argument [$1];"
+    echo "Usage: Only start | stop | restart | version, are supported."
+    exit;
 fi

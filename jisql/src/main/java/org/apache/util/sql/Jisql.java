@@ -15,7 +15,6 @@
 package org.apache.util.sql;
 
 import java.io.BufferedReader;
-import java.io.Console;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -31,8 +30,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+
 import org.apache.util.outputformatter.JisqlFormatter;
 
 /**
@@ -212,6 +213,9 @@ import org.apache.util.outputformatter.JisqlFormatter;
  * </p>
  */
 public class Jisql {
+	//Sybase SQL Anywhere JDBC4-Type2 (Native) Driver
+	private static final String sapJDBC4SqlAnywhereDriverName= "sap.jdbc4.sqlanywhere.IDriver";
+	private static final String sybaseJDBC4SqlAnywhereDriverName= "sybase.jdbc4.sqlanywhere.IDriver";
     private static final String sybaseJConnect6DriverName = "com.sybase.jdbc3.jdbc.SybDriver";
     private static final String sybaseJConnect5DriverName = "com.sybase.jdbc2.jdbc.SybDriver";
     private static final String sybaseJConnect4DriverName = "com.sybase.jdbc.SybDriver";
@@ -275,7 +279,7 @@ public class Jisql {
     }
 
     public void run() throws Exception {
-
+    	boolean isExit=false;
         try {
             driver = (Driver) Class.forName(driverName).newInstance();
             props = new Properties();
@@ -291,24 +295,43 @@ public class Jisql {
             else {
             	if(connectString.toLowerCase().startsWith("jdbc:mysql") && inputFileName!=null){
             		MySQLPLRunner scriptRunner = new MySQLPLRunner(connection, false, true,printDebug);
-            		scriptRunner.setDelimiter(commandTerminator,false);                 	
-                	scriptRunner.runScript(new FileReader(inputFileName));
+            		scriptRunner.setDelimiter(commandTerminator,false);
+            		FileReader reader = new FileReader(inputFileName) ;
+            		try {
+                	scriptRunner.runScript(reader);
+            		}
+            		finally {
+            			if (reader != null) {
+            				try {
+								reader.close();
+							} catch (IOException ioe) {
+								// Ignore error during closing of the reader stream
+							}
+            			}
+            		}
             	}else{
             		doIsql();
             	}
             }
         }
         catch (SQLException sqle) {
-            printAllExceptions(sqle);
+        	printAllExceptions(sqle);
+        	isExit=true;
+        }
+        catch (IOException ie) {
+        	isExit=true;
         }
         catch (ClassNotFoundException cnfe) {
+        	isExit=true;
             System.err.println("Cannot find the driver class \"" + driverName + "\" in the current classpath.");
         }
         catch (InstantiationException ie) {
+        	isExit=true;
             System.err.println("Cannot instantiate the driver class \"" + driverName + "\"");
             ie.printStackTrace(System.err);
         }
         catch (IllegalAccessException iae) {
+        	isExit=true;
             System.err.println("Cannot instantiate the driver class \"" + driverName + "\" because of an IllegalAccessException");
             iae.printStackTrace(System.err);
         }
@@ -319,6 +342,9 @@ public class Jisql {
                 }
                 catch (SQLException ignore) {
                     /* ignored */
+                }
+                if(isExit){
+                	System.exit(1);
                 }
             }
         }
@@ -333,21 +359,21 @@ public class Jisql {
      *             if an exception occurs.
      * 
      */
-    public void doIsql() throws SQLException {
+    public void doIsql() throws IOException, SQLException {
         BufferedReader reader = null;
         Statement statement = null;
         ResultSet resultSet = null;
         ResultSetMetaData resultSetMetaData = null;
-        StringBuffer query = null;
+        StringBuilder query = null;
 
         if (inputFileName != null) {
             try {
                 reader = new BufferedReader(new FileReader(inputFileName));
             }
             catch (FileNotFoundException fnfe) {
-                System.err.println("Unable to open \"" + inputFileName + "\"");
+            	System.err.println("Unable to open file \"" + inputFileName + "\"");
                 fnfe.printStackTrace(System.err);
-                return;
+                throw fnfe;
             }
         }
         else {
@@ -358,9 +384,12 @@ public class Jisql {
         statement = connection.createStatement();
         connection.clearWarnings();
         String trimmedLine=null;
+        
+        try {
+        
         while (true) {
             int linecount = 1;
-            query = new StringBuffer();
+            query = new StringBuilder();
 
             try {
                 if ((inputFileName == null) && (inputQuery == null))
@@ -387,7 +416,7 @@ public class Jisql {
                     }
 
                     if (line.equals("reset")) {
-                        query = new StringBuffer();
+                        query = new StringBuilder();
                         break;
                     }
                     trimmedLine=line.trim();
@@ -396,6 +425,16 @@ public class Jisql {
                     } 
                     if(connectString.toLowerCase().startsWith("jdbc:oracle") && inputFileName!=null){
 	                    if (trimmedLine.startsWith("/") ||trimmedLine.length()<2) {
+	                        commandTerminator=";";
+	                        continue;
+	                    }
+	                    if (trimmedLine.toUpperCase().startsWith("DECLARE")) {
+	                        commandTerminator="/";
+	                    }
+                    }
+                    if(connectString.toLowerCase().startsWith("jdbc:postgresql") && inputFileName!=null){
+	                    if (trimmedLine.toLowerCase().startsWith("select 'delimiter start';")) {
+	                        commandTerminator="select 'delimiter end';";
 	                        continue;
 	                    }
                     }
@@ -471,6 +510,7 @@ public class Jisql {
                 printAllExceptions(sqle);
                 statement.cancel();
                 statement.clearWarnings();
+                throw sqle;
             }
             catch (Exception e) {
                 e.printStackTrace(System.err);
@@ -478,6 +518,30 @@ public class Jisql {
 
             if (inputQuery != null)
                 return;
+        }
+        }
+        finally {
+        	if (reader != null) {
+        		try {
+        			reader.close();
+        		}
+        		catch(IOException ioe) {
+        			// Ignore IOE when closing streams
+        		}
+        	}
+		if (resultSet != null) {
+			try {
+				resultSet.close();
+			} catch (SQLException sqle) {
+			}
+		}
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException sqle) {
+                    // Ignore
+                }
+            }
         }
     }
 
@@ -532,6 +596,16 @@ public class Jisql {
         // walk through the list once to find the formatter. then, use the
         // command line parser to do it "for real"
         //
+    	String passwordValue=null;
+    	for (int argumentIndex = 0; argumentIndex < argv.length; argumentIndex++) {
+    		 if ("-p".equalsIgnoreCase(argv[argumentIndex]) || "-password".equalsIgnoreCase(argv[argumentIndex]) ) {
+    			 if(argv.length>argumentIndex + 1){
+    				 passwordValue=argv[argumentIndex + 1];
+    				 argv[argumentIndex + 1]="";
+    				 break;
+    			 }
+    		 }
+    	}
         for (int argumentIndex = 0; argumentIndex < argv.length; argumentIndex++) {
             if (argv[argumentIndex].equals("-formatter")) {
                 formatterClassName = argv[argumentIndex + 1];
@@ -602,6 +676,10 @@ public class Jisql {
                 driverName = mySQLConnectJDriverName;
             else if (driverName.compareToIgnoreCase("mysqlcaucho") == 0)
                 driverName = mySQLCauchoDriverName;
+            else if (driverName.compareToIgnoreCase("sapsajdbc4") == 0)
+                driverName = sapJDBC4SqlAnywhereDriverName;
+            else if (driverName.compareToIgnoreCase("sybasesajdbc4") == 0)
+                driverName = sybaseJDBC4SqlAnywhereDriverName;
         }
 
         connectString = (String) options.valueOf("cstring");
@@ -617,10 +695,7 @@ public class Jisql {
         else if (options.has("u"))
             userName = (String) options.valueOf("u");
 
-        if (options.has("password"))
-            password = (String) options.valueOf("password");
-        else if (options.has("p"))
-            password = (String) options.valueOf("p");
+        password=passwordValue;
 
         if (options.has("driverinfo"))
             printDriverDetails = true;
@@ -644,8 +719,9 @@ public class Jisql {
             throw new Exception("user name must exist");
 
         if ((password == null) && (passwordFileName == null)) {
-            Console console = System.console();
-            password = new String( console.readPassword("Password (hit enter for no password): ") );
+            password="";
+            //java.io.Console console = System.console();
+            //password = new String( console.readPassword("Password (hit enter for no password): ") );
         }
         else if (password == null) {
             File passwordFile = null;

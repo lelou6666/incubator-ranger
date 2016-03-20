@@ -27,6 +27,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+import org.apache.ranger.plugin.client.HadoopException;
 import org.apache.ranger.plugin.service.ResourceLookupContext;
 import org.apache.ranger.plugin.util.TimedEventUtil;
 
@@ -35,27 +36,27 @@ public class HdfsResourceMgr {
 	public static final Logger LOG 	= Logger.getLogger(HdfsResourceMgr.class);
 	public static final String PATH	= "path";
 
-	public static HashMap<String, Object> testConnection(String serviceName, Map<String, String> configs) throws Exception {
+	public static HashMap<String, Object> connectionTest(String serviceName, Map<String, String> configs) throws Exception {
 		HashMap<String, Object> ret = null;
 		
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("<== HdfsResourceMgr.testConnection ServiceName: "+ serviceName + "Configs" + configs ) ;
+			LOG.debug("<== HdfsResourceMgr.connectionTest ServiceName: "+ serviceName + "Configs" + configs ) ;
 		}	
 		
 		try {
-			ret = HdfsClient.testConnection(serviceName, configs);
-		} catch (Exception e) {
-			LOG.error("<== HdfsResourceMgr.testConnection Error: " + e) ;
-		  throw e;
+			ret = HdfsClient.connectionTest(serviceName, configs);
+		} catch (HadoopException e) {
+			LOG.error("<== HdfsResourceMgr.testConnection Error: " + e.getMessage(),  e) ;
+			throw e;
 		}
 		
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("<== HdfsResourceMgr.testConnection Result : "+ ret  ) ;
+			LOG.debug("<== HdfsResourceMgr.connectionTest Result : "+ ret  ) ;
 		}	
 		return ret;
 	}
 	
-	public static List<String> getHdfsResources(String serviceName, Map<String, String> configs,ResourceLookupContext context) throws Exception {
+	public static List<String> getHdfsResources(String serviceName, String serviceType, Map<String, String> configs,ResourceLookupContext context) throws Exception {
 		
 		List<String> resultList 			  = null;
 		String userInput 					  = context.getUserInput();
@@ -76,7 +77,7 @@ public class HdfsResourceMgr {
 				}
 				
 				String wildCardToMatch;
-				final HdfsClient hdfsClient = new HdfsConnectionMgr().getHadoopConnection(serviceName, configs);
+				final HdfsClient hdfsClient = new HdfsConnectionMgr().getHadoopConnection(serviceName, serviceType, configs);
 				if (hdfsClient != null) {
 					Integer lastIndex = userInput.lastIndexOf("/");
 					if (lastIndex < 0) {
@@ -105,15 +106,18 @@ public class HdfsResourceMgr {
 						}
 
 					};
-
-					resultList = TimedEventUtil.timedTask(callableObj, 5,TimeUnit.SECONDS); 
+					if ( callableObj != null) {
+						synchronized(hdfsClient) {
+							resultList = TimedEventUtil.timedTask(callableObj, 5,TimeUnit.SECONDS); 
+						}
+					}
 					if(LOG.isDebugEnabled()) {
 						LOG.debug("Resource dir : " + userInput
 							+ " wild card to match : " + wildCardToMatch
 							+ "\n Matching resources : " + resultList);
 					}
 				}
-			} catch (Exception e) {
+			} catch (HadoopException e) {
 				LOG.error("Unable to get hdfs resources.", e);
 				throw e;
 			}

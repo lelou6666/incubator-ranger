@@ -18,8 +18,8 @@
  */
 package org.apache.ranger.authorization.hbase;
 
-import org.apache.ranger.plugin.policyengine.RangerPolicyEngine;
-import org.apache.ranger.plugin.policyengine.RangerPolicyEngineImpl;
+import org.apache.hadoop.conf.Configuration;
+
 
 
 // TODO remove this in favor of Guice DI
@@ -27,7 +27,6 @@ public class HbaseFactory {
 	
 	static final HbaseUserUtils _UserUtils = new HbaseUserUtilsImpl();
 	static final HbaseAuthUtils _AuthUtils = new HbaseAuthUtilsImpl();
-	static final RangerPolicyEngine _PolicyEngine = new RangerPolicyEngineImpl();
 	static final HbaseFactory _Factory = new HbaseFactory();
 	/**
 	 * This is a singleton 
@@ -48,11 +47,11 @@ public class HbaseFactory {
 		return _UserUtils;
 	}
 	
-	RangerPolicyEngine getPolicyEngine() {
-		return _PolicyEngine;
-	}
-	
 	HbaseAuditHandler getAuditHandler() {
 		return new HbaseAuditHandlerImpl();
+	}
+
+	static void initialize(Configuration conf) {
+		HbaseUserUtilsImpl.initiailize(conf);
 	}
 }

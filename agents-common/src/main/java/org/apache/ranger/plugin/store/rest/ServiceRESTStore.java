@@ -30,7 +30,7 @@ import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
 import org.apache.ranger.plugin.model.RangerPolicy;
 import org.apache.ranger.plugin.model.RangerService;
 import org.apache.ranger.plugin.model.RangerServiceDef;
-import org.apache.ranger.plugin.store.ServiceStore;
+import org.apache.ranger.plugin.store.AbstractServiceStore;
 import org.apache.ranger.plugin.util.RangerRESTClient;
 import org.apache.ranger.plugin.util.SearchFilter;
 import org.apache.ranger.plugin.util.ServicePolicies;
@@ -40,7 +40,7 @@ import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.WebResource;
 
 
-public class ServiceRESTStore implements ServiceStore {
+public class ServiceRESTStore extends AbstractServiceStore {
 	private static final Log LOG = LogFactory.getLog(ServiceRESTStore.class);
 
 
@@ -69,6 +69,8 @@ public class ServiceRESTStore implements ServiceStore {
 	public final String REST_URL_POLICY_GET_FOR_SERVICE_IF_UPDATED = "/service/plugins/policies/download/";
 
 	public static final String REST_MIME_TYPE_JSON = "application/json" ;
+	
+	private Boolean populateExistingBaseFields = false;
 
 	private RangerRESTClient restClient;
 
@@ -86,8 +88,11 @@ public class ServiceRESTStore implements ServiceStore {
 	public void init() throws Exception {
 		String restUrl       = RangerConfiguration.getInstance().get("ranger.service.store.rest.url");
 		String sslConfigFile = RangerConfiguration.getInstance().get("ranger.service.store.rest.ssl.config.file");
+		String userName = RangerConfiguration.getInstance().get("ranger.service.store.rest.basicauth.username");
+		String password = RangerConfiguration.getInstance().get("ranger.service.store.rest.basicauth.password");
 
 		restClient = new RangerRESTClient(restUrl, sslConfigFile);
+		restClient.setBasicAuthInfo(userName, password);
 	}
 
 	@Override
@@ -594,6 +599,11 @@ public class ServiceRESTStore implements ServiceStore {
 		return ret;
 	}
 
+	@Override
+	public ServicePolicies getServicePolicies(String serviceName) throws Exception {
+		return getServicePoliciesIfUpdated(serviceName, -1L);
+	}
+
 	private WebResource createWebResource(String url) {
 		return createWebResource(url, null);
 	}
@@ -611,5 +621,20 @@ public class ServiceRESTStore implements ServiceStore {
 		}
 
 		return ret;
+	}
+
+	@Override
+	public List<RangerPolicy> getPoliciesByResourceSignature(String serviceName, String policySignature, Boolean isPolicyEnabled) throws Exception {
+		throw new UnsupportedOperationException("Querying policies by resource signature is not supported!");
+	}
+
+	@Override
+	public void setPopulateExistingBaseFields(Boolean populateExistingBaseFields) {
+		this.populateExistingBaseFields = populateExistingBaseFields;
+	}
+
+	@Override
+	public Boolean getPopulateExistingBaseFields() {
+		return populateExistingBaseFields;
 	}
 }

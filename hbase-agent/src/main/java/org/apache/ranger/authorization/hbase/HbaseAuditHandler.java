@@ -22,9 +22,9 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.ranger.audit.model.AuthzAuditEvent;
-import org.apache.ranger.plugin.audit.RangerAuditHandler;
+import org.apache.ranger.plugin.policyengine.RangerAccessResultProcessor;
 
-public interface HbaseAuditHandler extends RangerAuditHandler {
+public interface HbaseAuditHandler extends RangerAccessResultProcessor {
 
 	List<AuthzAuditEvent> getCapturedEvents();
 	
@@ -37,12 +37,17 @@ public interface HbaseAuditHandler extends RangerAuditHandler {
 	 * After this call the last set of audit events won't be returned by <code>getCapturedEvents</code>. 
 	 * @return
 	 */
-	AuthzAuditEvent discardMostRecentEvent();
+	AuthzAuditEvent getAndDiscardMostRecentEvent();
 	
 	/**
-	 * This is a complement to <code>discardMostRecentEvent</code> to set the most recent events.  Often useful to un-pop audit messages that were take out.
+	 * This is a complement to <code>getAndDiscardMostRecentEvent</code> to set the most recent events.  Often useful to un-pop audit messages that were take out.
 	 * @param capturedEvents
 	 */
 	void setMostRecentEvent(AuthzAuditEvent capturedEvents);
 	
+	/**
+	 * Is audit handler being used in context of a access authorization of a superuser?
+	 * @param override
+	 */
+	void setSuperUserOverride(boolean override);
 }

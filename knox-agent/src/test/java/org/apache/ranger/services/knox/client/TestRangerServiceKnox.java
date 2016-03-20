@@ -32,7 +32,6 @@ import org.apache.ranger.plugin.model.RangerService;
 import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.service.ResourceLookupContext;
 import org.apache.ranger.plugin.store.ServiceStore;
-import org.apache.ranger.plugin.store.ServiceStoreFactory;
 import org.apache.ranger.services.knox.RangerServiceKnox;
 import org.junit.After;
 import org.junit.Before;
@@ -59,11 +58,10 @@ public class TestRangerServiceKnox {
 		buildHbaseConnectionConfig();
 		buildLookupContext();
 	
-		sd		 = new RangerServiceDef(sdName, " org.apache.ranger.services.knox.RangerServiceKnox", "TestKnoxService", "test Knox servicedef description", null, null, null, null, null);
-		svc   	 = new RangerService(sdName, serviceName, "unit test Knox resource lookup and validateConfig", configs);
+		sd		 = new RangerServiceDef(sdName, " org.apache.ranger.services.knox.RangerServiceKnox", "TestKnoxService", "test Knox servicedef description", null, null, null, null, null, null, null);
+		svc   	 = new RangerService(sdName, serviceName, "unit test Knox resource lookup and validateConfig", null, configs);
 		svcKnox  = new RangerServiceKnox();
 		svcKnox.init(sd, svc);
-		svcKnox.init();
 	}
 	
 	@Test

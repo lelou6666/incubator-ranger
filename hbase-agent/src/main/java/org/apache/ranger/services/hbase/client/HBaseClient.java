@@ -21,11 +21,7 @@
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import javax.security.auth.Subject;
@@ -50,12 +46,27 @@ public class HBaseClient extends BaseClient {
 
 	private static Subject subj 			 = null;
 
-	public HBaseClient(String serivceName) {
-		super(serivceName) ;		
-	}
+  private Configuration conf;
+
+  private static List<String> rangerInternalPropertyKeys = Arrays.asList("username",
+    "password", "keytabfile");
 
 	public HBaseClient(String serivceName,Map<String,String> connectionProp) {
-		super(serivceName, addDefaultHBaseProp(connectionProp)) ;		
+
+		super(serivceName, addDefaultHBaseProp(connectionProp)) ;
+    conf = HBaseConfiguration.create() ;
+
+    Set<String> rangerInternalPropertyKeys = getConfigHolder().getRangerInternalPropertyKeys();
+    for (Map.Entry<String, String> entry: connectionProperties.entrySet())  {
+      String key = entry.getKey();
+      String value = entry.getValue();
+      if (rangerInternalPropertyKeys.contains(key)) {
+        // skip
+      }  else {
+        conf.set(key, value);
+      }
+    }
+
 	}
 	
 	//TODO: temporary solution - to be added to the UI for HBase 
@@ -79,8 +90,8 @@ public class HBaseClient extends BaseClient {
 		return connectionProp;
 	}
 	
-	public static HashMap<String, Object> testConnection(String dataSource,
-			Map<String, String> configs) {
+	public static HashMap<String, Object> connectionTest (String dataSource,
+			Map<String, String> configs) throws Exception {
 
 		HashMap<String, Object> responseData = new HashMap<String, Object>();
 		final String errMsg = " You can still save the repository and start creating "
@@ -91,11 +102,16 @@ public class HBaseClient extends BaseClient {
 		HBaseClient connectionObj = new HBaseClient(dataSource,
 										configs);
 		if (connectionObj != null) {
-			connectivityStatus = connectionObj.getHBaseStatus();
+			try {
+				connectivityStatus = connectionObj.getHBaseStatus();
+			} catch ( HadoopException e) {
+				LOG.error("<== HBaseClient.testConnection(): Unable to retrieve any databases using given parameters", e);
+				throw e;
+			}
 		}
 		
 		if (connectivityStatus) {
-			String successMsg = "TestConnection Successful";
+			String successMsg = "ConnectionTest Successful";
 			generateResponseDataMap(connectivityStatus, successMsg, successMsg,
 					null, null, responseData);
 		} else {
@@ -106,24 +122,22 @@ public class HBaseClient extends BaseClient {
 		return responseData;
 	}
 	
-	public boolean getHBaseStatus() {
+	public boolean getHBaseStatus() throws HadoopException{
 		boolean hbaseStatus = false;
 		subj = getLoginSubject();
 		final String errMsg = " You can still save the repository and start creating "
 				+ "policies, but you would not be able to use autocomplete for "
 				+ "resource names. Check xa_portal.log for more info.";
 		if (subj != null) {
-			ClassLoader prevCl = Thread.currentThread().getContextClassLoader() ;
 			try {
-				Thread.currentThread().setContextClassLoader(getConfigHolder().getClassLoader());
-		
+
 				hbaseStatus = Subject.doAs(subj, new PrivilegedAction<Boolean>() {
 					@Override
 					public Boolean run() {
 						Boolean hbaseStatus1 = false;
 						try {
 						    LOG.info("getHBaseStatus: creating default Hbase configuration");
-							Configuration conf = HBaseConfiguration.create() ;					
+
 							LOG.info("getHBaseStatus: setting config values from client");
 							setClientConfigValues(conf);						
 						    LOG.info("getHBaseStatus: checking HbaseAvailability with the new config");
@@ -184,15 +198,12 @@ public class HBaseClient extends BaseClient {
 					}
 				}) ;
 			} catch (SecurityException se) {
-				String msgDesc = "getHBaseStatus: Unable to connect to HBase Server instance, "
-						+ "current thread might not be able set the context ClassLoader.";
+				String msgDesc = "getHBaseStatus: Unable to connect to HBase Server instance ";
 				HadoopException hdpException = new HadoopException(msgDesc, se);
 				hdpException.generateResponseDataMap(false, getMessage(se),
 						msgDesc + errMsg, null, null);
 				LOG.error(msgDesc + se) ;
 				throw hdpException;
-			} finally {
-				Thread.currentThread().setContextClassLoader(prevCl);
 			}
 		} else {
 			LOG.error("getHBaseStatus: secure login not done, subject is null");
@@ -213,7 +224,11 @@ public class HBaseClient extends BaseClient {
 		}		
 	}
 
-	public List<String> getTableList(final String tableNameMatching, final List<String> existingTableList ) {
+	public List<String> getTableList(final String tableNameMatching, final List<String> existingTableList ) throws HadoopException {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("==> HbaseClient.getTableList()  tableNameMatching " + tableNameMatching + " ExisitingTableList " +  existingTableList);
+		}
+
 		List<String> ret = null ;
 		final String errMsg = " You can still save the repository and start creating "
 				+ "policies, but you would not be able to use autocomplete for "
@@ -222,10 +237,6 @@ public class HBaseClient extends BaseClient {
 		subj = getLoginSubject();
 		
 		if (subj != null) {
-			ClassLoader prevCl = Thread.currentThread().getContextClassLoader() ;
-			try {
-				Thread.currentThread().setContextClassLoader(getConfigHolder().getClassLoader());
-	
 				ret = Subject.doAs(subj, new PrivilegedAction<List<String>>() {
 		
 					@Override
@@ -235,7 +246,7 @@ public class HBaseClient extends BaseClient {
 						HBaseAdmin admin = null ;
 						try {
 							LOG.info("getTableList: creating default Hbase configuration");
-							Configuration conf = HBaseConfiguration.create() ;					
+							Configuration conf = HBaseConfiguration.create() ;	// dilli
 							LOG.info("getTableList: setting config values from client");
 							setClientConfigValues(conf);						
 						    LOG.info("getTableList: checking HbaseAvailability with the new config");
@@ -243,11 +254,15 @@ public class HBaseClient extends BaseClient {
 						    LOG.info("getTableList: no exception: HbaseAvailability true");
 							admin = new HBaseAdmin(conf) ;
 							for (HTableDescriptor htd : admin.listTables(tableNameMatching)) {
-								String tableName = htd.getNameAsString();
-								if ( existingTableList != null && existingTableList.contains(tableName)) {
-									continue;
+								if (htd == null) {
+									LOG.error("getTableList: null HTableDescription received from HBaseAdmin.listTables");
 								} else {
-									tableList.add(htd.getNameAsString());
+									String tableName = htd.getNameAsString();
+									if (existingTableList != null && existingTableList.contains(tableName)) {
+										continue;
+									} else {
+										tableList.add(htd.getNameAsString());
+									}
 								}
 							}
 						} catch (ZooKeeperConnectionException zce) {
@@ -303,16 +318,19 @@ public class HBaseClient extends BaseClient {
 					}
 					
 				}) ;
-			}
-			finally {
-				Thread.currentThread().setContextClassLoader(prevCl);
-			}
+		}
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("<== HbaseClient.getTableList() " + ret);
 		}
 		return ret ;
 	}
 	
 	
 	public List<String> getColumnFamilyList(final String columnFamilyMatching, final List<String> tableList,final List<String> existingColumnFamilies) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("==> HbaseClient.getColumnFamilyList()  columnFamilyMatching " + columnFamilyMatching + " ExisitingTableList " +  tableList + "existingColumnFamilies " + existingColumnFamilies);
+		}
+
 		List<String> ret = null ;
 		final String errMsg = " You can still save the repository and start creating "
 				+ "policies, but you would not be able to use autocomplete for "
@@ -320,10 +338,8 @@ public class HBaseClient extends BaseClient {
 		
 		subj = getLoginSubject();
 		if (subj != null) {
-			ClassLoader prevCl = Thread.currentThread().getContextClassLoader() ;
 			try {
-				Thread.currentThread().setContextClassLoader(getConfigHolder().getClassLoader());
-				
+
 				ret = Subject.doAs(subj, new PrivilegedAction<List<String>>() {
 					String tblName = null;
 					@Override
@@ -332,7 +348,7 @@ public class HBaseClient extends BaseClient {
 						HBaseAdmin admin = null ;
 						try {
 							LOG.info("getColumnFamilyList: creating default Hbase configuration");
-							Configuration conf = HBaseConfiguration.create() ;					
+							Configuration conf = HBaseConfiguration.create() ;		// dilli
 							LOG.info("getColumnFamilyList: setting config values from client");
 							setClientConfigValues(conf);						
 						    LOG.info("getColumnFamilyList: checking HbaseAvailability with the new config");
@@ -382,8 +398,7 @@ public class HBaseClient extends BaseClient {
 						}  catch(IOException io) {
 							String msgDesc = "getColumnFamilyList: Unable to get HBase ColumnFamilyList for "
 									+ "[repository:" +getConfigHolder().getDatasourceName() + ",table:" + tblName
-									+ ", table-match:" + columnFamilyMatching + "], "
-									+ "current thread might not be able set the context ClassLoader.";
+									+ ", table-match:" + columnFamilyMatching + "] ";
 							HadoopException hdpException = new HadoopException(msgDesc, io);
 							hdpException.generateResponseDataMap(false, getMessage(io),
 									msgDesc + errMsg, null, null);
@@ -392,8 +407,7 @@ public class HBaseClient extends BaseClient {
 						} catch (SecurityException se) {
 								String msgDesc = "getColumnFamilyList: Unable to get HBase ColumnFamilyList for "
 										+ "[repository:" +getConfigHolder().getDatasourceName() + ",table:" + tblName
-										+ ", table-match:" + columnFamilyMatching + "], "
-										+ "current thread might not be able set the context ClassLoader.";
+										+ ", table-match:" + columnFamilyMatching + "] ";
 								HadoopException hdpException = new HadoopException(msgDesc, se);
 								hdpException.generateResponseDataMap(false, getMessage(se),
 										msgDesc + errMsg, null, null);
@@ -403,8 +417,7 @@ public class HBaseClient extends BaseClient {
 						}  catch (Throwable e) {
 							String msgDesc = "getColumnFamilyList: Unable to get HBase ColumnFamilyList for "
 									+ "[repository:" +getConfigHolder().getDatasourceName() + ",table:" + tblName
-									+ ", table-match:" + columnFamilyMatching + "], "
-									+ "current thread might not be able set the context ClassLoader.";
+									+ ", table-match:" + columnFamilyMatching + "] ";
 							LOG.error(msgDesc);
 							HadoopException hdpException = new HadoopException(msgDesc, e);
 							hdpException.generateResponseDataMap(false, getMessage(e),
@@ -426,16 +439,16 @@ public class HBaseClient extends BaseClient {
 					
 				}) ;
 			} catch (SecurityException se) {
-				String msgDesc = "getColumnFamilyList: Unable to connect to HBase Server instance, "
-						+ "current thread might not be able set the context ClassLoader.";
+				String msgDesc = "getColumnFamilyList: Unable to connect to HBase Server instance ";
 				HadoopException hdpException = new HadoopException(msgDesc, se);
 				hdpException.generateResponseDataMap(false, getMessage(se),
 						msgDesc + errMsg, null, null);
 				LOG.error(msgDesc + se) ;
 				throw hdpException;
-			} finally {
-				Thread.currentThread().setContextClassLoader(prevCl);
 			}
+		}
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("<== HbaseClient.getColumnFamilyList() " + ret);
 		}
 		return ret ;
 	}

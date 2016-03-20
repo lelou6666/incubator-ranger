@@ -23,7 +23,7 @@ import org.apache.log4j.xml.DOMConfigurator;
 import org.apache.ranger.audit.model.AuditEventBase;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.audit.model.EnumRepositoryType;
-import org.apache.ranger.audit.provider.AuditProvider;
+import org.apache.ranger.audit.provider.AuditHandler;
 import org.apache.ranger.audit.provider.AuditProviderFactory;
 import org.apache.commons.logging.LogFactory;
 
@@ -74,7 +74,7 @@ public class TestEvents {
 
             AuditProviderFactory.getInstance().init(auditProperties, "hdfs");
 
-            AuditProvider provider = AuditProviderFactory.getAuditProvider();
+            AuditHandler provider = AuditProviderFactory.getAuditProvider();
 
             LOG.info("provider=" + provider.toString());
 
@@ -125,7 +125,7 @@ public class TestEvents {
 
         event.setClientIP("127.0.0.1");
         event.setAccessResult((short)(idx % 2 > 0 ? 1 : 0));
-        event.setAclEnforcer("xasecure-acl");
+        event.setAclEnforcer("ranger-acl");
 
         switch(idx % 5) {
             case 0:

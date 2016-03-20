@@ -27,7 +27,7 @@ public class XUserInfo {
 	private String name ;
 	private String 	description ;
 	
-	private List<String>  groups = new ArrayList<String>() ;
+	private List<String>  	groupNameList = new ArrayList<String>() ;
 	
 	public String getId() {
 		return id;
@@ -48,8 +48,16 @@ public class XUserInfo {
 		this.description = description;
 	}
 	
+	public void setGroupNameList(List<String> groupNameList) {
+		this.groupNameList = groupNameList;
+	}
+	
+	public List<String> getGroupNameList() {
+		return groupNameList;
+	}
+
 	public List<String> getGroups() {
-		return groups;
+		return groupNameList;
 	}
 	
 }

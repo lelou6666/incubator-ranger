@@ -21,10 +21,31 @@ define(function(require) {
 	'use strict';
 
 	var Backbone = require('backbone');
+	var XAUtils = require('utils/XAUtils');
 
 	var FormDataType = Backbone.Model.extend({
 		type : [ 'string', 'boolean', 'int' ],
 		getFormElements : function(configs, enums, attrs, form) {
+			//Helpers
+			var getValidators = function(formObj, v){
+				formObj.validators = [];
+				if (_.has(v, 'mandatory') && v.mandatory && v.type != 'bool') {
+					formObj.validators.push('required');
+					formObj.title = formObj.title + " *"
+				}
+				if(_.has(v, 'validationRegEx') && !_.isEmpty(v.validationRegEx) && !v.lookupSupported){
+					formObj.validators.push({'type': 'regexp', 'regexp':new RegExp(v.validationRegEx), 'message' : v.validationMessage});
+				}
+				return formObj;
+			};
+			var setDefaultValueToModel = function(form, v) {
+				if(_.has(v, 'defaultValue') && !_.isEmpty(v.defaultValue) && v.type != 'bool'){
+					form.model.set(v.name, v.defaultValue)
+				}
+				return form;
+			};
+			
+			
 			var samelevelFieldCreated = [];
 			_.each(configs, function(v, k,config) {
 				if (v != null) {
@@ -34,36 +55,43 @@ define(function(require) {
 							if($.inArray(v.level, samelevelFieldCreated) >= 0){
 								return;
 							}
-							if(v.excludesSupported || v.recursiveSupported || v.lookupSupported){
-								formObj.type = 'Resource';
-								if(!_.isUndefined(v.lookupSupported) && v.lookupSupported ){
-									var options = {'containerCssClass' : v.name,
-											lookupURL : "service/plugins/services/lookupResource/"+form.rangerService.get('name')
-											};
-									formObj['select2Opts'] =  form.getPlugginAttr(true, options);
-								}
-								formObj['excludeSupport']= v.excludesSupported;
-								formObj['recursiveSupport'] = v.recursiveSupported;
-								formObj.name = v.name;
-								formObj.level = v.level;
-								formObj.editorAttrs = {'data-placeholder': v.label };
-								formObj.fieldAttrs = { 'data-name' : 'field-'+v.name, 'parent' : v.parent };
-								
-								
-								//check whether resourceType drop down is created for same level or not 
-								var optionsAttrs = _.filter(config,function(field){ if(field.level == v.level) return field;})
-								if(optionsAttrs.length > 1){
-									formObj['resourcesAtSameLevel'] = true;
-									var optionsTitle = _.map(optionsAttrs,function(field){ return field.name;});
-									formObj['sameLevelOpts'] = optionsTitle;
-									samelevelFieldCreated.push(v.level);
-
-									fieldName = 'sameLevel'+v.level;
-									formObj.title = '';
+							if(! XAUtils.isSinglevValueInput(v) ){
+								if(v.excludesSupported || v.recursiveSupported || v.lookupSupported ){
+									var resourceOpts = {};
+									formObj.type = 'Resource';
+									formObj['excludeSupport']= v.excludesSupported;
+									formObj['recursiveSupport'] = v.recursiveSupported;
+									formObj.name = v.name;
+//								formObj.level = v.level;
+									//checkParentHideShow field
+									formObj.fieldAttrs = { 'data-name' : 'field-'+v.name, 'parent' : v.parent };
+									formObj['resourceOpts'] = {'data-placeholder': v.label };
 									
-									formObj['formView'] = form;
+									if(!_.isUndefined(v.lookupSupported) && v.lookupSupported ){
+										var opts = { 
+												'type' : v.name,
+												'lookupURL' 		: "service/plugins/services/lookupResource/"+form.rangerService.get('name')
+										};
+										if(_.has(v, 'validationRegEx') && !_.isEmpty(v.validationRegEx)){
+											opts['regExpValidation'] = {'type': 'regexp', 'regexp':new RegExp(v.validationRegEx), 'message' : v.validationMessage};
+										}
+										resourceOpts['select2Opts'] = form.getPlugginAttr(true, opts);
+										formObj['resourceOpts'] = resourceOpts; 
+									}
+									//same level resources check 
+									var optionsAttrs = _.filter(config,function(field){ if(field.level == v.level) return field;})
+									if(optionsAttrs.length > 1){
+										var optionsTitle = _.map(optionsAttrs,function(field){ return field.name;});
+										formObj['sameLevelOpts'] = optionsTitle;
+										samelevelFieldCreated.push(v.level);
+										fieldName = 'sameLevel'+v.level;
+										formObj['title'] = '';
+										formObj['resourcesAtSameLevel'] = true;
+										
+										// formView is used to listen form events
+										formObj['formView'] = form;
+									}
 								}
-								
 							}else{
 								formObj.type = 'Text';
 							}
@@ -94,43 +122,37 @@ define(function(require) {
 							});
 							break;
 						case 'path' : 
-							/*formObj.type = 'Text';
-							form.initilializePathPlugin = true;
-							form.pathFieldName = v.name;*/
 							formObj.type = 'Resource';
-							if(!_.isUndefined(v.lookupSupported) && v.lookupSupported ){
-								var options = {'containerCssClass' : v.name,
-										lookupURL : "service/plugins/services/lookupResource/"+form.rangerService.get('name')
-										};
-								form.pathFieldName = v.name;
-								form.initilializePathPlugin = true;
-							}
 							formObj['excludeSupport']= v.excludesSupported;
 							formObj['recursiveSupport'] = v.recursiveSupported;
+							formObj['name'] = v.name;
+							formObj['editorAttrs'] = {'data-placeholder': v.label };
+							if(!_.isUndefined(v.lookupSupported) && v.lookupSupported ){
+								var options = {
+										'containerCssClass' : v.name,
+										'lookupURL' : "service/plugins/services/lookupResource/"+form.rangerService.get('name')
+										};
+								//to support regexp level validation
+								if(_.has(v, 'validationRegEx') && !_.isEmpty(v.validationRegEx)){
+									options['regExpValidation'] = {'type': 'regexp', 'regexp':new RegExp(v.validationRegEx), 'message' : v.validationMessage};
+								}
+								form.pathFieldName = v.name;
+								form.pathPluginOpts = options;
+								form.initilializePathPlugin = true;
+							}
 							formObj['initilializePathPlugin'] = true;
-							formObj.name = v.name;
-							formObj.level = v.level;
-							formObj.editorAttrs = {'data-placeholder': v.label };
-							
-							
 							break;
 						case 'password':formObj.type = 'Password';break;
-						default:formObj.type = 'Text';break;
+						default:formObj.type = 'Text';
+						break;
 					}
 					if(_.isUndefined(formObj.title)){
 						formObj.title = v.label || v.name;
 					}
-					formObj.validators = [];
-					if (_.has(v, 'mandatory') && v.mandatory && v.type != 'bool') {
-						formObj.validators.push('required');
-						formObj.title = formObj.title + " *"
-					}
+					formObj = getValidators(formObj, v);
 					if(form.model.isNew()){
-						if(_.has(v, 'defaultValue') && !_.isEmpty(v.defaultValue) && v.type != 'bool'){
-							form.model.set(v.name, v.defaultValue)
-						}
-					}
-					
+						form = setDefaultValueToModel(form, v)
+					}	
 					formObj['class'] = 'serviceConfig';
 					if(_.isUndefined(fieldName)){
 						fieldName = v.name;
@@ -139,8 +161,7 @@ define(function(require) {
 				}
 			});
 			return attrs;
-
-		}
+		},
 	});
 	return FormDataType;
 

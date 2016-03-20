@@ -22,39 +22,13 @@ package org.apache.ranger.services.knox.client;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.apache.ranger.services.knox.client.KnoxClient;
 import org.apache.ranger.plugin.model.RangerService;
-import org.apache.ranger.plugin.store.ServiceStoreFactory;
 
 
 
 public class KnoxConnectionMgr {
 
 	private static Logger LOG = Logger.getLogger(KnoxConnectionMgr.class);
-	
-	public KnoxClient getKnoxClientbyServiceName(String serviceName) {
-		KnoxClient knoxClient = null;
-		RangerService service = null;
-		
-		if(LOG.isDebugEnabled()) {
-		  LOG.debug("Getting knoxClient for ServiceName: " + serviceName);
-		}
-		
-		try {
-			service = ServiceStoreFactory
-									.instance()
-									.getServiceStore()
-									.getServiceByName(serviceName);
-									
-		} catch (Exception ex) {
-			LOG.error("Service could not be found for the Service Name : " + serviceName , ex);
-		}
-		
-		if (service != null) {
-			knoxClient = getKnoxClientbyService(service);
-		}
-		return knoxClient;
-	}
 	
 	public KnoxClient getKnoxClientbyService(RangerService service) {
 		KnoxClient 		   knoxClient = null;

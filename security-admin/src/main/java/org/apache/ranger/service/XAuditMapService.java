@@ -24,7 +24,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.ranger.biz.RangerBizUtil;
 import org.apache.ranger.common.AppConstants;
+import org.apache.ranger.common.SearchCriteria;
 import org.apache.ranger.common.SearchField;
 import org.apache.ranger.common.view.VTrxLogAttr;
 import org.apache.ranger.db.RangerDaoManager;
@@ -34,6 +36,7 @@ import org.apache.ranger.entity.XXTrxLog;
 import org.apache.ranger.entity.XXUser;
 import org.apache.ranger.util.RangerEnumUtil;
 import org.apache.ranger.view.VXAuditMap;
+import org.apache.ranger.view.VXAuditMapList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -48,6 +51,12 @@ public class XAuditMapService extends
 
 	@Autowired
 	RangerDaoManager rangerDaoManager;
+	
+	@Autowired
+	RangerBizUtil rangerBizUtil;
+	
+	@Autowired
+	XResourceService xResourceService;
 
 	static HashMap<String, VTrxLogAttr> trxLogAttrs = new HashMap<String, VTrxLogAttr>();
 	static {
@@ -58,6 +67,10 @@ public class XAuditMapService extends
 
 	public XAuditMapService() {
 		searchFields.add(new SearchField("resourceId", "obj.resourceId",
+				SearchField.DATA_TYPE.INTEGER, SearchField.SEARCH_TYPE.FULL));
+		searchFields.add(new SearchField("userId", "obj.userId",
+				SearchField.DATA_TYPE.INTEGER, SearchField.SEARCH_TYPE.FULL));
+		searchFields.add(new SearchField("groupId", "obj.groupId",
 				SearchField.DATA_TYPE.INTEGER, SearchField.SEARCH_TYPE.FULL));
 	}
 
@@ -78,7 +91,7 @@ public class XAuditMapService extends
 	}
 
 	public List<XXTrxLog> getTransactionLog(VXAuditMap vObj, VXAuditMap mObj, String action){
-		if(vObj == null && (action == null || !action.equalsIgnoreCase("update"))){
+		if(vObj == null || action == null || (action.equalsIgnoreCase("update") && mObj == null)){
 			return null;
 		}
 		
@@ -143,8 +156,8 @@ public class XAuditMapService extends
 
 	@Override
 	protected XXAuditMap mapViewToEntityBean(VXAuditMap vObj, XXAuditMap mObj, int OPERATION_CONTEXT) {
-		super.mapViewToEntityBean(vObj, mObj, OPERATION_CONTEXT);
 		if(vObj!=null && mObj!=null){
+			super.mapViewToEntityBean(vObj, mObj, OPERATION_CONTEXT);
 			XXPortalUser xXPortalUser=null;
 			if(mObj.getAddedByUserId()==null || mObj.getAddedByUserId()==0){
 				if(!stringUtil.isEmpty(vObj.getOwner())){
@@ -168,8 +181,8 @@ public class XAuditMapService extends
 
 	@Override
 	protected VXAuditMap mapEntityToViewBean(VXAuditMap vObj, XXAuditMap mObj) {
-		super.mapEntityToViewBean(vObj, mObj);
 		if(mObj!=null && vObj!=null){
+			super.mapEntityToViewBean(vObj, mObj);
 			XXPortalUser xXPortalUser=null;
 			if(stringUtil.isEmpty(vObj.getOwner())){
 				xXPortalUser= rangerDaoManager.getXXPortalUser().getById(mObj.getAddedByUserId());	
@@ -186,4 +199,10 @@ public class XAuditMapService extends
 		}
 		return vObj;
 	}
+
+	@Override
+	public VXAuditMapList searchXAuditMaps(SearchCriteria searchCriteria) {
+		return super.searchXAuditMaps(searchCriteria);
+	}
+
 }
