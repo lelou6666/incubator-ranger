@@ -77,8 +77,8 @@ TAGSYNC_INSTALL_PROP_PREFIX_FOR_ATLAS_RANGER_MAPPING = 'ranger.tagsync.atlas.'
 TAGSYNC_ATLAS_CLUSTER_IDENTIFIER = '.instance.'
 TAGSYNC_INSTALL_PROP_SUFFIX_FOR_ATLAS_RANGER_MAPPING = '.ranger.service'
 TAG_SOURCE_ATLAS = 'atlas'
+TAG_SOURCE_ATLASREST = 'atlasrest'
 TAG_SOURCE_FILE = 'file'
-TAG_SOURCE_LIST = [ TAG_SOURCE_ATLAS, TAG_SOURCE_FILE ]
 
 def archiveFile(originalFileName):
     archiveDir = dirname(originalFileName)
@@ -143,20 +143,21 @@ def writeXMLUsingProperties(xmlTemplateFileName,prop,xmlOutputFileName):
 				# Expected value is 'clusterName,componentName,serviceName;clusterName,componentName,serviceName' ...
 				# Blanks are not supported anywhere in the value.
 				valueString = str(prop[name])
-				multiValues = valueString.split(';')
-				listLen = len(multiValues)
-				index = 0
-				while index < listLen:
-					parts = multiValues[index].split(',')
-					if len(parts) == 3:
-						newConfig = ET.SubElement(root, 'property')
-						newName = ET.SubElement(newConfig, 'name')
-						newValue = ET.SubElement(newConfig, 'value')
-						newName.text = TAGSYNC_INSTALL_PROP_PREFIX_FOR_ATLAS_RANGER_MAPPING + str(parts[1]) + TAGSYNC_ATLAS_CLUSTER_IDENTIFIER + str(parts[0]) + TAGSYNC_INSTALL_PROP_SUFFIX_FOR_ATLAS_RANGER_MAPPING
-						newValue.text = str(parts[2])
-					else:
-						print "ERROR: incorrect syntax for %s, value=%s" % (TAGSYNC_ATLAS_TO_RANGER_SERVICE_MAPPING, multiValues[index])
-					index += 1
+				if valueString and valueString.strip():
+					multiValues = valueString.split(';')
+					listLen = len(multiValues)
+					index = 0
+					while index < listLen:
+						parts = multiValues[index].split(',')
+						if len(parts) == 3:
+							newConfig = ET.SubElement(root, 'property')
+							newName = ET.SubElement(newConfig, 'name')
+							newValue = ET.SubElement(newConfig, 'value')
+							newName.text = TAGSYNC_INSTALL_PROP_PREFIX_FOR_ATLAS_RANGER_MAPPING + str(parts[1]) + TAGSYNC_ATLAS_CLUSTER_IDENTIFIER + str(parts[0]) + TAGSYNC_INSTALL_PROP_SUFFIX_FOR_ATLAS_RANGER_MAPPING
+							newValue.text = str(parts[2])
+						else:
+							print "ERROR: incorrect syntax for %s, value=%s" % (TAGSYNC_ATLAS_TO_RANGER_SERVICE_MAPPING, multiValues[index])
+						index += 1
 				root.remove(config)
 			else:
 				config.find('value').text = str(prop[name])
@@ -198,20 +199,11 @@ def convertInstallPropsToXML(props):
 		else:
 			print "Direct Key not found:%s" % (k)
 
-	ret['ranger.tagsync.sink.impl.class'] = 'org.apache.ranger.sink.policymgr.TagRESTSink'
+	ret['ranger.tagsync.sink.impl.class'] = 'org.apache.ranger.tagsync.sink.tagadmin.TagAdminRESTSink'
+
 	if (TAG_SOURCE_KEY in ret):
-		tagSource = ret[TAG_SOURCE_KEY]
-		if (tagSource == TAG_SOURCE_ATLAS):
-			ret['ranger.tagsync.source.impl.class'] = 'atlas'
-		elif (tagSource == TAG_SOURCE_FILE):
-			ret['ranger.tagsync.source.impl.class'] = 'file'
-		else:
-			print "ERROR: Invalid value (%s) defined for %s in install.properties. Only valid values are %s" % (tagSource, TAG_SOURCE_ATLAS,TAG_SOURCE_FILE)
-			sys.exit(1)
-		del ret['TAG_SOURCE']
-	else:
-		print "ERROR: No value defined for TAG_SOURCE in install.properties. valid values are %s" % (TAG_SOURCE_ATLAS, TAG_SOURCE_FILE)
-		sys.exit(1)
+		ret['ranger.tagsync.source.impl.class'] = ret[TAG_SOURCE_KEY]
+		del ret[TAG_SOURCE_KEY]
 
 	atlasOutFile.close()
 

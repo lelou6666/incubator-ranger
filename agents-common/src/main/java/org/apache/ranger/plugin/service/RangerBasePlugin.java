@@ -23,14 +23,12 @@ import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Map;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ranger.admin.client.RangerAdminClient;
 import org.apache.ranger.admin.client.RangerAdminRESTClient;
 import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
-import org.apache.ranger.plugin.model.RangerPolicy;
 import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.policyengine.*;
 import org.apache.ranger.plugin.policyevaluator.RangerPolicyEvaluator;
@@ -95,7 +93,7 @@ public class RangerBasePlugin {
 
 		serviceName = RangerConfiguration.getInstance().get(propertyPrefix + ".service.name");
 
-		policyEngineOptions.evaluatorType           = RangerConfiguration.getInstance().get(propertyPrefix + ".policyengine.option.evaluator.type", RangerPolicyEvaluator.EVALUATOR_TYPE_CACHED);
+		policyEngineOptions.evaluatorType           = RangerConfiguration.getInstance().get(propertyPrefix + ".policyengine.option.evaluator.type", RangerPolicyEvaluator.EVALUATOR_TYPE_AUTO);
 		policyEngineOptions.cacheAuditResults       = RangerConfiguration.getInstance().getBoolean(propertyPrefix + ".policyengine.option.cache.audit.results", true);
 		policyEngineOptions.disableContextEnrichers = RangerConfiguration.getInstance().getBoolean(propertyPrefix + ".policyengine.option.disable.context.enrichers", false);
 		policyEngineOptions.disableCustomConditions = RangerConfiguration.getInstance().getBoolean(propertyPrefix + ".policyengine.option.disable.custom.conditions", false);
@@ -108,14 +106,20 @@ public class RangerBasePlugin {
 	}
 
 	public void setPolicies(ServicePolicies policies) {
-		RangerPolicyEngine oldPolicyEngine = this.policyEngine;
 
-		RangerPolicyEngine policyEngine = new RangerPolicyEngineImpl(appId, policies, policyEngineOptions);
+		// guard against catastrophic failure during policy engine Initialization or
+		try {
+			RangerPolicyEngine oldPolicyEngine = this.policyEngine;
 
-		this.policyEngine = policyEngine;
+			RangerPolicyEngine policyEngine = new RangerPolicyEngineImpl(appId, policies, policyEngineOptions);
 
-		if (oldPolicyEngine != null && !oldPolicyEngine.preCleanup()) {
-			LOG.error("preCleanup() failed on the previous policy engine instance !!");
+			this.policyEngine = policyEngine;
+
+			if (oldPolicyEngine != null && !oldPolicyEngine.preCleanup()) {
+				LOG.error("preCleanup() failed on the previous policy engine instance !!");
+			}
+		} catch (Exception e) {
+			LOG.error("setPolicies: policy engine initialization failed!  Leaving current policy engine as-is.");
 		}
 	}
 

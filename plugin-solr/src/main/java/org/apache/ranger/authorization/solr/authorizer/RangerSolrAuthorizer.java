@@ -29,13 +29,11 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.security.auth.login.Configuration;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.ranger.audit.provider.MiscUtil;
 import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
-import org.apache.ranger.authorization.utils.StringUtil;
 import org.apache.ranger.plugin.audit.RangerMultiResourceAuditHandler;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
@@ -122,8 +120,7 @@ public class RangerSolrAuthorizer implements AuthorizationPlugin {
 			// logger.info("DEFAULT UGI=" +
 			// UserGroupInformation.getLoginUser());
 
-			Configuration config = javax.security.auth.login.Configuration
-					.getConfiguration();
+			Configuration config = Configuration.getConfiguration();
 			MiscUtil.authWithConfig(solrAppName, config);
 			logger.info("POST AUTH UGI=" + UserGroupInformation.getLoginUser());
 		} catch (Throwable t) {
@@ -167,7 +164,7 @@ public class RangerSolrAuthorizer implements AuthorizationPlugin {
 			String userName = getUserName(context);
 			Set<String> userGroups = getGroupsForUser(userName);
 			String ip = null;
-			Date eventTime = StringUtil.getUTCDate();
+			Date eventTime = new Date();
 
 			// // Set the IP
 			if (useProxyIP) {

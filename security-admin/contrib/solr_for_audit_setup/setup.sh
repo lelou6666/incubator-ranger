@@ -16,7 +16,6 @@
 
 #This script downloads Solr (optional) and sets up Solr for Ranger Audit Server
 curr_dir=`pwd`
-
 . ./install.properties
 
 #Current timestamp
@@ -90,6 +89,7 @@ if [ -w /etc/passwd ]; then
     is_root=1
 fi
 
+errorList=
 
 if [ "$SOLR_INSTALL" = "true" -a $is_root -eq 0 ]; then
     echo "Error: Solr will be installed only if run as root. Please download and install before continuing"
@@ -107,6 +107,7 @@ if [ "$SOLR_LOG_FOLDER" = "logs" ]; then
     SOLR_LOG_FOLDER=$NEW_SOLR_LOG_FOLDER
 fi
 
+
 function run_root_usage {
     echo "sudo chown -R $SOLR_USER:$SOLR_USER $SOLR_INSTALL_FOLDER"
     echo "sudo mkdir -p $SOLR_RANGER_HOME"
@@ -117,13 +118,34 @@ function run_root_usage {
     fi
 }
 
+function set_ownership {
+    user=$1
+    group=$2
+    folder=$3
+    chown -R $user:$group $folder 
+    if [ $is_root -eq 1 ]; then
+	parent_folder=`dirname $folder`
+	while [ "$parent_folder" != "/" ]; do
+	    su - $SOLR_USER -c "ls $parent_folder" &> /dev/null
+	    if [ $? -ne 0 ]; then
+		err="ERROR: User $SOLR_USER doesn't have permission to read folder $parent_folder. Please make sure to give appropriate permissions, else $SOLR_USER won't be able to access $folder"
+		echo $err
+		errorList="$errorList\n$err"
+	    fi
+	    folder=$parent_folder
+	    parent_folder=`dirname $folder`
+	done
+    fi
+}
+
 if [ $is_root -ne 1 ]; then
     if [ "$SOLR_USER" != "$curr_user" ]; then
 	echo "`date`|ERROR|You need to run this script as root or as user $SOLR_USER"
 	echo "If you need to run as $SOLR_USER, then first execute the following commands as root or sudo"
-	id $SOLR_USER 2>&1 > /dev/null
+	id $SOLR_USER &> /dev/null
 	if [ $? -ne 0 ]; then
-	    echo "sudo adduser $SOLR_USER"
+	    echo "sudo groupadd $SOLR_USER"
+	    echo "sudo useradd -g $SOLR_USER $SOLR_USER"
 	fi
 	run_root_usage
 	exit 1
@@ -259,51 +281,58 @@ if [ "$SOLR_DEPLOYMENT" = "standalone" ]; then
     cp -r solr_standalone/* $SOLR_RANGER_HOME
     mkdir -p $SOLR_RANGER_HOME/${SOLR_RANGER_COLLECTION}/conf
     cp -r conf/* $SOLR_RANGER_HOME/${SOLR_RANGER_COLLECTION}/conf
-    sed  "s#__RANGER_AUDITS_DATA_FOLDER__#$SOLR_RANGER_DATA_FOLDER#g" $SOLR_RANGER_HOME/${SOLR_RANGER_COLLECTION}/core.properties.template > $SOLR_RANGER_HOME/${SOLR_RANGER_COLLECTION}/core.properties
-    sed -e "s#__JAVA_HOME__#$JAVA_HOME#g" -e "s#__SOLR_USER__#$SOLR_USER#g" -e "s#__SOLR_MAX_MEM__#$SOLR_MAX_MEM#g" -e "s#__SOLR_INSTALL_DIR__#$SOLR_INSTALL_FOLDER#g" -e "s#__SOLR_RANGER_HOME__#$SOLR_RANGER_HOME#g" -e "s#__SOLR_PORT__#$SOLR_RANGER_PORT#g" -e "s#__SOLR_LOG_FOLDER__#$SOLR_LOG_FOLDER#g" $SOLR_RANGER_HOME/scripts/start_solr.sh.template > $SOLR_RANGER_HOME/scripts/start_solr.sh
 
+    sed  -e "s#{{MAX_AUDIT_RETENTION_DAYS}}#$MAX_AUDIT_RETENTION_DAYS#g" $SOLR_RANGER_HOME/${SOLR_RANGER_COLLECTION}/conf/solrconfig.xml.j2 > $SOLR_RANGER_HOME/${SOLR_RANGER_COLLECTION}/conf/solrconfig.xml
+    sed  "s#{{RANGER_AUDITS_DATA_FOLDER}}#$SOLR_RANGER_DATA_FOLDER#g" $SOLR_RANGER_HOME/${SOLR_RANGER_COLLECTION}/core.properties.j2 > $SOLR_RANGER_HOME/${SOLR_RANGER_COLLECTION}/core.properties
+    sed  -e "s#{{JAVA_HOME}}#$JAVA_HOME#g" -e "s#{{SOLR_USER}}#$SOLR_USER#g"  -e "s#{{SOLR_MAX_MEM}}#$SOLR_MAX_MEM#g" -e "s#{{SOLR_INSTALL_DIR}}#$SOLR_INSTALL_FOLDER#g" -e "s#{{SOLR_RANGER_HOME}}#$SOLR_RANGER_HOME#g" -e "s#{{SOLR_PORT}}#$SOLR_RANGER_PORT#g" -e "s#{{SOLR_LOG_FOLDER}}#$SOLR_LOG_FOLDER#g" $SOLR_RANGER_HOME/scripts/solr.in.sh.j2 > $SOLR_RANGER_HOME/scripts/solr.in.sh
+    
 else
-
     echo "`date`|INFO|Configuring SolrCloud instance"
     cp -r solr_cloud/* $SOLR_RANGER_HOME
     mkdir -p $SOLR_RANGER_HOME/conf
     cp -r conf/* $SOLR_RANGER_HOME/conf
 
     #Get the first ZooKeeper host:port/path
-    FIRST_SOLR_ZK=$(IFS="," ; set -- $SOLR_ZK ; echo $1)
+    #FIRST_SOLR_ZK=$(IFS="," ; set -- $SOLR_ZK ; echo $1)
+    FIRST_SOLR_ZK=$SOLR_ZK
 
-    sed  -e "s#__JAVA_HOME__#$JAVA_HOME#g" -e "s#__SOLR_USER__#$SOLR_USER#g"  -e "s#__SOLR_MAX_MEM__#$SOLR_MAX_MEM#g" -e "s#__SOLR_INSTALL_DIR__#$SOLR_INSTALL_FOLDER#g" -e "s#__SOLR_RANGER_HOME__#$SOLR_RANGER_HOME#g" -e "s#__SOLR_PORT__#$SOLR_RANGER_PORT#g" -e "s#__SOLR_ZK__#$SOLR_ZK#g" -e "s#__SOLR_LOG_FOLDER__#$SOLR_LOG_FOLDER#g" $SOLR_RANGER_HOME/scripts/start_solr.sh.template > $SOLR_RANGER_HOME/scripts/start_solr.sh
+    sed  -e "s#{{MAX_AUDIT_RETENTION_DAYS}}#$MAX_AUDIT_RETENTION_DAYS#g" $SOLR_RANGER_HOME/conf/solrconfig.xml.j2 > $SOLR_RANGER_HOME/conf/solrconfig.xml
 
-    sed -e "s#__JAVA_HOME__#$JAVA_HOME#g" -e "s#__SOLR_USER__#$SOLR_USER#g" -e "s#__SOLR_INSTALL_DIR__#$SOLR_INSTALL_FOLDER#g" -e "s#__SOLR_RANGER_HOME__#$SOLR_RANGER_HOME#g" -e "s#__SOLR_ZK__#$FIRST_SOLR_ZK#g" $SOLR_RANGER_HOME/scripts/add_ranger_audits_conf_to_zk.sh.template > $SOLR_RANGER_HOME/scripts/add_ranger_audits_conf_to_zk.sh
-    sed -e "s#__JAVA_HOME__#$JAVA_HOME#g" -e "s#__SOLR_INSTALL_DIR__#$SOLR_INSTALL_FOLDER#g" -e "s#__SOLR_ZK__#$SOLR_ZK#g" -e "s#__SOLR_HOST_URL__#$SOLR_HOST_URL#g"  -e "s#__SOLR_SHARDS__#$SOLR_SHARDS#g"  -e "s#__SOLR_REPLICATION__#$SOLR_REPLICATION#g"  $SOLR_RANGER_HOME/scripts/create_ranger_audits_collection.sh.template > $SOLR_RANGER_HOME/scripts/create_ranger_audits_collection.sh
-    sed -e "s#__SOLR_PORT__#$SOLR_RANGER_PORT#g" $SOLR_RANGER_HOME/solr.xml.template > $SOLR_RANGER_HOME/solr.xml
+    sed  -e "s#{{JAVA_HOME}}#$JAVA_HOME#g" -e "s#{{SOLR_USER}}#$SOLR_USER#g"  -e "s#{{SOLR_MAX_MEM}}#$SOLR_MAX_MEM#g" -e "s#{{SOLR_INSTALL_DIR}}#$SOLR_INSTALL_FOLDER#g" -e "s#{{SOLR_RANGER_HOME}}#$SOLR_RANGER_HOME#g" -e "s#{{SOLR_PORT}}#$SOLR_RANGER_PORT#g" -e "s#{{SOLR_ZK}}#$SOLR_ZK#g" -e "s#{{SOLR_LOG_FOLDER}}#$SOLR_LOG_FOLDER#g" $SOLR_RANGER_HOME/scripts/solr.in.sh.j2 > $SOLR_RANGER_HOME/scripts/solr.in.sh
+
+    sed -e "s#{{JAVA_HOME}}#$JAVA_HOME#g" -e "s#{{SOLR_USER}}#$SOLR_USER#g" -e "s#{{SOLR_INSTALL_DIR}}#$SOLR_INSTALL_FOLDER#g" -e "s#{{SOLR_RANGER_HOME}}#$SOLR_RANGER_HOME#g" -e "s#{{SOLR_ZK}}#$FIRST_SOLR_ZK#g" $SOLR_RANGER_HOME/scripts/add_ranger_audits_conf_to_zk.sh.j2 > $SOLR_RANGER_HOME/scripts/add_ranger_audits_conf_to_zk.sh
+    sed -e "s#{{JAVA_HOME}}#$JAVA_HOME#g" -e "s#{{SOLR_INSTALL_DIR}}#$SOLR_INSTALL_FOLDER#g" -e "s#{{SOLR_ZK}}#$SOLR_ZK#g" -e "s#{{SOLR_HOST_URL}}#$SOLR_HOST_URL#g"  -e "s#{{SOLR_SHARDS}}#$SOLR_SHARDS#g"  -e "s#{{SOLR_REPLICATION}}#$SOLR_REPLICATION#g"  $SOLR_RANGER_HOME/scripts/create_ranger_audits_collection.sh.j2 > $SOLR_RANGER_HOME/scripts/create_ranger_audits_collection.sh
+    sed -e "s#{{SOLR_PORT}}#$SOLR_RANGER_PORT#g" $SOLR_RANGER_HOME/solr.xml.j2 > $SOLR_RANGER_HOME/solr.xml
+
 fi
 
 #Common overrides
-sed -e "s#__JAVA_HOME__#$JAVA_HOME#g" -e "s#__SOLR_USER__#$SOLR_USER#g" -e "s#__SOLR_INSTALL_DIR__#$SOLR_INSTALL_FOLDER#g" -e "s#__SOLR_PORT__#$SOLR_RANGER_PORT#g" -e "s#__SOLR_LOG_FOLDER__#$SOLR_LOG_FOLDER#g" $SOLR_RANGER_HOME/scripts/stop_solr.sh.template > $SOLR_RANGER_HOME/scripts/stop_solr.sh
-sed  -e "s#__SOLR_LOG_FOLDER__#$SOLR_LOG_FOLDER#g" $SOLR_RANGER_HOME/resources/log4j.properties.template > $SOLR_RANGER_HOME/resources/log4j.properties
-
+sed -e "s#{{JAVA_HOME}}#$JAVA_HOME#g" -e "s#{{SOLR_INSTALL_DIR}}#$SOLR_INSTALL_FOLDER#g" -e "s#{{SOLR_PORT}}#$SOLR_RANGER_PORT#g" -e "s#{{SOLR_USER}}#$SOLR_USER#g" -e "s#{{SOLR_LOG_FOLDER}}#$SOLR_LOG_FOLDER#g" -e "s#{{SOLR_RANGER_HOME}}#$SOLR_RANGER_HOME#g" $SOLR_RANGER_HOME/scripts/stop_solr.sh.j2 > $SOLR_RANGER_HOME/scripts/stop_solr.sh
+sed  -e "s#{{SOLR_LOG_FOLDER}}#$SOLR_LOG_FOLDER#g" $SOLR_RANGER_HOME/resources/log4j.properties.j2 > $SOLR_RANGER_HOME/resources/log4j.properties
+sed -e "s#{{JAVA_HOME}}#$JAVA_HOME#g" -e "s#{{SOLR_USER}}#$SOLR_USER#g" -e "s#{{SOLR_ZK}}#$SOLR_ZK#g" -e "s#{{SOLR_INSTALL_DIR}}#$SOLR_INSTALL_FOLDER#g" -e "s#{{SOLR_RANGER_HOME}}#$SOLR_RANGER_HOME#g" -e "s#{{SOLR_PORT}}#$SOLR_RANGER_PORT#g" $SOLR_RANGER_HOME/scripts/solr.sh.j2 > $SOLR_RANGER_HOME/scripts/solr.sh
+sed  -e "s#{{SOLR_USER}}#$SOLR_USER#g" -e "s#{{SOLR_INSTALL_DIR}}#$SOLR_INSTALL_FOLDER#g" -e "s#{{SOLR_RANGER_HOME}}#$SOLR_RANGER_HOME#g" $SOLR_RANGER_HOME/scripts/start_solr.sh.j2 > $SOLR_RANGER_HOME/scripts/start_solr.sh
 
 #Let's make all ownership is given to $SOLR_USER
 if [ $is_root -eq 1 ]; then
     #Let's see if $SOLR_USER exists.
-    id $SOLR_USER 2>&1 > /dev/null
+    id $SOLR_USER &> /dev/null
     if [ $? -ne 0 ]; then
 	echo "`date`|INFO|Creating user $SOLR_USER"
-	adduser $SOLR_USER
+	groupadd $SOLR_USER 2> /dev/null
+	useradd -g $SOLR_USER $SOLR_USER 2>/dev/null
     fi
 
-    chown -R $SOLR_USER:$SOLR_USER $SOLR_INSTALL_FOLDER
+    set_ownership $SOLR_USER $SOLR_USER $SOLR_INSTALL_FOLDER
     mkdir -p $SOLR_RANGER_HOME
-    chown -R $SOLR_USER:$SOLR_USER $SOLR_RANGER_HOME
+    set_ownership $SOLR_USER $SOLR_USER $SOLR_RANGER_HOME
     mkdir -p $SOLR_LOG_FOLDER
-    chown -R $SOLR_USER:$SOLR_USER $SOLR_LOG_FOLDER
+    set_ownership $SOLR_USER $SOLR_USER $SOLR_LOG_FOLDER
     if [ "$SOLR_DEPLOYMENT" = "standalone" ]; then
 	mkdir -p $SOLR_RANGER_DATA_FOLDER
-	chown -R $SOLR_USER:$SOLR_USER $SOLR_RANGER_DATA_FOLDER
+	set_ownership $SOLR_USER $SOLR_USER $SOLR_RANGER_DATA_FOLDER
     fi
 else
-    chown -R $SOLR_USER:$SOLR_USER $SOLR_RANGER_HOME
+    set_ownership $SOLR_USER $SOLR_USER $SOLR_RANGER_HOME
 fi
 chmod a+x $SOLR_RANGER_HOME/scripts/*.sh
 
@@ -345,7 +374,7 @@ EOF
 
 if [ "$SOLR_REPLICATION" != "1" ]; then
     cat >> $SOLR_INSTALL_NOTES <<EOF
-1. Using $0 script install and configure Solr for Ranger Audits on all other nodes also (don't start it yet)
+1. Copy the same install.properties on all solr nodes and sing $0 script install and configure Solr for Ranger Audits on all other nodes also (don't start it yet)
 2. Execute $SOLR_RANGER_HOME/scripts/add_ranger_audits_conf_to_zk.sh (only once from any node)
 3. Start Solr on all nodes: $SOLR_RANGER_HOME/scripts/start_solr.sh
 4. Create Ranger Audit collection: $SOLR_RANGER_HOME/scripts/create_ranger_audits_collection.sh (only once from any node)
@@ -408,6 +437,8 @@ Make sure you have enough disk space for index. In production, it is recommended
 EOF
 fi
 
+echo -e $errorList >> $SOLR_INSTALL_NOTES
+
 echo "`date`|INFO|Done configuring Solr for Apache Ranger Audit"
 echo "`date`|INFO|Solr HOME for Ranger Audit is $SOLR_RANGER_HOME"
 if [ "$SOLR_DEPLOYMENT" = "standalone" ]; then
@@ -423,3 +454,7 @@ fi
 echo "########## Done ###################"
 echo "Created file $SOLR_INSTALL_NOTES with instructions to start and stop"
 echo "###################################"
+
+if [ "$errorList" != "" ]; then
+    echo -e "$errorList"
+fi

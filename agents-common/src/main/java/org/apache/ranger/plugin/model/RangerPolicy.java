@@ -34,8 +34,8 @@ import org.codehaus.jackson.annotate.JsonAutoDetect.Visibility;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 
-@JsonAutoDetect(getterVisibility=Visibility.NONE, setterVisibility=Visibility.NONE, fieldVisibility=Visibility.ANY)
-@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL )
+@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown=true)
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -409,6 +409,11 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 	}
 
 
+	@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+	@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+	@JsonIgnoreProperties(ignoreUnknown=true)
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class RangerPolicyResource implements java.io.Serializable {
 		private static final long serialVersionUID = 1L;
 
@@ -575,6 +580,11 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 		
 	}
 
+	@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+	@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+	@JsonIgnoreProperties(ignoreUnknown=true)
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class RangerPolicyItem implements java.io.Serializable {
 		private static final long serialVersionUID = 1L;
 
@@ -583,8 +593,6 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 		private List<String>                    groups        = null;
 		private List<RangerPolicyItemCondition> conditions    = null;
 		private Boolean                         delegateAdmin = null;
-		private Boolean                         isEnabled     = Boolean.TRUE;
-		private String                          comments      = null;
 
 		public RangerPolicyItem() {
 			this(null, null, null, null, null);
@@ -616,6 +624,8 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 				return;
 			}
 
+			this.accesses.clear();
+
 			if(accesses != null) {
 				for(RangerPolicyItemAccess access : accesses) {
 					this.accesses.add(access);
@@ -639,6 +649,8 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 			if(this.users == users) {
 				return;
 			}
+
+			this.users.clear();
 
 			if(users != null) {
 				for(String user : users) {
@@ -664,6 +676,8 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 				return;
 			}
 
+			this.groups.clear();
+
 			if(groups != null) {
 				for(String group : groups) {
 					this.groups.add(group);
@@ -688,6 +702,8 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 				return;
 			}
 
+			this.conditions.clear();
+
 			if(conditions != null) {
 				for(RangerPolicyItemCondition condition : conditions) {
 					this.conditions.add(condition);
@@ -707,34 +723,6 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 		 */
 		public void setDelegateAdmin(Boolean delegateAdmin) {
 			this.delegateAdmin = delegateAdmin == null ? Boolean.FALSE : delegateAdmin;
-		}
-
-		/**
-		 * @return the isEnabled
-		 */
-		public Boolean getIsEnabled() {
-			return isEnabled;
-		}
-
-		/**
-		 * @param isEnabled the isEnabled to set
-		 */
-		public void setIsEnabled(Boolean isEnabled) {
-			this.isEnabled = isEnabled == null ? Boolean.TRUE : isEnabled;
-		}
-
-		/**
-		 * @return the comments
-		 */
-		public String getComments() {
-			return comments;
-		}
-
-		/**
-		 * @param comments the comments to set
-		 */
-		public void setComments(String comments) {
-			this.comments = comments;
 		}
 
 		@Override
@@ -790,8 +778,6 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 			sb.append("} ");
 
 			sb.append("delegateAdmin={").append(delegateAdmin).append("} ");
-			sb.append("isEnabled={").append(isEnabled).append("} ");
-			sb.append("comments={").append(comments).append("} ");
 			sb.append("}");
 
 			return sb;
@@ -807,8 +793,6 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 					+ ((conditions == null) ? 0 : conditions.hashCode());
 			result = prime * result
 					+ ((delegateAdmin == null) ? 0 : delegateAdmin.hashCode());
-			result = prime * result + ((isEnabled == null) ? 0 : isEnabled.hashCode());
-			result = prime * result + ((comments == null) ? 0 : comments.hashCode());
 			result = prime * result
 					+ ((groups == null) ? 0 : groups.hashCode());
 			result = prime * result + ((users == null) ? 0 : users.hashCode());
@@ -839,16 +823,6 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 					return false;
 			} else if (!delegateAdmin.equals(other.delegateAdmin))
 				return false;
-			if (isEnabled == null) {
-				if (other.isEnabled != null)
-					return false;
-			} else if (!isEnabled.equals(other.isEnabled))
-				return false;
-			if (comments == null) {
-				if (other.comments != null)
-					return false;
-			} else if (!comments.equals(other.comments))
-				return false;
 			if (groups == null) {
 				if (other.groups != null)
 					return false;
@@ -864,6 +838,11 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 		
 	}
 
+	@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+	@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+	@JsonIgnoreProperties(ignoreUnknown=true)
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class RangerPolicyItemAccess implements java.io.Serializable {
 		private static final long serialVersionUID = 1L;
 
@@ -963,6 +942,11 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 		
 	}
 
+	@JsonAutoDetect(fieldVisibility=Visibility.ANY)
+	@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+	@JsonIgnoreProperties(ignoreUnknown=true)
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class RangerPolicyItemCondition implements java.io.Serializable {
 		private static final long serialVersionUID = 1L;
 
@@ -1003,11 +987,20 @@ public class RangerPolicy extends RangerBaseModelObject implements java.io.Seria
 		 * @param values the value to set
 		 */
 		public void setValues(List<String> values) {
-			if (values == null) {
+			if (this.values == null) {
 				this.values = new ArrayList<String>();
 			}
-			else {
-				this.values = new ArrayList<String>(values);
+
+			if(this.values == values) {
+				return;
+			}
+
+			this.values.clear();
+
+			if(values != null) {
+				for(String value : values) {
+					this.values.add(value);
+				}
 			}
 		}
 

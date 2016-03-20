@@ -19,8 +19,6 @@
 
 package org.apache.ranger.services.yarn.client;
 
-import java.net.Authenticator;
-import java.net.PasswordAuthentication;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,11 +29,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.security.auth.Subject;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 import org.apache.ranger.plugin.client.BaseClient;
 import org.apache.ranger.plugin.client.HadoopException;
-import org.apache.ranger.services.yarn.client.YarnClient;
 import org.apache.ranger.services.yarn.client.json.model.YarnSchedulerResponse;
 
 import com.google.gson.Gson;
@@ -226,17 +222,16 @@ public class YarnClient extends BaseClient {
 	
 	
 	
-	public static HashMap<String, Object> testConnection(String serviceName,
+	public static HashMap<String, Object> connectionTest(String serviceName,
 			Map<String, String> configs) {
 
-		List<String> strList = new ArrayList<String>();
 		String errMsg = errMessage;
 		boolean connectivityStatus = false;
 		HashMap<String, Object> responseData = new HashMap<String, Object>();
 
 		YarnClient yarnClient = getYarnClient(serviceName,
 				configs);
-		strList = getYarnResource(yarnClient, "",null);
+		List<String> strList = getYarnResource(yarnClient, "",null);
 
 		if (strList != null && strList.size() > 0 ) {
 			if (LOG.isDebugEnabled()) {
@@ -246,7 +241,7 @@ public class YarnClient extends BaseClient {
 		}
 
 		if (connectivityStatus) {
-			String successMsg = "TestConnection Successful";
+			String successMsg = "ConnectionTest Successful";
 			BaseClient.generateResponseDataMap(connectivityStatus, successMsg,
 					successMsg, null, null, responseData);
 		} else {

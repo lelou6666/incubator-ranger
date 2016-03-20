@@ -477,7 +477,7 @@ define(function(require) {
 		_.each(items, function(perm) {
 			groupArr = _.union(groupArr, perm[type])
 		});
-		if (_.isEmpty(items))
+		if (_.isEmpty(items) || _.isEmpty(groupArr))
 			return '--';
 		var newGroupArr = _.map(groupArr, function(name, i) {
 			if (i >= 4) {
@@ -1033,13 +1033,39 @@ define(function(require) {
 			var vError = require('views/common/ErrorView');
 			var App = require('App');
 			var that = this;
+			var checksso = 'false';
+			var url = 'service/plugins/checksso';
+			$.ajax({
+				url : url,
+				async : false,
+				type : 'GET',
+				headers : {
+					"cache-control" : "no-cache"
+				},
+				success : function(resp) {
+					checksso = resp;
+				},
+				error : function(jqXHR, textStatus, err ) {			
+					console.log("Error in service/plugins/checksso REST call" + jqXHR.status);
+					checksso = jqXHR.status;
+				}
+			});
 			var vXPortalUser = SessionMgr.getUserProfile();
 			if(_.isEmpty(vXPortalUser.attributes)){
-				App.rContent.show(new vError({
-					 status : 204
-				}));
-				return;
+				if(!_.isUndefined(checksso)){
+					if(checksso == '404' || checksso == 'true'){
+						App.rContent.show(new vError({
+							 status : 204
+						}));
+						return;
+					}else{
+						return controller;
+					}
+				} else {
+					return controller;
+				}				
 			}
+			
 			var denyControllerActions = [], denyModulesObj = [];
 			var userModuleNames = _.pluck(vXPortalUser.get('userPermList'),'moduleName');
 			//TODO Temporary fix for tag based policies : need to come from server
@@ -1117,7 +1143,7 @@ define(function(require) {
 	};
 	XAUtils.showErrorMsg = function(respMsg){
 		var respArr = respMsg.split(/\([0-9]*\)/);
-		respArr.shift();
+		respArr = respArr.filter(function(str){ return str; });
 		_.each(respArr, function(str){
 			var validationMsg = str.split(','), erroCodeMsg = '';
 			//get code from string 
@@ -1129,7 +1155,8 @@ define(function(require) {
 				}
 			var reason = str.lastIndexOf("reason") != -1 ? (str.substring(str.lastIndexOf("reason")+7, str.indexOf("field[")-3 ))
 					: str;
-			var erroMsg = erroCodeMsg +"<br/>"+XAUtils.capitaliseFirstLetter(reason);
+			erroCodeMsg = erroCodeMsg != "" ? erroCodeMsg +"<br/>" : ""; 
+			var erroMsg = erroCodeMsg +""+ XAUtils.capitaliseFirstLetter(reason);
 			return XAUtils.notifyError('Error', erroMsg);
 		});
 	};

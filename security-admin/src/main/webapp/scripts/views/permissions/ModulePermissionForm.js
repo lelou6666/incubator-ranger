@@ -46,9 +46,6 @@ define(function(require) {
 		_viewName : 'ModulePermissionForm',
 		template : require('hbs!tmpl/permissions/ModulePermissionForm_tmpl'),
 		templateHelpers :function(){
-			return {
-
-			};
 		},
 		templateData : function(){
 			return { 'id' : this.model.id, 'permHeaders' : this.getPermHeaders() };
@@ -59,7 +56,6 @@ define(function(require) {
 				this.setupFieldsforEditModule();
 			}
 			Backbone.Form.prototype.initialize.call(this, options);
-
 		},
 		ui : {
 			/*selectGroups	: 'div[data-fields="selectGroups"]',
@@ -99,17 +95,12 @@ define(function(require) {
 					editorAttrs  : {'checked':'checked',disabled:true},
 					title : 'Is Allowed ?'
 					},
-
 			}
 		},
 		render: function(options) {
 			var that = this;
-
 			Backbone.Form.prototype.render.call(this, options);
-			if(!this.model.isNew()){
-				//this.setUpSwitches();
-			}
-
+			
 		},
 		setupFieldsforEditModule : function(){
 			var groupsNVList=[],usersNVList =[];
@@ -129,25 +120,24 @@ define(function(require) {
 			permList.unshift(localization.tt('lbl.allowAccess'));
 			permList.unshift(localization.tt('lbl.selectUser'));
 			permList.unshift(localization.tt('lbl.selectGroup'));
-			permList.push("");
+//			permList.push("");
 			return permList;
 		},
 		getPlugginAttr :function(autocomplete, options){
 			var that = this;
 			if(!autocomplete)
-				return{tags : true,width :'220px',multiple: true,minimumInputLength: 1};
+				return{ tags : true, width :'220px', multiple: true, minimumInputLength: 1 };
 			else {
 				return {
 					closeOnSelect : true,
 					multiple: true,
 					minimumInputLength: 0,
 					tokenSeparators: [",", " "],
-					/*tags : modelDefaultTags,*/
 					initSelection : function (element, callback) {
 						var data = [];
 						_.each(options.permList,function (elem) {
-								data.push({id: elem[options.idKey], text: elem[options.textKey]});
-							});
+							data.push({id: elem[options.idKey], text: elem[options.textKey]});
+						});
 						callback(data);
 					},
 					createSearchChoice: function(term, data) {
@@ -170,16 +160,22 @@ define(function(require) {
 						cache: false,
 						data: function (term, page) {
 							//To be checked
-							return {name : term, isVisible : XAEnums.VisibilityStatus.STATUS_VISIBLE.value};
-//							return {loginId : term};
+							return { name : term, isVisible : XAEnums.VisibilityStatus.STATUS_VISIBLE.value };
 						},
 						results: function (data, page) {
 							var results = [];
+							var results = [], selectedVals = [];
+							//Get selected values of groups/users dropdown
+							selectedVals = that.getSelectedValues(options);
 							if(data.resultSize != "0"){
-								if(!_.isUndefined(data.vXGroups))
+								if(!_.isUndefined(data.vXGroups)){
 									results = data.vXGroups.map(function(m, i){	return {id : m.id+"", text: m.name};	});
-								else if(!_.isUndefined(data.vXUsers))
+								} else if(!_.isUndefined(data.vXUsers)){
 									results = data.vXUsers.map(function(m, i){	return {id : m.id+"", text: m.name};	});
+									if(!_.isEmpty(selectedVals)){
+										results = XAUtil.filterResultByText(results, selectedVals);
+									}
+								}
 							}
 							return { results : results};
 						},
@@ -199,15 +195,21 @@ define(function(require) {
 						return result.text;
 					},
 					formatNoMatches : function(term){
-						switch (term){
-							//case  that.type.DATABASE :return localization.tt("msg.enterAlteastOneCharactere");
-							//case  that.type.TABLE :return localization.tt("msg.enterAlteastOneCharactere");
-							//case  that.type.COLUMN :return localization.tt("msg.enterAlteastOneCharactere");
-							default : return "No Matches found";
-						}
+						return options.textKey == 'groupName' ?  'No group found.' : 'No user found.'; 
 					}
 				};
 			}
+		},
+		getSelectedValues : function(options){
+			var vals = [],selectedVals = [];
+			var type = options.textKey == 'groupName' ? 'selectGroups' : 'selectUsers';
+			var $select = this.$('[name="'+type+'"]');
+			if(!_.isEmpty($select.select2('data'))){
+				selectedVals = _.map($select.select2('data'),function(obj){ return obj.text; });
+			}
+			vals.push.apply(vals , selectedVals);
+			vals = $.unique(vals);
+			return vals;
 		},
 		beforeSaveModulePermissions : function(){
 			if(this.model.get('module') != ''){
@@ -223,19 +225,18 @@ define(function(require) {
 			var selectedVals = (!_.isNull(objValsStr)) ? objValsStr.toString().split(',') : [];
 			var selectedIdList=[];
 			selectedVals = _.each(selectedVals, function(eachVal){
-								//Ignoring any non existing Group Name
-								if(_.isNumber(parseInt(eachVal))  && !_.isNaN(parseInt(eachVal))){
-									selectedIdList.push(Number(eachVal));
-								}
-							});
+				//Ignoring any non existing Group Name
+				if(_.isNumber(parseInt(eachVal))  && !_.isNaN(parseInt(eachVal))){
+					selectedIdList.push(Number(eachVal));
+				}
+			});
 			var modelPermList = options.permList;
 			var modelPerms = _.unique(_.pluck(options.permList, options.idKey));
 			if(!_.isEmpty(selectedIdList)){
 				//Look for equals
 				if(_.isEqual(selectedIdList,modelPerms)) {
 					//No changes in Selected Users
-				}else{
-
+				} else {
 					//look for new values -
 					//loop through each new element and check if it has any non matching ids
 					var diff = _.filter(selectedIdList, function(value){ return !_.contains(modelPerms, value); });
@@ -261,7 +262,7 @@ define(function(require) {
 					}
 				}
 
-			}else{
+			} else {
 				//Remove permissions from all objects which earlier had permission
 				_.each(options.permList, function(perm){
 					perm.isAllowed = 0;
@@ -270,5 +271,6 @@ define(function(require) {
 
 		}
 	});
+	
 	return ModulePermissionForm;
 });

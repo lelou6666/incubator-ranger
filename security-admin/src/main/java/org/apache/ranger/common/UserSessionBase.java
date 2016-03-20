@@ -40,6 +40,7 @@ public class UserSessionBase implements Serializable {
 	private RangerUserPermission rangerUserPermission;
 	int clientTimeOffsetInMinute = 0;
 	private Boolean isSSOEnabled;
+
 	public Long getUserId() {
 		if (xXPortalUser != null) {
 			return xXPortalUser.getId();

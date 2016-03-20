@@ -260,7 +260,7 @@ public class HdfsLogDestination<T> implements LogDestination<T> {
 
 		long startTime = MiscUtil.getRolloverStartTime(mNextRolloverTime, (mRolloverIntervalSeconds * 1000L));
 
-		mHdfsFilename = MiscUtil.replaceTokens(mDirectory + org.apache.hadoop.fs.Path.SEPARATOR + mFile, startTime);
+		mHdfsFilename = MiscUtil.replaceTokens(mDirectory + Path.SEPARATOR + mFile, startTime);
 
 		FSDataOutputStream ostream     = null;
 		FileSystem         fileSystem  = null;
@@ -316,7 +316,7 @@ public class HdfsLogDestination<T> implements LogDestination<T> {
 			}
 		} catch(Throwable ex) {
 			mLogger.warn("HdfsLogDestination.openFile() failed", ex);
-		} finally {
+//		} finally {
 			// TODO: unset the property set above to exclude auditing of logfile opening
 			//        System.setProperty(hdfsCurrentFilenameProperty, null);
 		}

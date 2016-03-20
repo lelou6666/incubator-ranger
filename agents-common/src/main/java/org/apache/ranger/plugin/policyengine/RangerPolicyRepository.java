@@ -38,7 +38,8 @@ import java.util.*;
 
 public class RangerPolicyRepository {
     private static final Log LOG = LogFactory.getLog(RangerPolicyRepository.class);
-    private static final Log PERF_LOG = RangerPerfTracer.getPerfLogger("policy");
+
+    private static final Log PERF_CONTEXTENRICHER_INIT_LOG = RangerPerfTracer.getPerfLogger("contextenricher.init");
 
     private final String                      serviceName;
     private final String                      appId;
@@ -54,12 +55,6 @@ public class RangerPolicyRepository {
 
     RangerPolicyRepository(String appId, ServicePolicies servicePolicies, RangerPolicyEngineOptions options) {
         super();
-
-        RangerPerfTracer perf = null;
-
-        if(RangerPerfTracer.isPerfTraceEnabled(PERF_LOG)) {
-            perf = RangerPerfTracer.getPerfTracer(PERF_LOG, "RangerPolicyRepository.init(appId=" + appId + ",hashCode=" + Integer.toHexString(System.identityHashCode(this)) + ")");
-        }
 
         this.componentServiceName = this.serviceName = servicePolicies.getServiceName();
         this.componentServiceDef = this.serviceDef = servicePolicies.getServiceDef();
@@ -86,7 +81,6 @@ public class RangerPolicyRepository {
 
         init(options);
 
-        RangerPerfTracer.log(perf);
     }
 
     RangerPolicyRepository(String appId, ServicePolicies.TagPolicies tagPolicies, RangerPolicyEngineOptions options,
@@ -276,11 +270,48 @@ public class RangerPolicyRepository {
         return policyItems;
     }
 
+    public static boolean isDelegateAdminPolicy(RangerPolicy policy) {
+        boolean ret = false;
+
+        ret =      hasDelegateAdminItems(policy.getPolicyItems())
+                || hasDelegateAdminItems(policy.getDenyPolicyItems())
+                || hasDelegateAdminItems(policy.getAllowExceptions())
+                || hasDelegateAdminItems(policy.getDenyExceptions());
+
+        return ret;
+    }
+
+    private static boolean hasDelegateAdminItems(List<RangerPolicy.RangerPolicyItem> items) {
+        boolean ret = false;
+
+        if (CollectionUtils.isNotEmpty(items)) {
+            for (RangerPolicy.RangerPolicyItem item : items) {
+                if(item.getDelegateAdmin()) {
+                    ret = true;
+
+                    break;
+                }
+            }
+        }
+        return ret;
+    }
+
+    private static boolean skipBuildingPolicyEvaluator(RangerPolicy policy, RangerPolicyEngineOptions options) {
+        boolean ret = false;
+        if (!policy.getIsEnabled()) {
+            ret = true;
+        } else if (options.evaluateDelegateAdminOnly && !isDelegateAdminPolicy(policy)) {
+            ret = true;
+        }
+        return ret;
+    }
+
     private void init(RangerPolicyEngineOptions options) {
 
         List<RangerPolicyEvaluator> policyEvaluators = new ArrayList<RangerPolicyEvaluator>();
+
         for (RangerPolicy policy : policies) {
-            if (!policy.getIsEnabled()) {
+            if (skipBuildingPolicyEvaluator(policy, options)) {
                 continue;
             }
 
@@ -332,8 +363,8 @@ public class RangerPolicyRepository {
 
         RangerPerfTracer perf = null;
 
-        if(RangerPerfTracer.isPerfTraceEnabled(PERF_LOG)) {
-            perf = RangerPerfTracer.getPerfTracer(PERF_LOG, "RangerPolicyRepository.buildContextEnricher(name=" + enricherDef.getName() + ")");
+        if(RangerPerfTracer.isPerfTraceEnabled(PERF_CONTEXTENRICHER_INIT_LOG)) {
+            perf = RangerPerfTracer.getPerfTracer(PERF_CONTEXTENRICHER_INIT_LOG, "RangerContextEnricher.init(appId=" + appId + ",name=" + enricherDef.getName() + ")");
         }
 
         String name    = enricherDef != null ? enricherDef.getName()     : null;
@@ -371,25 +402,16 @@ public class RangerPolicyRepository {
             LOG.debug("==> RangerPolicyRepository.buildPolicyEvaluator(" + policy + "," + serviceDef + ", " + options + ")");
         }
 
+        scrubPolicy(policy);
         RangerPolicyEvaluator ret;
 
-        RangerPerfTracer perf = null;
-
-        if(RangerPerfTracer.isPerfTraceEnabled(PERF_LOG)) {
-            perf = RangerPerfTracer.getPerfTracer(PERF_LOG, "RangerPolicyRepository.buildPolicyEvaluator(name=" + policy.getName() + ")");
-        }
-
-        if(StringUtils.equalsIgnoreCase(options.evaluatorType, RangerPolicyEvaluator.EVALUATOR_TYPE_DEFAULT)) {
-            ret = new RangerOptimizedPolicyEvaluator();
-        } else if(StringUtils.equalsIgnoreCase(options.evaluatorType, RangerPolicyEvaluator.EVALUATOR_TYPE_OPTIMIZED)) {
-            ret = new RangerOptimizedPolicyEvaluator();
-        } else {
+        if(StringUtils.equalsIgnoreCase(options.evaluatorType, RangerPolicyEvaluator.EVALUATOR_TYPE_CACHED)) {
             ret = new RangerCachedPolicyEvaluator();
+        } else {
+            ret = new RangerOptimizedPolicyEvaluator();
         }
 
         ret.init(policy, serviceDef, options);
-
-        RangerPerfTracer.log(perf);
 
         if(LOG.isDebugEnabled()) {
             LOG.debug("<== RangerPolicyRepository.buildPolicyEvaluator(" + policy + "," + serviceDef + "): " + ret);
@@ -438,6 +460,37 @@ public class RangerPolicyRepository {
         if (LOG.isDebugEnabled()) {
             LOG.debug("<== RangerPolicyRepository.storeAuditEnabledInCache()");
         }
+    }
+
+    /**
+     * Remove nulls from policy resource values
+     * @param policy
+     */
+    boolean scrubPolicy(RangerPolicy policy) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("==> RangerPolicyRepository.scrubPolicy(" + policy + ")");
+        }
+        boolean altered = false;
+        Long policyId = policy.getId();
+        Map<String, RangerPolicy.RangerPolicyResource> resourceMap = policy.getResources();
+        for (Map.Entry<String, RangerPolicy.RangerPolicyResource> entry : resourceMap.entrySet()) {
+            String resourceName = entry.getKey();
+            RangerPolicy.RangerPolicyResource resource = entry.getValue();
+            Iterator<String> iterator = resource.getValues().iterator();
+            while (iterator.hasNext()) {
+                String value = iterator.next();
+                if (value == null) {
+                    LOG.warn("RangerPolicyRepository.scrubPolicyResource: found null resource value for " + resourceName + " in policy " + policyId + "!  Removing...");
+                    iterator.remove();
+                    altered = true;
+                }
+            }
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("<== RangerPolicyRepository.scrubPolicy(" + policy + "): " + altered);
+        }
+        return altered;
     }
 
     @Override

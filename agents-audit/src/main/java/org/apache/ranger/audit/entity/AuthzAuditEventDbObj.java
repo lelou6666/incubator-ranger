@@ -36,7 +36,6 @@ import javax.persistence.SequenceGenerator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.ranger.audit.model.EnumRepositoryType;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.audit.provider.MiscUtil;
 
@@ -147,11 +146,16 @@ public class AuthzAuditEventDbObj implements Serializable {
 
 	public AuthzAuditEventDbObj(AuthzAuditEvent event) {
 		super();
-
+		Date utcDate=null;
+		if(event.getEventTime()!=null){
+			utcDate=MiscUtil.getUTCDateForLocalDate(event.getEventTime());
+		}else{
+			utcDate=MiscUtil.getUTCDate();
+		}
 		this.repositoryType = event.getRepositoryType();
 		this.repositoryName = event.getRepositoryName();
 		this.user           = event.getUser();
-		this.timeStamp      = event.getEventTime();
+		this.timeStamp      = utcDate;
 		this.accessType     = event.getAccessType();
 		this.resourcePath   = event.getResourcePath();
 		this.resourceType   = event.getResourceType();

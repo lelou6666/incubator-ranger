@@ -19,6 +19,7 @@
 
 package org.apache.ranger.tagsync.model;
 
+
 import java.util.Properties;
 
 public interface TagSource {
@@ -27,10 +28,8 @@ public interface TagSource {
 
 	void setTagSink(TagSink sink);
 
-	void updateSink() throws Exception;
+	boolean start();
 
-	Thread start();
-
-	boolean isChanged();
+	void stop();
 
 }

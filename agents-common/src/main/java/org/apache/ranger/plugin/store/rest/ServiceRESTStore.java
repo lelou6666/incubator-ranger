@@ -31,7 +31,6 @@ import org.apache.ranger.plugin.model.RangerPolicy;
 import org.apache.ranger.plugin.model.RangerService;
 import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.store.AbstractServiceStore;
-import org.apache.ranger.plugin.store.ServiceStore;
 import org.apache.ranger.plugin.util.RangerRESTClient;
 import org.apache.ranger.plugin.util.SearchFilter;
 import org.apache.ranger.plugin.util.ServicePolicies;
@@ -598,6 +597,11 @@ public class ServiceRESTStore extends AbstractServiceStore {
 		}
 
 		return ret;
+	}
+
+	@Override
+	public ServicePolicies getServicePolicies(String serviceName) throws Exception {
+		return getServicePoliciesIfUpdated(serviceName, -1L);
 	}
 
 	private WebResource createWebResource(String url) {

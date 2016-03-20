@@ -32,15 +32,18 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.ranger.common.GUIDUtil;
 import org.apache.ranger.common.MessageEnums;
 import org.apache.ranger.common.RESTErrorUtil;
+import org.apache.ranger.common.RangerServiceTagsCache;
 import org.apache.ranger.db.RangerDaoManager;
 import org.apache.ranger.entity.XXDBBase;
 import org.apache.ranger.entity.XXResourceDef;
 import org.apache.ranger.entity.XXService;
 import org.apache.ranger.entity.XXServiceDef;
+import org.apache.ranger.entity.XXServiceResource;
 import org.apache.ranger.entity.XXTagAttribute;
 import org.apache.ranger.entity.XXTagAttributeDef;
 import org.apache.ranger.entity.XXServiceResourceElement;
 import org.apache.ranger.entity.XXServiceResourceElementValue;
+import org.apache.ranger.entity.XXTagResourceMap;
 import org.apache.ranger.plugin.model.*;
 import org.apache.ranger.plugin.model.RangerPolicy.RangerPolicyResource;
 import org.apache.ranger.plugin.model.RangerTagDef.RangerTagAttributeDef;
@@ -827,7 +830,7 @@ public class TagDBStore extends AbstractTagStore {
 
 	@Override
 	public ServiceTags getServiceTagsIfUpdated(String serviceName, Long lastKnownVersion) throws Exception {
-		if(LOG.isDebugEnabled()) {
+		if (LOG.isDebugEnabled()) {
 			LOG.debug("==> TagDBStore.getServiceTagsIfUpdated(" + serviceName + ", " + lastKnownVersion + ")");
 		}
 
@@ -835,65 +838,105 @@ public class TagDBStore extends AbstractTagStore {
 
 		XXService xxService = daoManager.getXXService().findByName(serviceName);
 
-		if(xxService == null) {
+		if (xxService == null) {
 			throw new Exception("service does not exist. name=" + serviceName);
 		}
 
-		if(lastKnownVersion == null || xxService.getTagVersion() == null || !lastKnownVersion.equals(xxService.getTagVersion())) {
-			RangerServiceDef serviceDef = svcStore.getServiceDef(xxService.getType());
-
-			if(serviceDef == null) {
-				throw new Exception("service-def does not exist. id=" + xxService.getType());
-			}
-
-			RangerTagDBRetriever tagDBRetriever = new RangerTagDBRetriever(daoManager, xxService);
-
-			Map<Long, RangerTagDef> tagDefMap = tagDBRetriever.getTagDefs();
-			Map<Long, RangerTag> tagMap = tagDBRetriever.getTags();
-			List<RangerServiceResource> resources = tagDBRetriever.getServiceResources();
-			List<RangerTagResourceMap>  tagResourceMaps = tagDBRetriever.getTagResourceMaps();
-
-			Map<Long, List<Long>>   resourceToTagIds = new HashMap<Long, List<Long>>();
-
-			if(CollectionUtils.isNotEmpty(tagResourceMaps)) {
-				Long       resourceId = null;
-				List<Long> tagIds     = null;
-
-				for(RangerTagResourceMap tagResourceMap : tagResourceMaps) {
-					if(! tagResourceMap.getResourceId().equals(resourceId)) {
-						if(resourceId != null) {
-							resourceToTagIds.put(resourceId, tagIds);
-						}
-
-						resourceId = tagResourceMap.getResourceId();
-						tagIds     = new ArrayList<Long>();
-					}
-
-					tagIds.add(tagResourceMap.getTagId());
-				}
-				
-				if(resourceId != null) {
-					resourceToTagIds.put(resourceId, tagIds);
-				}
-			}
-
-			ret = new ServiceTags();
-			ret.setOp(ServiceTags.OP_ADD_OR_UPDATE);
-			ret.setTagModel(ServiceTags.TAGMODEL_SHARED);
-			ret.setServiceName(xxService.getName());
-			ret.setTagVersion(xxService.getTagVersion());
-			ret.setTagUpdateTime(xxService.getTagUpdateTime());
-			ret.setTagDefinitions(tagDefMap);
-			ret.setTags(tagMap);
-			ret.setServiceResources(resources);
-			ret.setResourceToTagIds(resourceToTagIds);
+		if (lastKnownVersion == null || xxService.getTagVersion() == null || !lastKnownVersion.equals(xxService.getTagVersion())) {
+			ret = RangerServiceTagsCache.getInstance().getServiceTags(serviceName, this);
 		}
 
-		if(LOG.isDebugEnabled()) {
-			LOG.debug("<== TagDBStore.getServiceTagsIfUpdated(" + serviceName + ", " + lastKnownVersion + ")");
+		if (ret != null && lastKnownVersion != null && lastKnownVersion.equals(ret.getTagVersion())) {
+			// ServiceTags are not changed
+			ret = null;
+		}
+
+		if (LOG.isDebugEnabled()) {
+			RangerServiceTagsCache.getInstance().dump();
+		}
+
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("<== TagDBStore.getServiceTagsIfUpdated(" + serviceName + ", " + lastKnownVersion + "): count=" + ((ret == null || ret.getTags() == null) ? 0 : ret.getTags().size()));
 		}
 
 		return ret;
+	}
+
+	@Override
+	public Long getTagVersion(String serviceName) {
+
+		XXService serviceDbObj = daoManager.getXXService().findByName(serviceName);
+
+		return serviceDbObj != null ? serviceDbObj.getTagVersion() : null;
+	}
+
+	@Override
+	public ServiceTags getServiceTags(String serviceName) throws Exception {
+
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("==> TagDBStore.getServiceTags(" + serviceName + ")");
+		}
+
+		ServiceTags ret = null;
+
+		XXService xxService = daoManager.getXXService().findByName(serviceName);
+
+		if (xxService == null) {
+			throw new Exception("service does not exist. name=" + serviceName);
+		}
+
+		RangerServiceDef serviceDef = svcStore.getServiceDef(xxService.getType());
+
+		if (serviceDef == null) {
+			throw new Exception("service-def does not exist. id=" + xxService.getType());
+		}
+
+		RangerTagDBRetriever tagDBRetriever = new RangerTagDBRetriever(daoManager, xxService);
+
+		Map<Long, RangerTagDef> tagDefMap = tagDBRetriever.getTagDefs();
+		Map<Long, RangerTag> tagMap = tagDBRetriever.getTags();
+		List<RangerServiceResource> resources = tagDBRetriever.getServiceResources();
+		List<RangerTagResourceMap> tagResourceMaps = tagDBRetriever.getTagResourceMaps();
+
+		Map<Long, List<Long>> resourceToTagIds = new HashMap<Long, List<Long>>();
+
+		if (CollectionUtils.isNotEmpty(tagResourceMaps)) {
+			Long resourceId = null;
+			List<Long> tagIds = null;
+
+			for (RangerTagResourceMap tagResourceMap : tagResourceMaps) {
+				if (!tagResourceMap.getResourceId().equals(resourceId)) {
+					if (resourceId != null) {
+						resourceToTagIds.put(resourceId, tagIds);
+					}
+
+					resourceId = tagResourceMap.getResourceId();
+					tagIds = new ArrayList<Long>();
+				}
+
+				tagIds.add(tagResourceMap.getTagId());
+			}
+
+			if (resourceId != null) {
+				resourceToTagIds.put(resourceId, tagIds);
+			}
+		}
+
+		ret = new ServiceTags();
+
+		ret.setServiceName(xxService.getName());
+		ret.setTagVersion(xxService.getTagVersion());
+		ret.setTagUpdateTime(xxService.getTagUpdateTime());
+		ret.setTagDefinitions(tagDefMap);
+		ret.setTags(tagMap);
+		ret.setServiceResources(resources);
+		ret.setResourceToTagIds(resourceToTagIds);
+
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("<== TagDBStore.getServiceTags(" + serviceName + ")");
+		}
+		return ret;
+
 	}
 
 	private List<XXTagAttributeDef> createTagAttributeDefs(Long tagDefId, List<RangerTagAttributeDef> tagAttrDefList) {
@@ -1046,6 +1089,76 @@ public class TagDBStore extends AbstractTagStore {
 				resourceElementValue = daoManager.getXXServiceResourceElementValue().create(resourceElementValue);
 				sortOrder++;
 			}
+		}
+	}
+
+	@Override
+	public void deleteAllTagObjectsForService(String serviceName, boolean isResourcePrivateFlag) throws Exception {
+
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("==> TagDBStore.deleteAllTagObjectsForService(" + serviceName + ")");
+		}
+
+		XXService service = daoManager.getXXService().findByName(serviceName);
+
+		if (service != null) {
+			Long serviceId = service.getId();
+
+			List<XXTagResourceMap> xxTagResourceMaps = daoManager.getXXTagResourceMap().findByServiceId(serviceId);
+
+			if (CollectionUtils.isNotEmpty(xxTagResourceMaps)) {
+				for (XXTagResourceMap xxTagResourceMap : xxTagResourceMaps) {
+					try {
+						daoManager.getXXTagResourceMap().remove(xxTagResourceMap);
+					} catch (Exception e) {
+						LOG.error("Error deleting RangerTagResourceMap with id=" + xxTagResourceMap.getId(), e);
+						throw e;
+					}
+				}
+			}
+
+			List<XXServiceResourceElementValue> xxServiceResourceElementValues = daoManager.getXXServiceResourceElementValue().findByServiceId(serviceId);
+
+			if (CollectionUtils.isNotEmpty(xxServiceResourceElementValues)) {
+				for (XXServiceResourceElementValue xxServiceResourceElementValue : xxServiceResourceElementValues) {
+					try {
+						daoManager.getXXServiceResourceElementValue().remove(xxServiceResourceElementValue);
+					} catch (Exception e) {
+						LOG.error("Error deleting ServiceResourceElementValue with id=" + xxServiceResourceElementValue.getId(), e);
+						throw e;
+					}
+				}
+			}
+
+			List<XXServiceResourceElement> xxServiceResourceElements = daoManager.getXXServiceResourceElement().findByServiceId(serviceId);
+
+			if (CollectionUtils.isNotEmpty(xxServiceResourceElements)) {
+				for (XXServiceResourceElement xxServiceResourceElement : xxServiceResourceElements) {
+					try {
+						daoManager.getXXServiceResourceElement().remove(xxServiceResourceElement);
+					} catch (Exception e) {
+						LOG.error("Error deleting ServiceResourceElement with id=" + xxServiceResourceElement.getId(), e);
+						throw e;
+					}
+				}
+			}
+
+			List<XXServiceResource> xxServiceResources = daoManager.getXXServiceResource().findByServiceId(serviceId);
+
+			if (CollectionUtils.isNotEmpty(xxServiceResources)) {
+				for (XXServiceResource xxServiceResource : xxServiceResources) {
+					try {
+						daoManager.getXXServiceResource().remove(xxServiceResource);
+					} catch (Exception e) {
+						LOG.error("Error deleting RangerServiceResource with id=" + xxServiceResource.getId(), e);
+						throw e;
+					}
+				}
+			}
+		}
+
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("<== TagDBStore.deleteAllTagObjectsForService(" + serviceName + ")");
 		}
 	}
 }

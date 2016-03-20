@@ -20,7 +20,6 @@
 package org.apache.ranger.db;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import javax.persistence.NoResultException;
@@ -79,25 +78,6 @@ public class XXTagDefDao extends BaseDao<XXTagDef> {
 			return getEntityManager().createNamedQuery("XXTagDef.getAllNames", String.class).getResultList();
 		} catch (NoResultException e) {
 			return new ArrayList<String>();
-		}
-	}
-
-	public void updateServiceForTagDefUpdate(Long tagDefId, Date updateTime) {
-		if (tagDefId == null) {
-			return;
-		}
-
-		if(updateTime == null) {
-			updateTime = new Date();
-		}
-
-		try {
-			getEntityManager().createNamedQuery("XXTagDef.updateTagVersionInService", tClass)
-					.setParameter("tagDefId", tagDefId)
-					.setParameter("tagUpdateTime", updateTime)
-					.executeUpdate();
-		} catch (NoResultException e) {
-			return;
 		}
 	}
 

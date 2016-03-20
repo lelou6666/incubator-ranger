@@ -36,10 +36,8 @@ import org.apache.ranger.entity.XXAsset;
 import org.apache.ranger.entity.XXGroup;
 import org.apache.ranger.entity.XXPortalUser;
 import org.apache.ranger.entity.XXTrxLog;
-import org.apache.ranger.entity.XXUser;
 import org.apache.ranger.util.RangerEnumUtil;
 import org.apache.ranger.view.VXGroup;
-import org.apache.ranger.view.VXUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -74,7 +72,7 @@ public class XGroupService extends XGroupServiceBase<XXGroup, VXGroup> {
 		searchFields.add(new SearchField("isVisible", "obj.isVisible",
 				SearchField.DATA_TYPE.INTEGER, SearchField.SEARCH_TYPE.FULL ));
 
-		createdByUserId = new Long(PropertiesUtil.getIntProperty("ranger.xuser.createdByUserId", 1));
+		createdByUserId = Long.valueOf(PropertiesUtil.getIntProperty("ranger.xuser.createdByUserId", 1));
 
 		 sortFields.add(new SortField("name", "obj.name",true,SortField.SORT_ORDER.ASC));
 	}

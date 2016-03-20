@@ -24,6 +24,7 @@ import static org.apache.ranger.authorization.hadoop.constants.RangerHadoopConst
 import static org.apache.ranger.authorization.hadoop.constants.RangerHadoopConstants.WRITE_ACCCESS_TYPE;
 
 import java.net.InetAddress;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -47,7 +48,6 @@ import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
 import org.apache.ranger.authorization.hadoop.constants.RangerHadoopConstants;
 import org.apache.ranger.authorization.hadoop.exceptions.RangerAccessControlException;
-import org.apache.ranger.authorization.utils.StringUtil;
 import org.apache.ranger.plugin.audit.RangerDefaultAuditHandler;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
@@ -460,7 +460,7 @@ class RangerHdfsAccessRequest extends RangerAccessRequestImpl {
 		super.setAccessType(accessType);
 		super.setUser(user);
 		super.setUserGroups(groups);
-		super.setAccessTime(StringUtil.getUTCDate());
+		super.setAccessTime(new Date());
 		super.setClientIPAddress(getRemoteIp());
 		super.setAction(access.toString());
 	}

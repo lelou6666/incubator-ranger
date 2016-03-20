@@ -22,6 +22,7 @@ package org.apache.ranger.server.tomcat;
 import java.io.File;
 import java.net.URL;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -105,7 +106,7 @@ public class EmbeddedServer {
 			ssl.setAttribute("clientAuth", getConfig("ranger.service.https.attrib.clientAuth", "false"));
 			ssl.setAttribute("keyAlias", getConfig("ranger.service.https.attrib.keystore.keyalias"));
 			ssl.setAttribute("keystorePass", getConfig("ranger.service.https.attrib.keystore.pass"));
-			ssl.setAttribute("keystoreFile", getConfig("ranger.https.attrib.keystore.file"));
+			ssl.setAttribute("keystoreFile", getKeystoreFile());
 			
 			String enabledProtocols = "SSLv2Hello, TLSv1, TLSv1.1, TLSv1.2";
 			ssl.setAttribute("sslEnabledProtocols", enabledProtocols);
@@ -118,7 +119,7 @@ public class EmbeddedServer {
 			server.setConnector(ssl);
 			
 		}
-
+		updateHttpConnectorAttribConfig(server);
 		File baseDir = new File(".");
 		
 		File logDirectory = new File(baseDir, "logs");
@@ -203,7 +204,16 @@ public class EmbeddedServer {
 			e.printStackTrace(); 
 		} 
 	}
-	
+
+	private String getKeystoreFile() {
+		String keystoreFile=getConfig("ranger.service.https.attrib.keystore.file");
+		if (keystoreFile == null || keystoreFile.trim().isEmpty()) {
+			// new property not configured, lets use the old property
+			keystoreFile = getConfig("ranger.https.attrib.keystore.file") ;
+		}
+		return keystoreFile;
+	}
+
 	protected String getConfig(String key) {
 		String value = serverConfigProperties.getProperty(key);
 		if (value == null || value.trim().isEmpty()) {
@@ -338,7 +348,35 @@ public class EmbeddedServer {
 		}
 
 	}
-
-
-
+	protected long getLongConfig(String key, long defaultValue) {
+		long ret = 0;
+		String retStr = getConfig(key);
+		if (retStr == null) {
+		        ret = defaultValue;
+		} else {
+		        ret = Long.parseLong(retStr);
+		}
+		return ret;
+	}
+	public void updateHttpConnectorAttribConfig(Tomcat server) {
+		server.getConnector().setAllowTrace(Boolean.valueOf(getConfig("ranger.service.http.connector.attrib.allowTrace","false")));
+		server.getConnector().setAsyncTimeout(getLongConfig("ranger.service.http.connector.attrib.asyncTimeout", 10000));
+		server.getConnector().setEnableLookups(Boolean.valueOf(getConfig("ranger.service.http.connector.attrib.enableLookups","false")));
+		server.getConnector().setMaxHeaderCount(getIntConfig("ranger.service.http.connector.attrib.maxHeaderCount", 100));
+		server.getConnector().setMaxParameterCount(getIntConfig("ranger.service.http.connector.attrib.maxParameterCount", 10000));
+		server.getConnector().setMaxPostSize(getIntConfig("ranger.service.http.connector.attrib.maxPostSize", 2097152));
+		server.getConnector().setMaxSavePostSize(getIntConfig("ranger.service.http.connector.attrib.maxSavePostSize", 4096));
+		server.getConnector().setParseBodyMethods(getConfig("ranger.service.http.connector.attrib.methods", "POST"));
+		Iterator<Object> iterator=serverConfigProperties.keySet().iterator();
+		String key=null;
+		String property=null;
+		while (iterator.hasNext()){
+		        key=iterator.next().toString();
+		        if(key!=null && key.startsWith("ranger.service.http.connector.property.")){
+		                property=key.replace("ranger.service.http.connector.property.","");
+		                server.getConnector().setProperty(property,getConfig(key));
+		                LOG.info(property+":"+server.getConnector().getProperty(property));
+		        }
+		}
+	}
 }

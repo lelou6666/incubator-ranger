@@ -225,9 +225,9 @@ public class AssetREST {
 	@Path("/assets/testConfig")
 	@Produces({ "application/xml", "application/json" })
 	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.TEST_CONFIG + "\")")
-	public VXResponse testConfig(VXAsset vXAsset) {
+	public VXResponse configTest(VXAsset vXAsset) {
 		if(logger.isDebugEnabled()) {
-			logger.debug("==> AssetREST.testConfig(" + vXAsset + ")");
+			logger.debug("==> AssetREST.configTest(" + vXAsset + ")");
 		}
 
 		RangerService service = serviceUtil.toRangerService(vXAsset);
@@ -522,7 +522,7 @@ public class AssetREST {
 		boolean           isSecure    = request.isSecure();
 		String            policyCount = request.getParameter("policyCount");
 		String            agentId     = request.getParameter("agentId");
-		Long              lastKnowPolicyVersion = new Long(-1);
+		Long              lastKnowPolicyVersion = Long.valueOf(-1);
 
 		if (ipAddress == null) {  
 			ipAddress = request.getRemoteAddr();

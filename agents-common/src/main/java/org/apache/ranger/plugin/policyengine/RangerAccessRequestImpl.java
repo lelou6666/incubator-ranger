@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.ranger.authorization.utils.StringUtil;
 
 
 public class RangerAccessRequestImpl implements RangerAccessRequest {
@@ -159,7 +158,7 @@ public class RangerAccessRequestImpl implements RangerAccessRequest {
 	}
 
 	public void setAccessTime(Date accessTime) {
-		this.accessTime = (accessTime == null) ? StringUtil.getUTCDate() : accessTime;
+		this.accessTime = (accessTime == null) ? new Date() : accessTime;
 	}
 
 	public void setClientIPAddress(String clientIPAddress) {

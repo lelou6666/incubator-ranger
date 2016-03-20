@@ -15,7 +15,6 @@
 package org.apache.util.sql;
 
 import java.io.BufferedReader;
-import java.io.Console;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -365,7 +364,7 @@ public class Jisql {
         Statement statement = null;
         ResultSet resultSet = null;
         ResultSetMetaData resultSetMetaData = null;
-        StringBuffer query = null;
+        StringBuilder query = null;
 
         if (inputFileName != null) {
             try {
@@ -390,7 +389,7 @@ public class Jisql {
         
         while (true) {
             int linecount = 1;
-            query = new StringBuffer();
+            query = new StringBuilder();
 
             try {
                 if ((inputFileName == null) && (inputQuery == null))
@@ -417,7 +416,7 @@ public class Jisql {
                     }
 
                     if (line.equals("reset")) {
-                        query = new StringBuffer();
+                        query = new StringBuilder();
                         break;
                     }
                     trimmedLine=line.trim();
@@ -597,6 +596,16 @@ public class Jisql {
         // walk through the list once to find the formatter. then, use the
         // command line parser to do it "for real"
         //
+    	String passwordValue=null;
+    	for (int argumentIndex = 0; argumentIndex < argv.length; argumentIndex++) {
+    		 if ("-p".equalsIgnoreCase(argv[argumentIndex]) || "-password".equalsIgnoreCase(argv[argumentIndex]) ) {
+    			 if(argv.length>argumentIndex + 1){
+    				 passwordValue=argv[argumentIndex + 1];
+    				 argv[argumentIndex + 1]="";
+    				 break;
+    			 }
+    		 }
+    	}
         for (int argumentIndex = 0; argumentIndex < argv.length; argumentIndex++) {
             if (argv[argumentIndex].equals("-formatter")) {
                 formatterClassName = argv[argumentIndex + 1];
@@ -686,10 +695,7 @@ public class Jisql {
         else if (options.has("u"))
             userName = (String) options.valueOf("u");
 
-        if (options.has("password"))
-            password = (String) options.valueOf("password");
-        else if (options.has("p"))
-            password = (String) options.valueOf("p");
+        password=passwordValue;
 
         if (options.has("driverinfo"))
             printDriverDetails = true;
@@ -714,7 +720,7 @@ public class Jisql {
 
         if ((password == null) && (passwordFileName == null)) {
             password="";
-            //Console console = System.console();
+            //java.io.Console console = System.console();
             //password = new String( console.readPassword("Password (hit enter for no password): ") );
         }
         else if (password == null) {
