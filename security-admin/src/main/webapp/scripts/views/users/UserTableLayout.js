@@ -27,6 +27,7 @@ define(function(require){
 	var XAUtil			= require('utils/XAUtils');
 	var XABackgrid		= require('views/common/XABackgrid');
 	var localization	= require('utils/XALangSupport');
+	var SessionMgr  	= require('mgrs/SessionMgr');
 
 	var VXGroupList		= require('collections/VXGroupList');
 	var VXGroup			= require('models/VXGroup');
@@ -54,14 +55,26 @@ define(function(require){
     		tab 		: '.nav-tabs',
     		addNewUser	: '[data-id="addNewUser"]',
     		addNewGroup	: '[data-id="addNewGroup"]',
-    		visualSearch: '.visual_search'
+    		visualSearch: '.visual_search',
+    		btnShowMore : '[data-id="showMore"]',
+			btnShowLess : '[data-id="showLess"]',
+    		btnSave		: '[data-id="save"]',
+    		btnShowHide		: '[data-action="showHide"]',
+			visibilityDropdown		: '[data-id="visibilityDropdown"]',
+			activeStatusDropdown		: '[data-id="activeStatusDropdown"]',
+			activeStatusDiv		:'[data-id="activeStatusDiv"]',
+			addNewBtnDiv	: '[data-id="addNewBtnDiv"]'
     	},
 
 		/** ui events hash */
 		events: function() {
 			var events = {};
 			events['click '+this.ui.tab+' li a']  = 'onTabChange';
-			//events['change ' + this.ui.input]  = 'onInputChange';
+			events['click ' + this.ui.btnShowMore]  = 'onShowMore';
+			events['click ' + this.ui.btnShowLess]  = 'onShowLess';
+			events['click ' + this.ui.btnSave]  = 'onSave';
+			events['click ' + this.ui.visibilityDropdown +' li a']  = 'onVisibilityChange';
+			events['click ' + this.ui.activeStatusDropdown +' li a']  = 'onStatusChange';
 			return events;
 		},
 
@@ -74,11 +87,17 @@ define(function(require){
 
 			_.extend(this, _.pick(options, 'groupList','tab'));
 			this.showUsers = this.tab == 'usertab' ? true : false;
+			this.chgFlags = [];
+			if(_.isUndefined(this.groupList)){
+				this.groupList = new VXGroupList();
+			}
+
 			this.bindEvents();
 		},
 
 		/** all events binding here */
 		bindEvents : function(){
+			var that = this;
 			/*this.listenTo(this.model, "change:foo", this.modelChanged, this);*/
 			/*this.listenTo(communicator.vent,'someView:someEvent', this.someEventHandler, this)'*/
 		},
@@ -86,38 +105,116 @@ define(function(require){
 		/** on render callback */
 		onRender: function() {
 			this.initializePlugins();
-			if(this.tab == 'grouptab')
+			if(this.tab == 'grouptab'){
 				this.renderGroupTab();
-			else
+			} else {
 				this.renderUserTab();
+			}
 			this.addVisualSearch();
 		},
 		onTabChange : function(e){
+			var that = this;
+			this.chgFlags = [];
 			this.showUsers = $(e.currentTarget).attr('href') == '#users' ? true : false;
-			if(this.showUsers){
+			if(this.showUsers){				
 				this.renderUserTab();
 				this.addVisualSearch();
-			}
-			else{
+			} else {				
 				this.renderGroupTab();
 				this.addVisualSearch();
 			}
 			$(this.rUserDetail.el).hide();
+		},
+		onVisibilityChange : function(e){
+			var that = this;
+			var status = $(e.currentTarget).attr('data-id') == 'visible' ? true : false;
+			var updateReq = {};
+			var collection = this.showUsers ? this.collection : this.groupList;
+
+			_.each(collection.selected, function(m){
+				if( m.get('isVisible') != status ){
+					m.set('isVisible', status);
+					m.toServer();
+					updateReq[m.get('id')] = m.get('isVisible');
+				}
+			});
+
+			var clearCache = function(coll){
+                _.each(Backbone.fetchCache._cache, function(url, val){
+                   var urlStr = coll.url;
+                   if((val.indexOf(urlStr) != -1)){
+                       Backbone.fetchCache.clearItem(val);
+                   }
+                });
+                coll.fetch({reset: true, cache : false});
+			}
+			if(this.showUsers){
+				collection.setUsersVisibility(updateReq, {
+					success : function(){
+						that.chgFlags = [];
+						clearCache(collection);
+					}
+				});
+			} else {
+			    collection.setGroupsVisibility(updateReq, {
+					success : function(){
+						that.chgFlags = [];
+						clearCache(collection);
+					}
+                });
+			}
+		},
+		onStatusChange : function(e){
+			var that = this;
+			var status = $(e.currentTarget).attr('data-id') == 'Enable' ? true : false;
+			var updateMap = {};
+			var collection = this.showUsers ? this.collection : this.groupList;
+
+			_.each(collection.selected, function(s){
+				if( s.get('status') != status ){
+					s.set('status', status);
+					s.toServerStatus();
+					updateMap[s.get('id')] = s.get('status');
+				}
+			});
+
+			var clearCache = function(coll){
+                _.each(Backbone.fetchCache._cache, function(url, val){
+                   var urlStr = coll.url;
+                   if((val.indexOf(urlStr) != -1)){
+                       Backbone.fetchCache.clearItem(val);
+                   }
+                });
+                coll.fetch({reset: true, cache : false});
+			}
+			if(this.showUsers){
+				collection.setStatus(updateMap, {
+					success : function(){
+						that.chgFlags = [];
+						clearCache(collection);
+					}
+				});
+			}
 		},
 		renderUserTab : function(){
 			var that = this;
 			if(_.isUndefined(this.collection)){
 				this.collection = new VXUserList();
 			}	
+			this.collection.selectNone();
 			this.renderUserListTable();
+			_.extend(this.collection.queryParams, XAUtil.getUserDataParams())
 			this.collection.fetch({
-				cache:true
+				cache:true,
+//				data : XAUtil.getUserDataParams(),
 			}).done(function(){
 				if(!_.isString(that.ui.addNewGroup)){
 					that.ui.addNewGroup.hide();
 					that.ui.addNewUser.show();
+					that.ui.activeStatusDiv.show();
 				}
 				that.$('.wrap-header').text('User List');
+				that.checkRoleKeyAdmin();
 			});
 		},
 		renderGroupTab : function(){
@@ -125,66 +222,37 @@ define(function(require){
 			if(_.isUndefined(this.groupList)){
 				this.groupList = new VXGroupList();
 			}
+			this.groupList.selectNone();
 			this.renderGroupListTable();
 			this.groupList.fetch({
 				cache:true
 			}).done(function(){
 				that.ui.addNewUser.hide();
 				that.ui.addNewGroup.show();
+				that.ui.activeStatusDiv.hide();
 				that.$('.wrap-header').text('Group List');
 				that.$('ul').find('[data-js="groups"]').addClass('active');
 				that.$('ul').find('[data-js="users"]').removeClass();
+				that.checkRoleKeyAdmin();
 			});
 		},
 		renderUserListTable : function(){
 			var that = this;
-			/*var tableRow = Backgrid.Row.extend({
-				events: {
-					'click' : 'onClick'
+			var tableRow = Backgrid.Row.extend({
+				render: function () {
+    				tableRow.__super__.render.apply(this, arguments);
+    				if(!this.model.get('isVisible')){
+    					this.$el.addClass('tr-inactive');
+    				}
+    				return this;
 				},
-				initialize : function(){
-					var that = this;
-					var args = Array.prototype.slice.apply(arguments);
-					Backgrid.Row.prototype.initialize.apply(this, args);
-					this.listenTo(this.model, 'model:highlightBackgridRow', function(){
-						that.$el.addClass("alert");
-						$("html, body").animate({scrollTop: that.$el.position().top},"linear");
-						setTimeout(function () {
-							that.$el.removeClass("alert");
-						}, 1500);
-					}, this);
-				},
-				onClick: function (e) {
-				   if($(e.target).is('a'))
-					   return;
-				   this.$el.parent('tbody').find('tr').removeClass('tr-active');
-				   this.$el.toggleClass('tr-active');
-				   var groupList = new VXGroupList();
-				   var userModel = this.model;
-				   groupList.getGroupsForUser(this.model.id,{
-					  cache : false, 
-					  success :function(msResponse){
-						  var groupColl = msResponse.vXGroups ? msResponse.vXGroups : null; 
-						  if(that.rUserDetail){
-								$(that.rUserDetail.el).hide();
-								$(that.rUserDetail.el).html(new vUserInfo({
-									  model : userModel,
-									  groupList : new VXGroupList(groupColl)
-								  }).render().$el).slideDown();
-							}
-					  },
-					  error : function(){
-						  console.log('error..');
-					  }
-				   });
-				}
-			});*/
+			});
 			this.rTableList.show(new XATableLayout({
 				columns: this.getColumns(),
 				collection: this.collection,
 				includeFilter : false,
 				gridOpts : {
-//					row: tableRow,
+					row: tableRow,
 					header : XABackgrid,
 					emptyText : 'No Users found!'
 				}
@@ -195,6 +263,16 @@ define(function(require){
 		getColumns : function(){
 			var cols = {
 				
+				select : {
+					label : localization.tt("lbl.isVisible"),
+					//cell : Backgrid.SelectCell.extend({className: 'cellWidth-1'}),
+					cell: "select-row",
+				    headerCell: "select-all",
+					click : false,
+					drag : false,
+					editable : false,
+					sortable : false
+				},
 				name : {
 					label	: localization.tt("lbl.userName"),
 					href: function(model){
@@ -202,8 +280,7 @@ define(function(require){
 					},
 					editable:false,
 					sortable:false,
-					cell :'uri'
-						
+					cell :'uri'						
 				},
 				emailAddress : {
 					label	: localization.tt("lbl.emailAddress"),
@@ -252,38 +329,51 @@ define(function(require){
 					cell	: Backgrid.HtmlCell.extend({className: 'cellWidth-1'}),
 					label : localization.tt("lbl.groups"),
 					formatter: _.extend({}, Backgrid.CellFormatter.prototype, {
-						fromRaw: function (rawValue) {
-							var html = '';
+						fromRaw: function (rawValue,model) {
 							if(!_.isUndefined(rawValue)){
-								_.each(rawValue,function(name){
-									html += '<span class="label label-info">'+name+'</span>';
-								});
-								return html;
-							}else
-								return '--';
+								return XAUtil.showGroups(_.map(rawValue,function(name){return {'userId': model.id,'groupName': name}}));
+							}
+							else
+							return '--';
 						}
 					}),
 					editable : false,
 					sortable : false
 				},
-			/*	status : {
-					label : localization.tt("lbl.status"),
+				isVisible : {
+					label	: localization.tt("lbl.visibility"),
 					cell	: Backgrid.HtmlCell.extend({className: 'cellWidth-1'}),
 					formatter: _.extend({}, Backgrid.CellFormatter.prototype, {
 						fromRaw: function (rawValue, model) {
-							var status = model.has('status') ? 'Active' : 'Deactive';
-							if(model.has('status'))
-								return '<span class="label label-success">' +status + '</span>';
-							else
-								return '<span class="label label-important">' +status + '</span>';
-						//	return model.has('status') ? 'On' : 'Off';
+							if(!_.isUndefined(rawValue)){
+								if(rawValue)
+									return '<span class="label label-success">'+XAEnums.VisibilityStatus.STATUS_VISIBLE.label+'</span>';
+								else
+									return '<span class="label label-green">'+XAEnums.VisibilityStatus.STATUS_HIDDEN.label+'</span>';
+							}else
+								return '--';
 						}
 					}),
-					click : false,
-					drag : false,
 					editable:false,
-					sortable:false,
-				},*/
+					sortable:false
+				},
+				status : {
+					label	: localization.tt("lbl.status"),
+					cell	: Backgrid.HtmlCell.extend({className: 'cellWidth-1'}),
+					formatter: _.extend({}, Backgrid.CellFormatter.prototype, {
+						fromRaw: function (rawValue, model) {
+							if(!_.isUndefined(rawValue)){
+								if(rawValue)
+									return '<span class="label label-success">'+XAEnums.ActiveStatus.STATUS_ENABLED.label+'</span>';
+								else
+									return '<span class="label label-green">'+XAEnums.ActiveStatus.STATUS_DISABLED.label+'</span>';
+							}else
+								return '--';
+						}
+					}),
+					editable:false,
+					sortable:false
+				},
 				
 			};
 			return this.collection.constructor.getTableCols(cols, this.collection);
@@ -291,55 +381,22 @@ define(function(require){
 		
 		renderGroupListTable : function(){
 			var that = this;
-			/*var tableRow = Backgrid.Row.extend({
-				events: {
-					'click' : 'onClick'
+			
+			var tableRow = Backgrid.Row.extend({
+				render: function () {
+    				tableRow.__super__.render.apply(this, arguments);
+    				if(!this.model.get('isVisible')){
+    					this.$el.addClass('tr-inactive');
+    				}
+    				return this;
 				},
-				initialize : function(){
-					var that = this;
-					var args = Array.prototype.slice.apply(arguments);
-					Backgrid.Row.prototype.initialize.apply(this, args);
-					this.listenTo(this.model, 'model:highlightBackgridRow1', function(){
-						that.$el.addClass("alert");
-						$("html, body").animate({scrollTop: that.$el.position().top},"linear");
-						setTimeout(function () {
-							that.$el.removeClass("alert");
-						}, 1500);
-					}, this);
-				},
-				onClick: function (e) {
-				   if($(e.target).is('a'))
-					   return;
-				   this.$el.parent('tbody').find('tr').removeClass('tr-active');
-				   this.$el.toggleClass('tr-active');	
-				   var userList = new VXUserList();
-				   var gid = this.model.id;
-				   var groupModel = new VXGroup({id:gid});
-				   groupModel.fetch().done(function(msResponse){
-					   userList.getUsersOfGroup(gid,{
-						   success :function(msResponse){
-							   var userColl = msResponse.vXUsers ? msResponse.vXUsers : null; 
-							   if(that.rUserDetail){
-								   $(that.rUserDetail.el).hide();
-								   $(that.rUserDetail.el).html(new vUserInfo({
-									   model 	: groupModel,
-									   userList: new VXUserList(userColl)
-								   }).render().$el).slideDown(); 
-							   }
-						   },
-						   error : function(){
-							   console.log('error..');
-						   }
-					   });
-				   });
-				}
-			});*/
+			});
 			this.rTableList.show(new XATableLayout({
 				columns: this.getGroupColumns(),
 				collection: this.groupList,
 				includeFilter : false,
 				gridOpts : {
-//					row: tableRow,
+					row: tableRow,
 					header : XABackgrid,
 					emptyText : 'No Groups found!'
 				}
@@ -350,6 +407,15 @@ define(function(require){
 		getGroupColumns : function(){
 			var cols = {
 				
+                select : {
+					label : localization.tt("lbl.isVisible"),
+					cell: "select-row",
+				    headerCell: "select-all",
+					click : false,
+					drag : false,
+					editable : false,
+					sortable : false
+				},
 				name : {
 					label	: localization.tt("lbl.groupName"),
 					href: function(model){
@@ -368,71 +434,79 @@ define(function(require){
 							if(!_.isUndefined(rawValue)){
 								if(rawValue == XAEnums.GroupSource.XA_PORTAL_GROUP.value)
 									return '<span class="label label-success">'+XAEnums.GroupTypes.GROUP_INTERNAL.label+'</span>';
-								else
+								else {
 									return '<span class="label label-green">'+XAEnums.GroupTypes.GROUP_EXTERNAL.label+'</span>';
-							}else
+								}
+							}else {
 								return '--';
+							}
 						}
 					}),
 					click : false,
 					drag : false,
 					editable:false,
 					sortable:false,
-				}
-				/*status : {
-					label : localization.tt("lbl.status"),
+				},
+				isVisible : {
+					label	: localization.tt("lbl.visibility"),
 					cell	: Backgrid.HtmlCell.extend({className: 'cellWidth-1'}),
 					formatter: _.extend({}, Backgrid.CellFormatter.prototype, {
 						fromRaw: function (rawValue, model) {
-							var status = model.has('status') ? 'Active' : 'Deactive';
-							if(model.has('status'))
-								return '<span class="label label-success">' +status + '</span>';
-							else
-								return '<span class="label label-important">' +status + '</span>';
+							if(!_.isUndefined(rawValue)){
+								if(rawValue){
+									return '<span class="label label-success">'+XAEnums.VisibilityStatus.STATUS_VISIBLE.label+'</span>';
+								} else {
+									return '<span class="label label-green">'+XAEnums.VisibilityStatus.STATUS_HIDDEN.label+'</span>';
+								}
+							}else {
+								return '--';
+							}
 						}
 					}),
-					click : false,
-					drag : false,
 					editable:false,
-					sortable:false,
-				}, */
+					sortable:false
+				}
 			};
 			return this.groupList.constructor.getTableCols(cols, this.groupList);
 		},
 		addVisualSearch : function(){
+			var that = this;
 			var coll,placeholder;
 			var searchOpt = [], serverAttrName = [];
 			if(this.showUsers){
 				placeholder = localization.tt('h.searchForYourUser');	
 				coll = this.collection;
-				searchOpt = ['User Name','Email Address','Role','User Source'];//,'Start Date','End Date','Today'];
+				searchOpt = ['User Name','Email Address','Visibility', 'Role','User Source','User Status'];//,'Start Date','End Date','Today'];
 				var userRoleList = _.map(XAEnums.UserRoles,function(obj,key){return {label:obj.label,value:key};});
-				serverAttrName  = [{text : "User Name", label :"name"},{text : "Email Address", label :"emailAddress"},
-				                   {text : "Role", label :"userRoleList", 'multiple' : true, 'optionsArr' : userRoleList},
+				serverAttrName  = [	{text : "User Name", label :"name"},
+									{text : "Email Address", label :"emailAddress"},
+				                   {text : "Role", label :"userRole", 'multiple' : true, 'optionsArr' : userRoleList},
+				                   	{text : "Visibility", label :"isVisible", 'multiple' : true, 'optionsArr' : XAUtil.enumToSelectLabelValuePairs(XAEnums.VisibilityStatus)},
 				                   {text : "User Source", label :"userSource", 'multiple' : true, 'optionsArr' : XAUtil.enumToSelectLabelValuePairs(XAEnums.UserTypes)},
+				                   {text : "User Status", label :"status", 'multiple' : true, 'optionsArr' : XAUtil.enumToSelectLabelValuePairs(XAEnums.ActiveStatus)},
 								];
-				                  // {text : 'Start Date',label :'startDate'},{text : 'End Date',label :'endDate'},
-				                  // {text : 'Today',label :'today'}];
-			}else{
+			} else {
 				placeholder = localization.tt('h.searchForYourGroup');
 				coll = this.groupList;
-				searchOpt = ['Group Name','Group Source'];//,'Start Date','End Date','Today'];
+				searchOpt = ['Group Name','Group Source', 'Visibility'];//,'Start Date','End Date','Today'];
 				serverAttrName  = [{text : "Group Name", label :"name"},
+				                   {text : "Visibility", label :"isVisible", 'multiple' : true, 'optionsArr' : XAUtil.enumToSelectLabelValuePairs(XAEnums.VisibilityStatus)},
 				                   {text : "Group Source", label :"groupSource", 'multiple' : true, 'optionsArr' : XAUtil.enumToSelectLabelValuePairs(XAEnums.GroupTypes)},];
-				
-				                   //{text : 'Start Date',label :'startDate'},{text : 'End Date',label :'endDate'},
-				                   //{text : 'Today',label :'today'}];
 
 			}
+			var query = (!_.isUndefined(coll.VSQuery)) ? coll.VSQuery : '';
 			var pluginAttr = {
 				      placeholder :placeholder,
 				      container : this.ui.visualSearch,
-				      query     : '',
+				      query     : query,
 				      callbacks :  { 
 				    	  valueMatches :function(facet, searchTerm, callback) {
 								switch (facet) {
 									case 'Role':
-										callback(XAUtil.hackForVSLabelValuePairs(XAEnums.UserRoles));
+										var roles = XAUtil.hackForVSLabelValuePairs(XAEnums.UserRoles);
+										var label  = SessionMgr.isSystemAdmin() || SessionMgr.isUser() ? XAEnums.UserRoles.ROLE_KEY_ADMIN.label
+													: XAEnums.UserRoles.ROLE_SYS_ADMIN.label;
+										callback(_.filter(roles, function(o) { return o.label !== label; }));
 										break;
 									case 'User Source':
 										callback(XAUtil.hackForVSLabelValuePairs(XAEnums.UserTypes));
@@ -440,6 +514,13 @@ define(function(require){
 									case 'Group Source':
 										callback(XAUtil.hackForVSLabelValuePairs(XAEnums.GroupTypes));
 										break;		
+									case 'Visibility':
+										callback(XAUtil.hackForVSLabelValuePairs(XAEnums.VisibilityStatus));
+										break;
+									case 'User Status':
+//										callback(XAUtil.hackForVSLabelValuePairs(XAEnums.ActiveStatus));
+										callback(that.getActiveStatusNVList());
+										break;
 									/*case 'Start Date' :
 										setTimeout(function () { XAUtil.displayDatepicker(that.ui.visualSearch, callback); }, 0);
 										break;
@@ -457,13 +538,39 @@ define(function(require){
 				};
 			XAUtil.addVisualSearch(searchOpt,serverAttrName, coll,pluginAttr);
 		},
-
+		getActiveStatusNVList : function() {
+			var activeStatusList = _.filter(XAEnums.ActiveStatus, function(obj){
+				if(obj.label != XAEnums.ActiveStatus.STATUS_DELETED.label)
+					return obj;
+			});
+			return _.map(activeStatusList, function(status) { return { 'label': status.label, 'value': status.label}; })
+		},
+		onShowMore : function(e){
+			var id = $(e.currentTarget).attr('policy-group-id');
+			this.rTableList.$el.find('[policy-group-id="'+id+'"]').show();
+			$('[data-id="showLess"][policy-group-id="'+id+'"]').show();
+			$('[data-id="showMore"][policy-group-id="'+id+'"]').hide();
+			$('[data-id="showMore"][policy-group-id="'+id+'"]').parents('div[data-id="groupsDiv"]').addClass('set-height-groups');
+		},
+		onShowLess : function(e){
+			var id = $(e.currentTarget).attr('policy-group-id');
+			this.rTableList.$el.find('[policy-group-id="'+id+'"]').slice(4).hide();
+			$('[data-id="showLess"][policy-group-id="'+id+'"]').hide();
+			$('[data-id="showMore"][policy-group-id="'+id+'"]').show();
+			$('[data-id="showMore"][policy-group-id="'+id+'"]').parents('div[data-id="groupsDiv"]').removeClass('set-height-groups')
+		},
+		checkRoleKeyAdmin : function() {
+			if(SessionMgr.isKeyAdmin()){
+				this.ui.addNewBtnDiv.children().hide()
+			}
+		},
 		/** all post render plugin initialization */
 		initializePlugins: function(){
 		},
 
 		/** on close */
 		onClose: function(){
+			XAUtil.allowNavigation();
 		}
 
 	});

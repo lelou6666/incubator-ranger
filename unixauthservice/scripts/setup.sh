@@ -15,28 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-INSTALL_BASE=$PWD
-
-MOD_NAME="ranger-usersync"
-unix_user=ranger
-unix_group=ranger
-
-INSTALL_DIR=${INSTALL_BASE}
-
-curDt=`date '+%Y%m%d%H%M%S'`
-LOGFILE=setup.log.$curDt
-
-log() {
-   local prefix="[$(date +%Y/%m/%d\ %H:%M:%S)]: "
-   echo "${prefix} $@" >> $LOGFILE
-   echo "${prefix} $@"
-}
-
-# Ensure that the user is root
-MY_ID=`id -u`
-if [ "${MY_ID}" -ne 0 ]
+if [ "${JAVA_HOME}" != "" ]
 then
+<<<<<<< HEAD
   echo "ERROR: You must run the installation as root user."
   exit 1
 fi
@@ -338,7 +319,11 @@ then
     ln -sf /etc/init.d/${MOD_NAME}  /etc/rc.d/rc3.d/K00${MOD_NAME}
   fi
 
+=======
+	export JAVA_HOME
+	PATH="${JAVA_HOME}/bin:${PATH}"
+	export PATH
+>>>>>>> refs/remotes/apache/master
 fi
 
-# Start the service
-#service ${MOD_NAME} start
+./setup.py

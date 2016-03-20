@@ -283,6 +283,7 @@ This product includes Require.js Handlebars Plugin (https://github.com/SlexAxton
   0. You just DO WHAT THE FUCK YOU WANT TO.
 
 -----------------------------------------------------------------------
+<<<<<<< HEAD
  The MPL-1.1 License
 -----------------------------------------------------------------------
 
@@ -473,6 +474,8 @@ the provisions above, a recipient may use your version of this file
 under either the MPL or the [___] License."
 NOTE: The text of this Exhibit A may differ slightly from the text of the notices in the Source Code files of the Original Code. You should use the text of this Exhibit A rather than the text found in the Original Code Source Code for Your Modifications.
 -----------------------------------------------------------------------
+=======
+>>>>>>> refs/remotes/apache/master
  VisualSearch License 
 -----------------------------------------------------------------------
 This product includes VisualSearch.js 0.4.0 (http://documentcloud.github.com/visualsearch), © 2011 Samuel Clay, @samuelclay, DocumentCloud Inc.  
@@ -503,3 +506,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 This product includes Bootstrap Datepicker (http://www.eyecon.ro/bootstrap-datepicker - Apache License - 2.0), Copyright 2012 Stefan Petre.  
 This product includes bootstrap-transition.js v2.3.2 (http://twbs.github.com/bootstrap/javascript.html#transitions - Apache License - 2.0), Copyright 2013 Twitter, Inc.  
 This product includes Select2 3.4.3 (http://ivaynberg.github.io/select2/ - Apache License - 2.0), Copyright 2012 Igor Vaynberg.  
+<<<<<<< HEAD
+=======
+This product includes bootstrap-notify v1.0 (http://goodybag.github.io/bootstrap-notify/ - Apache License - 2.0), Copyright 2012 Goodybag, Inc.
+.  
+>>>>>>> refs/remotes/apache/master

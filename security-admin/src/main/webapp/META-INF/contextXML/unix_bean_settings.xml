@@ -14,6 +14,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+<<<<<<< HEAD
+=======
+<beans:bean id="rangerConfiguration"  class="org.apache.ranger.common.RangerProperties">
+    <beans:constructor-arg value="ranger-admin-default-site.xml,ranger-admin-site.xml" />
+</beans:bean>
+
+>>>>>>> refs/remotes/apache/master
 <beans:bean id="jaasAuthProvider" class="org.springframework.security.authentication.jaas.DefaultJaasAuthenticationProvider">
 		<beans:property name="configuration">
 			<beans:bean
@@ -24,15 +31,11 @@
 							<beans:array>
 								<beans:bean class="javax.security.auth.login.AppConfigurationEntry">
 									<beans:constructor-arg
-										value="com.xasecure.authentication.unix.jaas.RemoteUnixLoginModule" />
+										value="org.apache.ranger.authentication.unix.jaas.RemoteUnixLoginModule" />
 									<beans:constructor-arg>
 										<util:constant static-field="javax.security.auth.login.AppConfigurationEntry$LoginModuleControlFlag.REQUIRED" />
 									</beans:constructor-arg>
-									<beans:constructor-arg>
-										<beans:map>
-											<beans:entry key="configFile" value="unixauth.properties" />
-										</beans:map>
-									</beans:constructor-arg>
+									<beans:constructor-arg ref="rangerConfiguration" />
 								</beans:bean>
 							</beans:array>
 						</beans:entry>
@@ -42,7 +45,7 @@
 		</beans:property>
 		<beans:property name="authorityGranters">
 			<beans:list>
-				<beans:bean class="com.xasecure.authentication.unix.jaas.RoleUserAuthorityGranter" />
+				<beans:bean class="org.apache.ranger.authentication.unix.jaas.RoleUserAuthorityGranter" />
 			</beans:list>
 		</beans:property>
 	</beans:bean>

@@ -27,7 +27,7 @@ define(function(require){
 	var XAEnums			= require('utils/XAEnums');
 	var localization	= require('utils/XALangSupport');
 	var VXGroup			= require('models/VXGroup');
-	var AddGroup_tmpl = require('hbs!tmpl/common/AddGroup_tmpl');
+	var AddGroup_tmpl 	= require('hbs!tmpl/common/AddGroup_tmpl');
 	
 	require('bootstrap-editable');
 	var AddGroup = Backbone.Marionette.ItemView.extend(
@@ -61,8 +61,7 @@ define(function(require){
 		*/
 		initialize: function(options) {
 			console.log("initialized a AddGroup ItemView");
-
-			_.extend(this, _.pick(options, 'groupList'));
+			_.extend(this, _.pick(options));
 			this.bindEvents();
 		},
 
@@ -75,9 +74,6 @@ define(function(require){
 		/** on render callback */
 		onRender: function() {
 			var that = this , arr =[];
-			this.groupArr = this.groupList.map(function(m){
-				return { id : m.id+"" , text : m.get('name')};
-			});
 			this.initializePlugins();
 			$.fn.editable.defaults.mode = 'popover';
 			
@@ -92,35 +88,35 @@ define(function(require){
 			    emptytext : 'Please select',
 				select2 :this.getSelect2Options(),
 			    display: function(values,srcDate) {
-			    	if(_.isNull(values)){
+			    	if(_.isNull(values) ){
 			    		$(this).html('');
 			    		return;
 			    	}
 			    	that.checkDirtyFieldForGroup(values);
-			    	if(!_.isArray(values))
-			    		values=values.toString().split(',');
+			    	if(!_.isArray(values))	values=values.toString().split(',');
+			    	
 			    	var valArr = [];
-		    		var valArr = _.map(values, function(val){
-		    			var obj = _.findWhere(that.groupArr,{id:val});
-		    			return "<span class='label label-inverse'>" + obj.text + "</span>";
-		    		});
-		    		
+			    	if(!_.isUndefined($(that.el).find('.select2-container-multi')) 
+			    			&& $(that.el).find('.select2-container-multi').length > 0){
+			    		values = $(that.el).find('.select2-container-multi').select2('data')
+			    	} else {
+			    		var groupNameList = that.model.get('groupNameList');
+			    		values = _.map(that.model.get('groupIdList'),function(id,i){ return {'id': id, 'text': groupNameList[i]};});
+			    	}
+			    	
+			    	valArr = _.map(values,function(val,i){ 
+			    		return "<span class='label label-inverse'>" + val.text + "</span>"  
+			    	},that);
+
+			    	that.groupArr = values;
+			    	that.firstTimeEditGroup = true;
 		    		$(this).html(valArr.join(" "));
-		    		if(valArr.length > 0){
-		    			that.$('.field-groupIdList').removeClass('error');
-		    			that.ui.errorMsg.hide();
-		    		}else{
-		    			that.$('.field-groupIdList').addClass('error');
-		    			that.ui.errorMsg.show();
-		    		}
-			    		
 			    },
 			    success: function(response, newValue) {
-			    	console.log(newValue);
-			    	//that.model.set('group',newValue);
-			    	
+			    	that.firstTimeEditGroup = false;
 			    }
 			});
+
 			this.$('[id^="tags-edit-"]').click(function(e) {
 			    e.stopPropagation();
 			    e.preventDefault();
@@ -135,42 +131,32 @@ define(function(require){
 		    var valuesSoFar = {};
 		    for (var i = 0; i < array.length; ++i) {
 		        var value = array[i];
-		        if (Object.prototype.hasOwnProperty.call(valuesSoFar, value)) {
-		            return true;
-		        }
+		        if (Object.prototype.hasOwnProperty.call(valuesSoFar, value)) { return true; }
 		        valuesSoFar[value] = true;
 		    }
 		    return false;
 		},
 		getSelect2Options :function(){
-			var that = this;
+			var that = this,groupCnt = 0;
+    		var tags = _.map(that.model.get('groupIdList'),function(id,i){ return {'id': id, 'text': that.model.get('groupNameList')[i]};});
 			return{
 				closeOnSelect : true,
 				placeholder : 'Select Group',
 			//	maximumSelectionSize : 1,
 				width :'220px',
 				tokenSeparators: [",", " "],
-				tags : this.groupArr,
+				tags : tags,
+//				multiple: true,
 				initSelection : function (element, callback) {
 					var data = [];
-					console.log(that.groupList);
+					if(!_.isUndefined(that.groupArr) && that.firstTimeEditGroup){
+						data = that.groupArr;
+					} else {
+						data = element.select2('data');
+					}
 					
-					$(element.val().split(",")).each(function () {
-						var obj = _.findWhere(that.groupArr,{id:this});	
-						data.push({id: this, text: obj.text});
-					});
 					callback(data);
 				},
-				/*createSearchChoice: function(term, data) {
-					if ($(data).filter(function() {
-						return this.text.localeCompare(term) === 0;
-					}).length === 0) {
-						return {
-							id : term,
-							text: term
-						};
-					}
-				},*/
 				ajax: { 
 					url: "service/xusers/groups",
 					dataType: 'json',
@@ -179,19 +165,20 @@ define(function(require){
 					},
 					results: function (data, page) { 
 						var results = [],selectedVals = [];
-						if(!_.isEmpty(that.$('.tags').data('editable').input.$input.val()))
+						groupCnt = data.resultSize
+						
+						if(!_.isEmpty(that.$('.tags').data('editable').input.$input.val())) {
 							selectedVals = that.$('.tags').data('editable').input.$input.val().split(',');
-						if(data.resultSize != "0"){
-							//if(data.vXGroups.length > 1){
-								results = data.vXGroups.map(function(m, i){	return {id : (m.id).toString(), text: m.name};	});
-								if(!_.isEmpty(selectedVals))
-									results = XAUtil.filterResultByIds(results, selectedVals);
-				//				console.log(results.length);
-								return {results : results};
-					//		}
-						//	results = [{id : (data.vXGroups.id)+"", text: data.vXGroups.name}];
-						//	return {results : results};
 						}
+						if(data.resultSize != "0"){
+							results = data.vXGroups.map(function(m, i){	return {id : (m.id).toString(), text: m.name};	});
+							if(!_.isEmpty(selectedVals)) {
+								results = XAUtil.filterResultByIds(results, selectedVals);
+							}
+							groupCnt = results.length;
+							return {results : results};
+						}
+						
 						return {results : results};
 					}
 				},	
@@ -202,17 +189,18 @@ define(function(require){
 					return result.text;
 				},
 				formatNoMatches: function(result){
-					return 'No group found.';
+					return groupCnt > 0 ? 'Please enter one more character.' : 'No group found.';  
 				}
 			};
 		},
 		checkDirtyFieldForGroup : function(changeValues){
 			var groupIdList = [];
-			if(!_.isArray(changeValues))
-				changeValues = [changeValues];
-			changeValues = _.map(changeValues, function(val){return parseInt(val);});
-			if(!_.isUndefined(this.model.get('groupIdList')))
+			if(!_.isArray(changeValues)) changeValues = [changeValues];
+
+			changeValues = _.map(changeValues, function(val){ return parseInt(val); });
+			if(!_.isUndefined(this.model.get('groupIdList'))){
 				groupIdList = this.model.get('groupIdList'); 
+			}
 			XAUtil.checkDirtyField(groupIdList, changeValues, this.$el);
 		},
 		

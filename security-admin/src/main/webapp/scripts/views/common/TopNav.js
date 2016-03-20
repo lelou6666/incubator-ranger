@@ -53,6 +53,7 @@ define(function(require){
 		initialize: function(options) {
 			console.log("initialized a TopNav ItemView");
 			_.extend(this, _.pick(options, ''));
+			
 			this.bindEvents();
 			this.appState = options.appState;
         	this.appState.on('change:currentTab', this.highlightNav,this);
@@ -73,6 +74,28 @@ define(function(require){
 				that.$('ul li:first').addClass('active');
 			});
 			$.cookie('clientTimeOffset', new Date().getTimezoneOffset());
+			
+			//To hide top menu when user don't have access to all it's sub menu's
+			_.each($(this.$el.find('.page-nav ul')), function(ul) {
+				if($(ul).find('li').length <= 0){
+					$(ul).parent('.dropdown').hide();
+				}
+			});
+			
+			//Set TopMenu href's
+			var pageNavUl= this.$el.find('.page-nav')
+			_.each(pageNavUl.find('.dropdown'),function(li){
+				var href = $(li).find('.dropdown-menu li').first().find('a').attr('href')
+				var menuAnchor = $(li).find('.dropdown-menu').siblings();
+				menuAnchor.attr('href',href);
+			});
+			
+			this.$el.find(".dropdown").hover(function(e) {
+					$(e.currentTarget).children('').show();
+				}, function(e) {
+					$(e.currentTarget).children('ul').hide();
+			});
+
 		},
 
 		/** all post render plugin initialization */
@@ -87,6 +110,8 @@ define(function(require){
 			this.$('ul li').removeClass('active');
         	this.$('#nav' + this.appState.get('currentTab')).parent().addClass('active');
         },
+        mainManuURLS : function() {
+		},
 		/** on close */
 		onClose: function(){
 		}

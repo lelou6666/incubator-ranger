@@ -22,6 +22,7 @@ define(function(require){
 	'use strict';	
 
 	var VXUserBase	= require('model_bases/VXUserBase');
+	var XAEnums     = require('utils/XAEnums');
 
 	var VXUser = VXUserBase.extend(
 	/** @lends VXUser.prototype */
@@ -33,9 +34,37 @@ define(function(require){
 		 */
 		initialize: function() {
 			this.modelName = 'VXUser';
+			var selectable = new Backbone.Picky.Selectable(this);
+			_.extend(this, selectable);
 			this.bindErrorEvents();
+			this.toView();
+			this.toViewStatus();
+		},
+
+		toView : function(){
+			if(!_.isUndefined(this.get('isVisible'))){
+				var visible = (this.get('isVisible') == XAEnums.VisibilityStatus.STATUS_VISIBLE.value);
+				this.set('isVisible', visible);
+			}
+		},
+
+		toServer : function(){
+			var visible = this.get('isVisible') ? XAEnums.VisibilityStatus.STATUS_VISIBLE.value : XAEnums.VisibilityStatus.STATUS_HIDDEN.value;
+			this.set('isVisible', visible);
 		},
 		
+		toViewStatus : function(){
+			if(!_.isUndefined(this.get('status'))){
+				var status = (this.get('status') == XAEnums.ActiveStatus.STATUS_ENABLED.value);
+				this.set('status', status);
+			}
+		},
+
+		toServerStatus : function(){
+			var status = this.get('status') ? XAEnums.ActiveStatus.STATUS_ENABLED.value : XAEnums.ActiveStatus.STATUS_DISABLED.value;
+			this.set('status', status);
+		},
+
 		/** This models toString() */
 		toString : function(){
 			return this.get('name');

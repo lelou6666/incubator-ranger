@@ -24,36 +24,24 @@
   <baseDirectory>${project.name}-${project.version}-hdfs-plugin</baseDirectory>
   <includeBaseDirectory>true</includeBaseDirectory>
   <moduleSets>
+    
     <moduleSet>
      <binaries>
         <includeDependencies>false</includeDependencies>
         <unpack>false</unpack>
 	    <directoryMode>755</directoryMode>
 	    <fileMode>644</fileMode>
-  		<dependencySets>
-   			<dependencySet>
-     			<outputDirectory>/lib</outputDirectory>
-				<includes>
-					<include>com.google.code.gson:gson*</include>
-					<include>org.eclipse.persistence:javax.persistence</include>
-					<include>org.eclipse.persistence:eclipselink</include>
-				</includes>
-				<unpack>false</unpack>
-  			</dependencySet>
-  		</dependencySets>
-        <outputDirectory>/lib</outputDirectory>
+  	    <outputDirectory>/lib</outputDirectory>
      </binaries>
      <includes>
-	<include>security_plugins.ranger-plugins-audit:ranger-plugins-audit</include>
-	<include>security_plugins.ranger-plugins-cred:ranger-plugins-cred</include>
-	<include>security_plugins.ranger-plugins-impl:ranger-plugins-impl</include>
-	<include>security_plugins.ranger-plugins-common:ranger-plugins-common</include>
-	<include>security_plugins.ranger-hdfs-plugin:ranger-hdfs-plugin</include>
-     </includes>
+	  <include>org.apache.ranger:ranger-hdfs-plugin-shim</include>
+	  <include>org.apache.ranger:ranger-plugin-classloader</include>
+      </includes>
     </moduleSet>
+    
     <moduleSet>
      <binaries>
-        <includeDependencies>false</includeDependencies>
+        <includeDependencies>true</includeDependencies>
   		<dependencySets>
                 <dependencySet>
                     <outputDirectory>/install/lib</outputDirectory>
@@ -62,11 +50,12 @@
                         <include>commons-cli:commons-cli</include>
                         <include>commons-collections:commons-collections</include>
                         <include>commons-configuration:commons-configuration:jar:${commons.configuration.version}</include>
+                        <include>commons-io:commons-io:jar:${commons.io.version}</include>
                         <include>commons-lang:commons-lang</include>
                         <include>commons-logging:commons-logging:jar:${commons.logging.version}</include>
-                        <include>com.google.guava:guava:jar:${guava.version}</include>
+                        <include>com.google.guava:guava:jar:${google.guava.version}</include>
                         <include>org.hamcrest:hamcrest-all</include>
-                        <include>junit:junit</include>
+                        <include>junit:junit:${junit.version}</include>
                         <include>org.slf4j:slf4j-api:jar:${slf4j-api.version}</include>
                         <include>org.apache.hadoop:hadoop-common:jar:${hadoop-common.version}</include>
                         <include>org.apache.hadoop:hadoop-auth:jar:${hadoop-common.version}</include>
@@ -77,10 +66,41 @@
         <unpack>false</unpack>
      </binaries>
      <includes>
-		<include>security_plugins.ranger-plugins-installer:ranger-plugins-installer</include>
+		<include>org.apache.ranger:ranger-plugins-installer</include>
         <include>org.apache.ranger:credentialbuilder</include>
      </includes>
     </moduleSet>
+    
+    <moduleSet>
+     <binaries>
+        <includeDependencies>true</includeDependencies>
+        <unpack>false</unpack>
+	    <directoryMode>755</directoryMode>
+	    <fileMode>644</fileMode>
+  		<dependencySets>
+   			<dependencySet>
+     			<outputDirectory>/lib/ranger-hdfs-plugin-impl</outputDirectory>
+				<includes>
+					<include>com.google.code.gson:gson*</include>
+					<include>org.eclipse.persistence:javax.persistence</include>
+					<include>org.eclipse.persistence:eclipselink</include>
+					<include>org.apache.httpcomponents:httpmime:jar:${httpcomponent.httpmime.version}</include>
+					<include>org.noggit:noggit:jar:${noggit.version}</include>
+				</includes>
+				<unpack>false</unpack>
+  			</dependencySet>
+  		</dependencySets>
+        <outputDirectory>/lib/ranger-hdfs-plugin-impl</outputDirectory>
+     </binaries>
+    <includes>
+	<include>org.apache.ranger:ranger_solrj</include>
+	<include>org.apache.ranger:ranger-plugins-audit</include>
+	<include>org.apache.ranger:ranger-plugins-cred</include>
+	<include>org.apache.ranger:ranger-plugins-common</include>
+	<include>org.apache.ranger:ranger-hdfs-plugin</include>
+    </includes>
+    </moduleSet>
+    
   </moduleSets> 	
   <fileSets>
     <!-- conf.templates for enable -->
@@ -111,6 +131,22 @@
 		<fileMode>755</fileMode>
 	</file>
 	<file>
+		<source>agents-common/scripts/upgrade-plugin.sh</source>
+		<outputDirectory>/</outputDirectory>
+		<destName>upgrade-hdfs-plugin.sh</destName>
+		<fileMode>755</fileMode>
+	</file>
+	<file>
+		<source>agents-common/scripts/upgrade-plugin.py</source>
+		<outputDirectory>/</outputDirectory>
+		<fileMode>755</fileMode>
+	</file>
+	<file>
+		<source>security-admin/scripts/ranger_credential_helper.py</source>
+	  <outputDirectory>/</outputDirectory>
+	  <fileMode>755</fileMode>
+	</file>
+	<file>
 		<source>agents-common/scripts/enable-agent.sh</source>
 		<outputDirectory>/</outputDirectory>
 		<destName>disable-hdfs-plugin.sh</destName>
@@ -122,11 +158,5 @@
 		<destName>install.properties</destName>
 		<fileMode>755</fileMode>
 	</file>
-    <file>
-		<source>hdfs-agent/conf/xasecure-hadoop-env.sh</source>
-		<outputDirectory>/install/conf.templates/enable</outputDirectory>
-		<destName>set-hdfs-plugin-env.sh</destName>
-		<fileMode>755</fileMode>
-    </file>	
   </files>
 </assembly>

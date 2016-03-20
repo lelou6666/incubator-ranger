@@ -19,51 +19,21 @@
 
  define([
 	'backbone',
-	'backbone.marionette'
+	'backbone.marionette',
+	'utils/XALangSupport',
+	'models/VAppState',
+	'utils/XAUtils'
 ],
-function(Backbone){
+function(Backbone, Marionette, localization, MAppState, XAUtil){
     'use strict';
 
 	return Backbone.Marionette.AppRouter.extend({
 		/** Backbone routes hash */
 		appRoutes: {
-			""							: "policyManagerAction",//"dashboardAction",
-			"!/policymanager"			: "policyManagerAction",
+			""									: "postLoginDefaultView",//"dashboardAction",
+			"!/policymanager/:resource"			: "serviceManagerAction",
+			"!/policymanager/:tag"				: "serviceManagerAction",
 
-			/* HDFS related */
-			"!/hdfs"					: "hdfsManageAction",
-			"!/hdfs/:id/policies"		: "hdfsManageAction",
-			"!/policy/:assetId/create"	: "policyCreateAction",
-			"!/policy/:id/edit"			: "policyEditAction",
-			"!/hdfs/:assetId/policy/:id": "policyViewAction",
-			
-			/****** Hive related **********************/
-			"!/hive"						: "hiveManageAction",
-			"!/hive/:id/policies"			: "hiveManageAction",
-			"!/hive/:assetId/policy/create"	: "hivePolicyCreateAction",
-			"!/hive/:assetId/policy/:id"	: "hivePolicyEditAction",
-			
-			/****** HBASE related **********************/
-			"!/hbase"						: "hbaseManageAction",
-			"!/hbase/:id/policies"			: "hbaseManageAction",
-			"!/hbase/:assetId/policy/create": "hbasePolicyCreateAction",
-			"!/hbase/:assetId/policy/:id"	: "hbasePolicyEditAction",
-			
-			/****** KNOX related ************************/
-			"!/knox/:id/policies"			: "knoxManageAction",
-			"!/knox/:assetId/policy/create"	: "knoxPolicyCreateAction",
-			"!/knox/:assetId/policy/:id"	: "knoxPolicyEditAction",
-			
-			/****** STORM related ************************/
-			"!/storm/:id/policies"			: "stormManageAction",
-			"!/storm/:assetId/policy/create": "stormPolicyCreateAction",
-			"!/storm/:assetId/policy/:id"	: "stormPolicyEditAction",
-			
-			/****** Asset related **********************/
-			"!/asset"					: "policyManagerAction",
-			"!/asset/create/:assetType" : "assetCreateAction",
-			"!/asset/:id"				: "assetEditAction",
-			
 			/****** Analytics Report related **********************/
 			"!/reports/userAccess"		: "userAccessReportAction",
 			
@@ -79,7 +49,66 @@ function(Backbone){
 			"!/user/:id"		: "userEditAction",
 			
 			"!/group/create"	: "groupCreateAction",
-			"!/group/:id"		: "groupEditAction"
+			"!/group/:id"		: "groupEditAction",
+
+			/************GENERIC UI *****************************************/
+			"!/service/:serviceType/create" 	: "serviceCreateAction",
+			"!/service/:serviceType/edit/:id"	: "serviceEditAction",
+			
+			"!/service/:serviceId/policies"			: "policyManageAction",
+			"!/service/:serviceId/policies/create"	: "RangerPolicyCreateAction",
+			"!/service/:serviceId/policies/:id/edit": "RangerPolicyEditAction",
+
+			/************PERMISSIONS VIEWS *****************************************/
+            "!/permissions"					: "modulePermissionsAction",
+            "!/permissions/:id/edit"        : "modulePermissionEditAction",
+			
+			/************ KMS ***************************/
+			"!/kms/keys/:isService/manage/:serviceName"	: "kmsManagerAction",
+			"!/kms/keys/:serviceName/create"		: "kmsKeyCreateAction",
+//			"!/kms/keys/:serviceName/edit/:id"		: "kmsKeyEditAction",
+			
+			/*************** ERROR PAGE ***********************/
+			"*actions"					: "pageNotFoundAction"
+			
+		},
+		route: function(route, name, callback) {
+			var router = this,
+				callbackArgs;
+			if (!callback) callback = this[name];
+			var proceedWithCallback = function() {
+				var currentFragment = Backbone.history.getFragment();
+				router.trigger('beforeroute', name);
+				callback.apply(router, callbackArgs);
+				MAppState.set('previousFragment', currentFragment);
+			};
+
+			var overrideCallback = function() {
+				callbackArgs = arguments;
+				var formStatus = $('.form-horizontal').find('.dirtyField').length > 0 ? true : false
+				if (window._preventNavigation && formStatus) {
+					bootbox.dialog(window._preventNavigationMsg, [{
+						"label": "Stay on this page!",
+						"class": "btn-success btn-small",
+						"callback": function() {
+							router.navigate(MAppState.get('previousFragment'), {
+								trigger: false
+							});
+						}
+					}, {
+						"label": "Leave this page",
+						"class": "btn-danger btn-small",
+						"callback": function() {
+							XAUtil.allowNavigation();
+							proceedWithCallback();
+						}
+					}]);
+
+				} else {
+					proceedWithCallback();
+				}
+			};
+			return Backbone.Router.prototype.route.call(this, route, name, overrideCallback);
 		}
 	});
 });

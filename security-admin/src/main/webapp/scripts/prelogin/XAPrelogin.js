@@ -33,17 +33,19 @@ if (!Array.indexOf) {
 
 function doLogin() {
 	
-	if ($("#username").val() === '' || $('#password').val() === '') {
+	var userName = $('#username').val().trim();
+	var passwd 	 = $('#password').val().trim();
+
+	if (userName === '' || passwd === '') {
 		$('#errorBox').show();
 		$('#signInLoading').hide();
 		$('#signIn').removeAttr('disabled');
+		$('#errorBox .errorMsg').text("The username or password you entered is incorrect..");
 		return false;
 	}
-	var userName = $('#username').val().trim();
-	var passwd = $('#password').val().trim();
 
 	var regexEmail = /^([a-zA-Z0-9_\.\-\+])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
-	var regexPlain = /^([a-zA-Z0-9_\.\-\+])+$/;
+	var regexPlain = /^([a-zA-Z0-9_\.\-\+ ])+$/;
 	if(!regexPlain.test(userName)){
 		if(!regexEmail.test(userName)){
 			$('#errorBox').show();
@@ -62,8 +64,8 @@ function doLogin() {
 
 	$.ajax({
 		data : {
-			j_username : userName,
-			j_password : passwd
+			j_username : $('#username').val(),
+			j_password : $('#password').val()
 		},
 		url : url,
 		type : 'POST',
@@ -74,7 +76,7 @@ function doLogin() {
 			if(location.hash.length > 2)
 				window.location.replace('index.html'+location.hash);
 			else
-				window.location.replace('index.html'+'#!/policymanager');
+				window.location.replace('index.html');
 		},
 		error : function(jqXHR, textStatus, err ) {
 			$('#signIn').removeAttr('disabled');
@@ -84,6 +86,8 @@ function doLogin() {
 				$('#errorBox').hide();
 				$('#errorBoxUnsynced').show();
 			} else {
+				var resp = JSON.parse(jqXHR.responseText);
+				$('#errorBox .errorMsg').text(resp.msgDesc);
 				$('#errorBox').show();
 				$('#errorBoxUnsynced').hide();
 			}

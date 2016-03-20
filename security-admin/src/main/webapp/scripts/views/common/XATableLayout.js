@@ -48,7 +48,7 @@ define(function(require){
 			'rPagination'	: 'div[data-id="r_pagination"]'
 		},
 
-    	// /** ui selector cache */
+    	/** ui selector cache */
     	ui: {},
 
 		gridOpts : {
@@ -122,16 +122,17 @@ define(function(require){
 			this.listenTo(this.collection, "sync reset", this.showHidePager);
 			
             this.listenTo(this.collection, 'request', function(){
-				$(this.rTableSpinner.el).addClass('loading');
+				this.$el.find(this.rTableSpinner.el).addClass('loading');
 			},this);
             this.listenTo(this.collection, 'sync error', function(){
-				$(this.rTableSpinner.el).removeClass('loading');
+				this.$el.find(this.rTableSpinner.el).removeClass('loading');
 			},this);
 		},
 
 		/** on render callback */
 		onRender: function() {
 			this.initializePlugins();
+			
 			this.renderTable();
 			if(this.includePagination) {
 				this.renderPagination();
@@ -145,14 +146,16 @@ define(function(require){
 		initializePlugins: function(){
 		},
 
+        getGridObj : function(){
+			if (this.rTableList.currentView){
+                return this.rTableList.currentView;
+			}
+			return null;
+		},
+
 		renderTable : function(){
 			var that = this;
 			this.rTableList.show(new Backgrid.Grid(this.gridOpts));
-
-			/*this.rTableSpinner.show(new Spinner({
-				collection: this.collection
-			}));*/
-
 		},
 		renderPagination : function(){
 			this.rPagination.show(new Backgrid.Extension.Paginator({
@@ -164,9 +167,9 @@ define(function(require){
 		},
 		showHidePager : function(){
 			if(this.collection.state && this.collection.state.totalRecords > XAGlobals.settings.PAGE_SIZE)	{
-				$(this.rPagination.el).show();
+				this.$el.find(this.rPagination.el).show()
 			} else {
-				$(this.rPagination.el).hide();
+				this.$el.find(this.rPagination.el).hide();
 			}
 		},
 		renderFilter : function(){

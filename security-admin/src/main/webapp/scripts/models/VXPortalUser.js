@@ -50,14 +50,14 @@ define(function(require){
 				firstName : {
 					type		: 'Text',
 					title		: localization.tt("lbl.firstName")+' *',
-					validators  : ['required',{type:'regexp',regexp:/^[a-z][a-z0-9]+$/i,message :'Please enter valid name'}],
+					validators  : ['required',{type:'regexp',regexp:/^[a-zA-Z][a-zA-Z0-9\s_-]*[a-zA-Z0-9]+$/,message :'First name should start with alphabets & can have underscore, hyphen, space.'}],
 					editorAttrs : { 'placeholder' : localization.tt("lbl.firstName")}
 					
 				},
 				lastName : {
 					type		: 'Text',
-					title		: localization.tt("lbl.lastName")+' *',
-					validators  : ['required',{type:'regexp',regexp:/^[a-z][a-z0-9]+$/i,message :'Please enter valid name'}],
+					title		: localization.tt("lbl.lastName"),
+					validators  : [{type:'regexp',regexp:/^[a-zA-Z][a-zA-Z0-9\s_-]*[a-zA-Z0-9]+$/,message :'Last name should start with alphabets & can have underscore, hyphen, space.'}],
 					editorAttrs : { 'placeholder' : localization.tt("lbl.lastName")}
 				},
 				emailAddress : {
@@ -72,7 +72,7 @@ define(function(require){
 					title		: localization.tt("lbl.oldPassword")+' *',
 				//	validators  : ['required'],
 					fieldAttrs : {style : 'display:none;'},
-					editorAttrs : { 'placeholder' : localization.tt("lbl.oldPassword"),'onpaste':'return false;','oncopy':'return false;','autocomplete':'off'}
+					editorAttrs : { 'placeholder' : localization.tt("lbl.oldPassword"),'oncopy':'return false;','autocomplete':'off'}
 					
 				},
 				newPassword : {
@@ -80,7 +80,7 @@ define(function(require){
 					title		: localization.tt("lbl.newPassword")+' *',
 				//	validators  : ['required'],
 					fieldAttrs : {style : 'display:none;'},
-					editorAttrs : { 'placeholder' : localization.tt("lbl.newPassword"),'onpaste':'return false;','oncopy':'return false;','autocomplete':'off'}
+					editorAttrs : { 'placeholder' : localization.tt("lbl.newPassword"),'oncopy':'return false;','autocomplete':'off'}
 					
 				},
 				reEnterPassword : {
@@ -88,7 +88,7 @@ define(function(require){
 					title		: localization.tt("lbl.reEnterPassword")+' *',
 				//	validators  : ['required'],
 					fieldAttrs : {style : 'display:none;'},
-					editorAttrs : { 'placeholder' : localization.tt("lbl.reEnterPassword"),'onpaste':'return false;','oncopy':'return false;','autocomplete':'off'}
+					editorAttrs : { 'placeholder' : localization.tt("lbl.reEnterPassword"),'oncopy':'return false;','autocomplete':'off'}
 					
 				},
 				userRoleList : {

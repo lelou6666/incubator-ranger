@@ -22,7 +22,7 @@ create_jceks()
 	pass=$2
 	jceksFile=$3
 	
-	java -cp "${install_dir}/cred/lib/*:${install_dir}/installer/lib/*" com.hortonworks.credentialapi.buildks create ${alias} -value ${pass} -provider jceks://file${jceksFile}
+	java -cp "${install_dir}/cred/lib/*:${install_dir}/installer/lib/*" org.apache.ranger.credentialapi.buildks create ${alias} -value ${pass} -provider jceks://file${jceksFile}
 	if [ $? -ne 0 ]
 	then
 		echo "ERROR: Unable to create/update credential file [${jceksFile}] for alias [${alias}]"
@@ -228,11 +228,54 @@ if [ "${DB_FLAVOR}" == "ORACLE" ]
 then
 	audit_db_hostname=`grep '^XAAUDIT.DB.HOSTNAME'  ${install_dir}/install.properties | awk -F= '{ print $2 }'`
 	propertyName=XAAUDIT.DB.JDBC_URL
-	newPropertyValue="jdbc:oracle:thin:\@//${audit_db_hostname}"
+	count=$(grep -o ":" <<< "$audit_db_hostname" | wc -l)
+	#if [[ ${count} -eq 2 ]] ; then
+	if [ ${count} -eq 2 ] || [ ${count} -eq 0 ]; then
+		#jdbc:oracle:thin:@[HOST][:PORT]:SID or #jdbc:oracle:thin:@GL
+		newPropertyValue="jdbc:oracle:thin:@${audit_db_hostname}"
+	else
+		#jdbc:oracle:thin:@//[HOST][:PORT]/SERVICE
+		newPropertyValue="jdbc:oracle:thin:@//${audit_db_hostname}"
+	fi
 	updatePropertyToFile $propertyName $newPropertyValue $to_file
 
 	propertyName=XAAUDIT.DB.JDBC_DRIVER
 	newPropertyValue="oracle.jdbc.OracleDriver"
+	updatePropertyToFile $propertyName $newPropertyValue $to_file
+fi
+if [ "${DB_FLAVOR}" == "POSTGRES" ]
+then
+	audit_db_hostname=`grep '^XAAUDIT.DB.HOSTNAME'  ${install_dir}/install.properties | awk -F= '{ print $2 }'`
+	audit_db_name=`grep '^XAAUDIT.DB.DATABASE_NAME'  ${install_dir}/install.properties | awk -F= '{ print $2 }'`
+	propertyName=XAAUDIT.DB.JDBC_URL
+	newPropertyValue="jdbc:postgresql://${audit_db_hostname}/${audit_db_name}"
+	updatePropertyToFile $propertyName $newPropertyValue $to_file
+	propertyName=XAAUDIT.DB.JDBC_DRIVER
+	newPropertyValue="org.postgresql.Driver"
+	updatePropertyToFile $propertyName $newPropertyValue $to_file
+fi
+if [ "${DB_FLAVOR}" == "MSSQL" ]
+then
+	audit_db_hostname=`grep '^XAAUDIT.DB.HOSTNAME'  ${install_dir}/install.properties | awk -F= '{ print $2 }'`
+	audit_db_name=`grep '^XAAUDIT.DB.DATABASE_NAME'  ${install_dir}/install.properties | awk -F= '{ print $2 }'`
+	propertyName=XAAUDIT.DB.JDBC_URL
+	newPropertyValue="jdbc:sqlserver://${audit_db_hostname};databaseName=${audit_db_name}"
+	updatePropertyToFile $propertyName $newPropertyValue $to_file
+
+	propertyName=XAAUDIT.DB.JDBC_DRIVER
+	newPropertyValue="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+	updatePropertyToFile $propertyName $newPropertyValue $to_file
+fi
+if [ "${DB_FLAVOR}" == "SQLA" ]
+then
+	audit_db_hostname=`grep '^XAAUDIT.DB.HOSTNAME'  ${install_dir}/install.properties | awk -F= '{ print $2 }'`
+	audit_db_name=`grep '^XAAUDIT.DB.DATABASE_NAME'  ${install_dir}/install.properties | awk -F= '{ print $2 }'`
+	propertyName=XAAUDIT.DB.JDBC_URL
+	newPropertyValue="jdbc:sqlanywhere:database=${audit_db_name};host=${audit_db_hostname}"
+	updatePropertyToFile $propertyName $newPropertyValue $to_file
+
+	propertyName=XAAUDIT.DB.JDBC_DRIVER
+	newPropertyValue="sap.jdbc4.sqlanywhere.IDriver"
 	updatePropertyToFile $propertyName $newPropertyValue $to_file
 fi
 for f in ${install_dir}/installer/conf/*-changes.cfg
@@ -253,7 +296,7 @@ do
                 if [ $? -eq 0 ]
                 then
                 	cp="${install_dir}/installer/lib/*:${install_dir}/cred/lib/*:"
-                        java -cp "${cp}" com.xasecure.utils.install.XmlConfigChanger -i ${archivefn} -o ${newfn} -c ${f} ${PROP_ARGS}
+                        java -cp "${cp}" org.apache.ranger.utils.install.XmlConfigChanger -i ${archivefn} -o ${newfn} -c ${f} ${PROP_ARGS}
                         if [ $? -eq 0 ]
                         then
                                 diff -w ${newfn} ${fullpathorgfn} > /dev/null 2>&1 
@@ -302,13 +345,13 @@ awk -F: 'BEGIN {
 }
 { 
 	if ($1 == "nimbus.authorizer") {
-		if ($2 ~ /^[ \t]*"com.xasecure.authorization.storm.authorizer.XaSecureStormAuthorizer"[ \t]*$/) {
+		if ($2 ~ /^[ \t]*"org.apache.ranger.authorization.storm.authorizer.RangerStormAuthorizer"[ \t]*$/) {
 			configured = 1 ;
 			printf("%s\n",$0) ;
 		}
 		else {
 			printf("#%s\n",$0);
-			printf("nimbus.authorizer: \"com.xasecure.authorization.storm.authorizer.XaSecureStormAuthorizer\"\n") ;
+			printf("nimbus.authorizer: \"org.apache.ranger.authorization.storm.authorizer.RangerStormAuthorizer\"\n") ;
 			configured = 1 ;
 		}
 	}
@@ -318,7 +361,7 @@ awk -F: 'BEGIN {
 }
 END {
 	if (configured == 0) {
-		printf("nimbus.authorizer: \"com.xasecure.authorization.storm.authorizer.XaSecureStormAuthorizer\"\n") ;
+		printf("nimbus.authorizer: \"org.apache.ranger.authorization.storm.authorizer.RangerStormAuthorizer\"\n") ;
 	}
 }' ${ARCHIVE_FILE} > ${ARCHIVE_FILE}.new 
 

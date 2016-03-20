@@ -16,6 +16,7 @@
 # limitations under the License.
 
 
+<<<<<<< HEAD
 realScriptPath=`readlink -f $0`
 realScriptDir=`dirname $realScriptPath`
 cd $realScriptDir
@@ -59,3 +60,7 @@ then
 else
 	echo "UnixAuthenticationService failed to start. Please refer to log files under ${logdir} for further details."
 fi
+=======
+echo "NOTE: This script is provided for backward compatibility only. All scripts calling this should now use '/usr/bin/ranger-usersync start' instead"
+/usr/bin/ranger-usersync start
+>>>>>>> refs/remotes/apache/master

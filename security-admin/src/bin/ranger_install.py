@@ -43,6 +43,8 @@ conf_dict={}
 def log(msg,type):
     if type == 'info':
         logging.info(" %s",msg)
+    if type == 'error':
+        logging.error(" %s",msg)
     if type == 'debug':
         logging.debug(" %s",msg)
     if type == 'warning':
@@ -50,21 +52,16 @@ def log(msg,type):
     if type == 'exception':
         logging.exception(" %s",msg)
 
-#def check_mysql_connector():
-#    global MYSQL_CONNECTOR_JAR
-#    ### From properties file
-#    MYSQL_CONNECTOR_JAR = os.getenv("MYSQL_CONNECTOR_JAR")
-#    debugMsg = "Checking MYSQL CONNECTOR FILE : " + MYSQL_CONNECTOR_JAR
-#    log(debugMsg, 'debug')
-#    log( "Checking MYSQL CONNECTOR FILE : " + MYSQL_CONNECTOR_JAR, "debug")
-#    ### From properties file
-#    if os.path.isfile(MYSQL_CONNECTOR_JAR):
-#        log(" MYSQL CONNECTOR FILE :" + MYSQL_CONNECTOR_JAR + "file found",'info')
-#    else:
-#      log(" MYSQL CONNECTOR FILE : "+MYSQL_CONNECTOR_JAR+" file does not exist",'info')
-#pass
-
-
+def password_validation(password, userType):
+	if password:
+		if re.search("[\\\`'\"]",password):
+			log("[E] "+userType+" user password contains one of the unsupported special characters like \" ' \ `","error")
+			sys.exit(1)
+		else:
+			log("[I] "+userType+" user password validated","info")
+	else:
+		log("[E] Blank password is not allowed,please enter valid password.","error")
+		sys.exit(1)
 
 def resolve_sym_link(path):
     path = os.path.realpath(path)
@@ -171,8 +168,8 @@ def get_class_path(paths):
 
 def get_jdk_options():
     global conf_dict
-    return [os.getenv('RANGER_PROPERTIES', ''),
-                  '-Dcatalina.base=' + conf_dict['EWS_ROOT'] ]
+    return [os.getenv('RANGER_PROPERTIES', ''),"-Dlogdir="+os.getenv("RANGER_LOG_DIR"),
+											' -Dcatalina.base=' + conf_dict['EWS_ROOT'] ]
 
 
 """
@@ -194,13 +191,17 @@ def populate_config_dict_from_env():
     global config_dict
     conf_dict['RANGER_ADMIN_DB_HOST'] = os.getenv("RANGER_ADMIN_DB_HOST")
     conf_dict['RANGER_AUDIT_DB_HOST'] = os.getenv("RANGER_AUDIT_DB_HOST")
-    conf_dict['MYSQL_BIN'] = 'mysql.exe'       #os.getenv("MYSQL_BIN")
+    #conf_dict['MYSQL_BIN'] = 'mysql.exe'       #os.getenv("MYSQL_BIN")
+    conf_dict['RANGER_DB_FLAVOR'] = os.getenv("RANGER_DB_FLAVOR")
+    conf_dict['RANGER_AUDIT_DB_FLAVOR'] = os.getenv("RANGER_DB_FLAVOR")
     conf_dict['RANGER_ADMIN_DB_USERNAME'] = os.getenv("RANGER_ADMIN_DB_USERNAME")
     conf_dict['RANGER_ADMIN_DB_PASSWORD'] = os.getenv("RANGER_ADMIN_DB_PASSWORD")
     conf_dict['RANGER_ADMIN_DB_NAME'] = os.getenv("RANGER_ADMIN_DB_DBNAME")
     conf_dict['RANGER_AUDIT_DB_USERNAME'] = os.getenv("RANGER_AUDIT_DB_USERNAME")
     conf_dict['RANGER_AUDIT_DB_PASSWORD'] = os.getenv("RANGER_AUDIT_DB_PASSWORD")
     conf_dict['RANGER_AUDIT_DB_NAME'] = os.getenv("RANGER_AUDIT_DB_DBNAME")
+    conf_dict['db_root_user'] = os.getenv("RANGER_DB_ROOT_USER")
+    conf_dict['db_root_password'] = os.getenv("RANGER_ADMIN_DB_ROOT_PASSWORD")
     conf_dict['RANGER_ADMIN_DB_ROOT_PASSWORD'] = os.getenv("RANGER_ADMIN_DB_ROOT_PASSWORD")
     conf_dict['RANGER_AUDIT_DB_ROOT_PASSWORD'] = os.getenv("RANGER_AUDIT_DB_ROOT_PASSWORD")
     conf_dict['RANGER_ADMIN_HOME'] = os.getenv("RANGER_ADMIN_HOME")
@@ -259,13 +260,59 @@ def init_variables(switch):
     conf_dict['EWS_ROOT']   = EWS_ROOT
     conf_dict['WEBAPP_ROOT']= WEBAPP_ROOT
     conf_dict['INSTALL_DIR']= INSTALL_DIR
-
+    conf_dict['JAVA_BIN']= os.path.join(os.getenv("JAVA_HOME"),'bin','java.exe')
+    conf_dict['DB_FLAVOR'] = os.getenv("RANGER_DB_FLAVOR")
+    conf_dict['RANGER_DB_FLAVOR'] = os.getenv("RANGER_DB_FLAVOR")
+    conf_dict['RANGER_AUDIT_DB_FLAVOR'] = os.getenv("RANGER_DB_FLAVOR")	
+    dir = os.path.join(os.getenv("RANGER_HOME"),"connector-jar")
+    ews_dir = os.path.join(os.getenv("RANGER_ADMIN_HOME"),"ews","webapp","WEB-INF","lib")
+    log(ews_dir,"info")
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    layout_dir = os.path.dirname(os.getenv("HDP_LAYOUT"))
+    files = os.listdir(layout_dir)
+    if files:
+        for filename in files:
+            #log (filename,"info")
+            if os.getenv("RANGER_DB_FLAVOR") == "MYSQL" or os.getenv("RANGER_AUDIT_DB_FLAVOR") == "MYSQL":
+                f = re.match("^mysql-connector-java.*?.jar",filename)
+            elif os.getenv("RANGER_DB_FLAVOR") == "ORACLE" or os.getenv("RANGER_AUDIT_DB_FLAVOR") == "ORACLE":    
+                f = re.match("^ojdbc.*?.jar",filename)
+            elif os.getenv("RANGER_DB_FLAVOR") == "POSTGRES" or os.getenv("RANGER_AUDIT_DB_FLAVOR") == "POSTGRES":    
+                f = re.match("^postgresql-connector-jdbc.*?.jar",filename)    
+            elif os.getenv("RANGER_DB_FLAVOR") == "MSSQL" or os.getenv("RANGER_AUDIT_DB_FLAVOR") == "MSSQL":
+                f = re.match("^sqljdbc.*?.jar",filename)    
+            if f:
+                src = os.path.join(layout_dir,filename)
+                shutil.copy2(src, dir)
+                shutil.copy2(src, ews_dir)
+                conf_dict['SQL_CONNECTOR_JAR'] = os.path.join(dir,filename)
+				
+                    				
+    conf_dict['db_host']=os.getenv("RANGER_ADMIN_DB_HOST") + ":" + os.getenv("RANGER_ADMIN_DB_PORT")
+    conf_dict['db_name']=os.getenv("RANGER_ADMIN_DB_DBNAME")
+    conf_dict['db_user']=os.getenv("RANGER_ADMIN_DB_USERNAME")
+    conf_dict['db_password']=os.getenv("RANGER_ADMIN_DB_PASSWORD")
+    conf_dict['audit_db_name']=os.getenv("RANGER_AUDIT_DB_DBNAME")
+    conf_dict['audit_db_user']=os.getenv("RANGER_AUDIT_DB_USERNAME")
+    conf_dict['audit_db_password']=os.getenv("RANGER_AUDIT_DB_PASSWORD")
+    conf_dict['RANGER_ADMIN_DB_PORT']=os.getenv("RANGER_ADMIN_DB_PORT")
+    conf_dict['RANGER_AUDIT_DB_PORT']=os.getenv("RANGER_AUDIT_DB_PORT")
     db_dir = os.path.join(conf_dict['RANGER_ADMIN_HOME'] , "db")
-    conf_dict['RANGER_DB_DIR']           = db_dir
-    conf_dict['db_core_file']           = os.path.join(db_dir, "xa_core_db.sql")
-    conf_dict['db_create_user_file']    = os.path.join(db_dir, "create_dev_user.sql")
-    conf_dict['db_audit_file']          = os.path.join(db_dir, "xa_audit_db.sql")
-    conf_dict['db_asset_file']          = os.path.join(db_dir, "reset_asset.sql")
+    conf_dict['mysql_core_file']=os.path.join(db_dir,'mysql','xa_core_db.sql')
+    conf_dict['mysql_audit_file']=os.path.join(db_dir,'mysql','xa_audit_db.sql')
+    conf_dict['oracle_core_file']=os.path.join(db_dir,'oracle','xa_core_db_oracle.sql')
+    conf_dict['oracle_audit_file']=os.path.join(db_dir,'oracle','xa_audit_db_oracle.sql')
+    conf_dict['postgres_core_file']=os.path.join(db_dir,'postgres','xa_core_db_postgres.sql')
+    conf_dict['postgres_audit_file']=os.path.join(db_dir,'postgres','xa_audit_db_postgres.sql')
+    conf_dict['sqlserver_core_file']=os.path.join(db_dir,'sqlserver','xa_core_db_sqlserver.sql')
+    conf_dict['sqlserver_audit_file']=os.path.join(db_dir,'sqlserver','xa_audit_db_sqlserver.sql')
+    conf_dict['sqlanywhere_core_file']= os.path.join(db_dir,'sqlanywhere','xa_core_db_sqlanywhere.sql')
+    conf_dict['sqlanywhere_audit_file']= os.path.join(db_dir, 'sqlanywhere','xa_audit_db_sqlanywhere.sql')
+    #conf_dict['db_core_file']           = os.path.join(db_dir, "xa_core_db.sql")
+    #conf_dict['db_create_user_file']    = os.path.join(db_dir, "create_dev_user.sql")
+    #conf_dict['db_audit_file']          = os.path.join(db_dir, "xa_audit_db.sql")
+    #conf_dict['db_asset_file']          = os.path.join(db_dir, "reset_asset.sql")
 
     #log("config is : " , "debug")
     #for x in conf_dict:
@@ -335,8 +382,8 @@ def write_config_to_file():
     open(write_conf_to_file,'wb')
     for key,value in conf_dict.items():
         if 'PASSWORD' in key :
-            call_keystore(library_path,key,value,jceks_file_path,'create')
-            value = ''
+            #call_keystore(library_path,key,value,jceks_file_path,'create')
+            value=''
         ModConfig(write_conf_to_file , key,value)
 
 
@@ -648,108 +695,303 @@ def update_xapolicymgr_properties():
     log("xapolicymgr_properties: " + xapolicymgr_properties, "debug")
     ModConfig(xapolicymgr_properties,"xa.webapp.dir", WEBAPP_ROOT.replace('\\','/' ))
 
-
+def updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file):
+    ret = subprocess.call(['python', '%s\update_property.py' %os.getenv("RANGER_ADMIN_HOME"), propertyName ,newPropertyValue ,to_file])
+    if ret == 0:
+        log("Updated property for :"+to_file,"info")
+    else:
+        log("Update property failed for :"+to_file,"info")
+        sys.exit(1)
+	
 def update_properties():
     global conf_dict
     sys_conf_dict={}
 
+    RANGER_DB_FLAVOR = conf_dict["RANGER_DB_FLAVOR"]
+    RANGER_AUDIT_DB_FLAVOR = conf_dict["RANGER_DB_FLAVOR"]
     MYSQL_HOST = conf_dict["RANGER_ADMIN_DB_HOST"]
     WEBAPP_ROOT = conf_dict["WEBAPP_ROOT"]
     db_user = conf_dict["RANGER_ADMIN_DB_USERNAME"]
     db_password = conf_dict["RANGER_ADMIN_DB_PASSWORD"]
     db_name = conf_dict["RANGER_ADMIN_DB_NAME"]
+    RANGER_ADMIN_DB_PORT = conf_dict["RANGER_ADMIN_DB_PORT"]
+    RANGER_AUDIT_DB_PORT = conf_dict["RANGER_AUDIT_DB_PORT"]
 
     audit_db_user = conf_dict["RANGER_AUDIT_DB_USERNAME"]
     audit_db_password = conf_dict["RANGER_AUDIT_DB_PASSWORD"]
     audit_db_name = conf_dict["RANGER_AUDIT_DB_NAME"]
 
-    update_xapolicymgr_properties()
-
+    to_file_ranger = os.path.join(WEBAPP_ROOT, "WEB-INF", "classes", "conf", "ranger-admin-site.xml")
     newPropertyValue=''
-    to_file = os.path.join(WEBAPP_ROOT, "WEB-INF", "classes", "conf", "xa_system.properties")
-
-    if os.path.isfile(to_file):
-        log("to_file: " + to_file + " file found", "info")
+    to_file_default = os.path.join(WEBAPP_ROOT, "WEB-INF", "classes", "conf", "ranger-admin-default-site.xml")
+    if os.path.isfile(to_file_ranger):
+        log("to_file_ranger: " + to_file_ranger + " file found", "info")
     else:
-        log("to_file: " + to_file + " does not exists", "warning")
+        log("to_file_ranger: " + to_file_ranger + " does not exists", "warning")
+    if os.path.isfile(to_file_default):
+        log("to_file_default: " + to_file_default + " file found", "info")
+    else:
+        log("to_file_default: " + to_file_default + " does not exists", "warning")	
 
-    config = StringIO.StringIO()
-    config.write('[dummysection]\n')
-    config.write(open(to_file).read())
-    config.seek(0, os.SEEK_SET)
-    ##Now parse using configparser
-    cObj = ConfigParser.ConfigParser()
-    cObj.optionxform = str
-    cObj.readfp(config)
-    options = cObj.options('dummysection')
-    for option in options:
-        value = cObj.get('dummysection', option)
-        sys_conf_dict[option] = value
-        cObj.set("dummysection",option, value)
+    log("SQL_HOST is : " + MYSQL_HOST,"debug")
+    if RANGER_DB_FLAVOR == "MYSQL":
+        propertyName="ranger.jpa.jdbc.url"
+        newPropertyValue="jdbc:log4jdbc:mysql://%s:%s/%s" %(MYSQL_HOST ,RANGER_ADMIN_DB_PORT, db_name)
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
 
-    log("MYSQL_HOST is : " + MYSQL_HOST,"debug")
-    propertyName="jdbc.url"
-    newPropertyValue="jdbc:log4jdbc:mysql://" + MYSQL_HOST + ":3306/" + db_name
-    cObj.set('dummysection',propertyName,newPropertyValue)
+        propertyName="ranger.jpa.jdbc.user"
+        newPropertyValue=db_user
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
 
-    propertyName="xa.webapp.url.root"
-    newPropertyValue=os.getenv("RANGER_EXTERNAL_URL")
-    cObj.set('dummysection',propertyName,newPropertyValue)
+        propertyName="ranger.jpa.audit.jdbc.user"
+        newPropertyValue=audit_db_user
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
 
-    #TODO hardcoding for now
-    propertyName="http.enabled"
-    newPropertyValue="true"
-    cObj.set('dummysection',propertyName,newPropertyValue)
+        propertyName="ranger.jpa.audit.jdbc.url"
+        newPropertyValue="jdbc:log4jdbc:mysql://%s:%s/%s" %(MYSQL_HOST, RANGER_AUDIT_DB_PORT, audit_db_name)
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
 
-    propertyName="auditDB.jdbc.url"
-    newPropertyValue="jdbc:log4jdbc:mysql://"+MYSQL_HOST+":3306/"+audit_db_name
-    cObj.set('dummysection',propertyName,newPropertyValue)
+        propertyName="ranger.jpa.jdbc.dialect"
+        newPropertyValue="org.eclipse.persistence.platform.database.MySQLPlatform"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
 
-    propertyName="jdbc.user"
-    newPropertyValue=db_user
-    cObj.set('dummysection',propertyName,newPropertyValue)
+        propertyName="ranger.jpa.audit.jdbc.dialect"
+        newPropertyValue="org.eclipse.persistence.platform.database.MySQLPlatform"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
 
-    propertyName="auditDB.jdbc.user"
-    newPropertyValue=audit_db_user
-    cObj.set('dummysection',propertyName,newPropertyValue)
+        propertyName="ranger.jpa.jdbc.driver"
+        newPropertyValue="net.sf.log4jdbc.DriverSpy"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.audit.jdbc.driver"
+        newPropertyValue="net.sf.log4jdbc.DriverSpy"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+    elif RANGER_DB_FLAVOR == "ORACLE":
+        propertyName="ranger.jpa.jdbc.url"
+        #if MYSQL_HOST.count(":") == 2:
+        if MYSQL_HOST.count(":") == 2 or MYSQL_HOST.count(":") == 0:
+            #jdbc:oracle:thin:@[HOST][:PORT]:SID or #jdbc:oracle:thin:@GL
+            cstring="jdbc:oracle:thin:@%s" %(MYSQL_HOST)
+        else:
+            #jdbc:oracle:thin:@//[HOST][:PORT]/SERVICE
+            cstring="jdbc:oracle:thin:@//%s" %(MYSQL_HOST)
+
+        newPropertyValue=cstring
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.jdbc.user"
+        newPropertyValue=db_user
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.audit.jdbc.user"
+        newPropertyValue=audit_db_user
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.audit.jdbc.url"
+        newPropertyValue=cstring
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.jdbc.dialect"
+        newPropertyValue="org.eclipse.persistence.platform.database.OraclePlatform"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
+
+        propertyName="ranger.jpa.audit.jdbc.dialect"
+        newPropertyValue="org.eclipse.persistence.platform.database.OraclePlatform"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
+
+        propertyName="ranger.jpa.jdbc.driver"
+        newPropertyValue="oracle.jdbc.OracleDriver"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.audit.jdbc.driver"
+        newPropertyValue="oracle.jdbc.OracleDriver"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+    elif RANGER_DB_FLAVOR == "POSTGRES":
+        propertyName="ranger.jpa.jdbc.url"
+        newPropertyValue="jdbc:postgresql://%s:%s/%s" %(MYSQL_HOST, RANGER_ADMIN_DB_PORT, db_name)
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+		
+        propertyName="ranger.jpa.jdbc.user"
+        newPropertyValue=db_user
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.audit.jdbc.user"
+        newPropertyValue=audit_db_user
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+		
+        propertyName="ranger.jpa.audit.jdbc.url"
+        newPropertyValue="jdbc:postgresql://%s:%s/%s" %(MYSQL_HOST, RANGER_AUDIT_DB_PORT, audit_db_name)
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.jdbc.dialect"
+        newPropertyValue="org.eclipse.persistence.platform.database.PostgreSQLPlatform"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
+
+        propertyName="ranger.jpa.audit.jdbc.dialect"
+        newPropertyValue="org.eclipse.persistence.platform.database.PostgreSQLPlatform"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
+
+        propertyName="ranger.jpa.jdbc.driver"
+        newPropertyValue="org.postgresql.Driver"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.audit.jdbc.driver"
+        newPropertyValue="org.postgresql.Driver"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+       
+
+    elif RANGER_DB_FLAVOR == "MSSQL":
+        propertyName="ranger.jpa.jdbc.url"
+        newPropertyValue="jdbc:sqlserver://%s:%s;databaseName=%s" %(MYSQL_HOST, RANGER_ADMIN_DB_PORT, db_name)
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.jdbc.user"
+        newPropertyValue=db_user
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.audit.jdbc.user"
+        newPropertyValue=audit_db_user
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+		
+        propertyName="ranger.jpa.audit.jdbc.url"
+        newPropertyValue="jdbc:sqlserver://%s:%s;databaseName=%s" % (MYSQL_HOST, RANGER_AUDIT_DB_PORT, audit_db_name)
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.jdbc.dialect"
+        newPropertyValue="org.eclipse.persistence.platform.database.SQLServerPlatform"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
+
+        propertyName="ranger.jpa.audit.jdbc.dialect"
+        newPropertyValue="org.eclipse.persistence.platform.database.SQLServerPlatform"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
+
+        propertyName="ranger.jpa.jdbc.driver"
+        newPropertyValue="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.jpa.audit.jdbc.driver"
+        newPropertyValue="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
 
     if (os.path.isfile(os.getenv("RANGER_ADMIN_CRED_KEYSTORE_FILE"))):
-        propertyName="xaDB.jdbc.credential.alias"
-        newPropertyValue="policyDB.jdbc.password"
-        cObj.set('dummysection',propertyName,newPropertyValue)
+        propertyName="ranger.credential.provider.path"
+        newPropertyValue=os.getenv("RANGER_ADMIN_CRED_KEYSTORE_FILE")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
 
-        propertyName="xaDB.jdbc.credential.provider.path"
-        newPropertyValue= os.getenv("RANGER_ADMIN_CRED_KEYSTORE_FILE")
-        cObj.set('dummysection',propertyName,newPropertyValue)
+        propertyName="ranger.jpa.jdbc.credential.alias"
+        newPropertyValue="ranger.jpa.jdbc.password"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
 
-        propertyName="jdbc.password"
-        newPropertyValue="_"
-        cObj.set('dummysection',propertyName,newPropertyValue)
+	propertyName="ranger.credential.provider.path"
+	newPropertyValue=os.getenv("RANGER_ADMIN_CRED_KEYSTORE_FILE")
+	updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
 
-        propertyName="auditDB.jdbc.credential.alias"
-        newPropertyValue="auditDB.jdbc.password"
-        cObj.set('dummysection',propertyName,newPropertyValue)
-
-        propertyName="auditDB.jdbc.credential.provider.path"
-        newPropertyValue= os.getenv("RANGER_ADMIN_CRED_KEYSTORE_FILE")
-        cObj.set('dummysection',propertyName,newPropertyValue)
-
-        propertyName="auditDB.jdbc.password"
-        newPropertyValue="_"
-        cObj.set('dummysection',propertyName,newPropertyValue)
-
+	propertyName="ranger.jpa.jdbc.password"
+	newPropertyValue="_"
+	updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+		
+	propertyName="ranger.jpa.audit.jdbc.credential.alias"
+        newPropertyValue="ranger.jpa.audit.jdbc.password"
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_default)
+		
+	propertyName="ranger.jpa.audit.jdbc.password"
+	newPropertyValue="_"
+	updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+		
     else:
-
-        propertyName="jdbc.password"
+        propertyName="ranger.jpa.jdbc.password"
         newPropertyValue=os.getenv("RANGER_ADMIN_DB_PASSWORD")
-        cObj.set('dummysection',propertyName,newPropertyValue)
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
 
-        propertyName="auditDB.jdbc.password"
+        propertyName="ranger.jpa.audit.jdbc.password"
         newPropertyValue=os.getenv("RANGER_AUDIT_DB_PASSWORD")
-        cObj.set('dummysection',propertyName,newPropertyValue)
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
 
-    with open(to_file, 'wb') as configfile:
-        cObj.write(configfile)
+    if os.getenv("RANGER_AUTHENTICATION_METHOD") == "LDAP":
+
+	password_validation(os.getenv("RANGER_LDAP_BIND_PASSWORD"), "LDAP_BIND")
+
+        propertyName="ranger.authentication.method"
+        newPropertyValue=os.getenv("RANGER_AUTHENTICATION_METHOD")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.ldap.url"
+        newPropertyValue=os.getenv("RANGER_LDAP_URL")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.ldap.user.dnpattern"
+        newPropertyValue=os.getenv("RANGER_LDAP_USERDNPATTERN")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.ldap.group.searchbase"
+        newPropertyValue=os.getenv("RANGER_LDAP_GROUPSEARCHBASE")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.ldap.group.searchfilter"
+        newPropertyValue=os.getenv("RANGER_LDAP_GROUPSEARCHFILTER")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.ldap.group.roleattribute"
+        newPropertyValue=os.getenv("RANGER_LDAP_GROUPROLEATTRIBUTE")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+	
+	propertyName="ranger.ldap.base.dn"
+        newPropertyValue=os.getenv("RANGER_LDAP_BASE_DN")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+	propertyName="ranger.ldap.bind.dn"
+	newPropertyValue=os.getenv("RANGER_LDAP_BIND_DN")
+	updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+	
+	propertyName="ranger.ldap.bind.password"
+	newPropertyValue="_"
+	updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+	
+        propertyName="ranger.ldap.referral"
+        newPropertyValue=os.getenv("RANGER_LDAP_REFERRAL")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+	propertyName="ranger.ldap.user.searchfilter"
+	newPropertyValue=os.getenv("RANGER_LDAP_USERSEARCHFILTER")
+	updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+         
+    elif os.getenv("RANGER_AUTHENTICATION_METHOD") == "ACTIVE_DIRECTORY":
+
+	password_validation(os.getenv("RANGER_LDAP_AD_BIND_PASSWORD"), "AD_BIND")
+
+        propertyName="ranger.authentication.method"
+        newPropertyValue=os.getenv("RANGER_AUTHENTICATION_METHOD")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.ldap.ad.domain"
+        newPropertyValue=os.getenv("RANGER_LDAP_AD_DOMAIN")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+        propertyName="ranger.ldap.ad.url"
+        newPropertyValue=os.getenv("RANGER_LDAP_AD_URL")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+     	propertyName="ranger.ldap.ad.base.dn"
+        newPropertyValue=os.getenv("RANGER_LDAP_AD_BASE_DN")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+	propertyName="ranger.ldap.ad.bind.dn"
+	newPropertyValue=os.getenv("RANGER_LDAP_AD_BIND_DN")
+	updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+	propertyName="ranger.ldap.ad.bind.password"
+	newPropertyValue="_"
+	updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+	
+        propertyName="ranger.ldap.ad.referral"
+        newPropertyValue=os.getenv("RANGER_LDAP_AD_REFERRAL")
+        updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
+
+	propertyName="ranger.ldap.ad.user.searchfilter"
+	newPropertyValue=os.getenv("RANGER_LDAP_AD_USERSEARCHFILTER")
+	updatePropertyToFilePy(propertyName ,newPropertyValue ,to_file_ranger)
 
 def setup_authentication(authentication_method, xmlPath):
    if authentication_method == "UNIX":
@@ -1021,13 +1263,13 @@ def call_keystore(libpath,aliasKey,aliasValue , filepath,getorcreate):
     finalLibPath = libpath.replace('\\','/').replace('//','/')
     finalFilePath = 'jceks://file/'+filepath.replace('\\','/').replace('//','/')
     if getorcreate == 'create':
-        commandtorun = ['java', '-cp', finalLibPath, 'com.hortonworks.credentialapi.buildks' ,'create', aliasKey, '-value', aliasValue, '-provider',finalFilePath]
+        commandtorun = ['java', '-cp', finalLibPath, 'org.apache.ranger.credentialapi.buildks' ,'create', aliasKey, '-value', aliasValue, '-provider',finalFilePath]
         p = Popen(commandtorun,stdin=PIPE, stdout=PIPE, stderr=PIPE)
         output, error = p.communicate()
         statuscode = p.returncode
         return statuscode
     elif getorcreate == 'get':
-        commandtorun = ['java', '-cp', finalLibPath, 'com.hortonworks.credentialapi.buildks' ,'get', aliasKey, '-provider',finalFilePath]
+        commandtorun = ['java', '-cp', finalLibPath, 'org.apache.ranger.credentialapi.buildks' ,'get', aliasKey, '-provider',finalFilePath]
         p = Popen(commandtorun,stdin=PIPE, stdout=PIPE, stderr=PIPE)
         output, error = p.communicate()
         statuscode = p.returncode
@@ -1046,7 +1288,7 @@ def run_setup(cmd):
     write_config_to_file()
     #extract_war()
     update_properties()
-    do_authentication_setup()
+    #do_authentication_setup()
     return
 
 # Entry point to script using --configure
