@@ -78,7 +78,11 @@ define(function(require){
 			this.isKnownKmsServicePage =  this.kmsManagePage == 'new' ? false : true;
 			this.initializeKMSServices();
 			this.bindEvents();
+<<<<<<< HEAD
 			this.defaultsCollstate = this.collection.state;
+=======
+			this.defaultsCollstate = this.collection.state
+>>>>>>> refs/remotes/apache/master
 		},
 
 		/** all events binding here */

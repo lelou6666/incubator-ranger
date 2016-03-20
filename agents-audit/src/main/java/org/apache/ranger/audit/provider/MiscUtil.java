@@ -77,6 +77,7 @@ public class MiscUtil {
 	private static String sApplicationType = null;
 	private static UserGroupInformation ugiLoginUser = null;
 	private static Subject subjectLoginUser = null;
+	private static String local_hostname = null ;
 
 	private static Map<String, LogHistory> logHistoryList = new Hashtable<String, LogHistory>();
 	private static int logInterval = 30000; // 30 seconds
@@ -90,6 +91,8 @@ public class MiscUtil {
 					"failed to create GsonBuilder object. stringigy() will return obj.toString(), instead of Json",
 					excp);
 		}
+
+		initLocalHost();
 	}
 
 	public static String replaceTokens(String str, long time) {
@@ -157,12 +160,16 @@ public class MiscUtil {
 	}
 
 	public static String getHostname() {
-		String ret = null;
+		String ret = local_hostname;
 
-		try {
-			ret = InetAddress.getLocalHost().getHostName();
-		} catch (Exception excp) {
-			LogLog.warn("getHostname()", excp);
+		if  (ret == null) {
+			initLocalHost();
+
+			ret = local_hostname;
+
+			if (ret == null) {
+				ret = "unknown";
+			}
 		}
 
 		return ret;
@@ -431,7 +438,11 @@ public class MiscUtil {
 		if (subject != null) {
 			logger.info("SUBJECT.PRINCIPALS.size()="
 					+ subject.getPrincipals().size());
+<<<<<<< HEAD
 			java.util.Set<Principal> principals = subject.getPrincipals();
+=======
+			Set<Principal> principals = subject.getPrincipals();
+>>>>>>> refs/remotes/apache/master
 			for (Principal principal : principals) {
 				logger.info("SUBJECT.PRINCIPAL.NAME=" + principal.getName());
 			}
@@ -527,7 +538,7 @@ public class MiscUtil {
 					.createRemoteUser(userName);
 			String groups[] = ugi.getGroupNames();
 			if (groups != null && groups.length > 0) {
-				java.util.Set<String> groupsSet = new java.util.HashSet<String>();
+				Set<String> groupsSet = new java.util.HashSet<String>();
 				for (int i = 0; i < groups.length; i++) {
 					groupsSet.add(groups[i]);
 				}
@@ -765,6 +776,7 @@ public class MiscUtil {
 		}
 	}
 
+<<<<<<< HEAD
 	public static Date getUTCDateForLocalDate(Date date) {
 		 TimeZone gmtTimeZone = TimeZone.getTimeZone("GMT+0");
 		 Calendar local  = Calendar.getInstance();
@@ -773,6 +785,30 @@ public class MiscUtil {
 		 utc.setTimeInMillis(date.getTime());
 		 utc.add(Calendar.MILLISECOND, -offset);
 		 return utc.getTime();
+=======
+	private static  void initLocalHost() {
+		if ( logger.isDebugEnabled() ) {
+			logger.debug("==> MiscUti.initLocalHost()");
+		}
+
+		try {
+			local_hostname = InetAddress.getLocalHost().getHostName();
+		} catch (Throwable excp) {
+			LogLog.warn("getHostname()", excp);
+		}
+		if ( logger.isDebugEnabled() ) {
+			logger.debug("<== MiscUti.initLocalHost()");
+		}
+	}
+	public static Date getUTCDateForLocalDate(Date date) {
+		TimeZone gmtTimeZone = TimeZone.getTimeZone("GMT+0");
+		Calendar local  = Calendar.getInstance();
+		int      offset = local.getTimeZone().getOffset(local.getTimeInMillis());
+		GregorianCalendar utc = new GregorianCalendar(gmtTimeZone);
+		utc.setTimeInMillis(date.getTime());
+		utc.add(Calendar.MILLISECOND, -offset);
+		return utc.getTime();
+>>>>>>> refs/remotes/apache/master
 	}
 	public static Date getUTCDate() {
 		TimeZone gmtTimeZone = TimeZone.getTimeZone("GMT+0");

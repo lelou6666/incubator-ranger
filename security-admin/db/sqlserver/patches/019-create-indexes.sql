@@ -133,4 +133,25 @@ CREATE NONCLUSTERED INDEX [x_policy_item_group_perm_IDX_group_id] ON [x_policy_i
 )
 WITH (SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF) ON [PRIMARY]
 GO
+<<<<<<< HEAD
+=======
+CREATE NONCLUSTERED INDEX [x_service_resource_IDX_service_id] ON [x_service_resource]
+(
+   [service_id] ASC
+)
+WITH (SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [x_service_resource_element_IDX_res_id] ON [x_service_resource_element]
+(
+   [res_id] ASC
+)
+WITH (SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [x_service_resource_element_IDX_res_def_id] ON [x_service_resource_element]
+(
+   [res_def_id] ASC
+)
+WITH (SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF) ON [PRIMARY]
+GO
+>>>>>>> refs/remotes/apache/master
 exit

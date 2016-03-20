@@ -19,22 +19,24 @@
 
 package org.apache.ranger.plugin.audit;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.audit.provider.AuditProviderFactory;
 import org.apache.ranger.audit.provider.MiscUtil;
-import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
-import org.apache.ranger.plugin.policyengine.RangerAccessResult;
-import org.apache.ranger.plugin.policyengine.RangerAccessResource;
-import org.apache.ranger.plugin.policyengine.RangerAccessResultProcessor;
+import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
+import org.apache.ranger.authorization.hadoop.constants.RangerHadoopConstants;
+import org.apache.ranger.plugin.model.RangerTag;
+import org.apache.ranger.plugin.policyengine.*;
+import org.apache.ranger.plugin.util.RangerAccessRequestUtil;
 
 
 public class RangerDefaultAuditHandler implements RangerAccessResultProcessor {
+	protected static final String RangerModuleName =  RangerConfiguration.getInstance().get(RangerHadoopConstants.AUDITLOG_RANGER_MODULE_ACL_NAME_PROP , RangerHadoopConstants.DEFAULT_RANGER_MODULE_ACL_NAME) ;
+
 	private static final Log LOG = LogFactory.getLog(RangerDefaultAuditHandler.class);
 	static long sequenceNumber = 0;
 
@@ -96,15 +98,20 @@ public class RangerDefaultAuditHandler implements RangerAccessResultProcessor {
 			ret.setRequestData(request.getRequestData());
 			ret.setEventTime(request.getAccessTime());
 			ret.setUser(request.getUser());
-			ret.setAccessType(request.getAction());
-			ret.setAccessResult((short)(result.getIsAllowed() ? 1 : 0));
-			ret.setPolicyId(result.getPolicyId());
 			ret.setAction(request.getAccessType());
+			ret.setAccessResult((short) (result.getIsAllowed() ? 1 : 0));
+			ret.setPolicyId(result.getPolicyId());
+			ret.setAccessType(request.getAction());
 			ret.setClientIP(request.getClientIPAddress());
 			ret.setClientType(request.getClientType());
+			ret.setSessionId(request.getSessionId());
+			ret.setAclEnforcer(RangerModuleName);
+			Set<String> tags = getTags(request);
+			if (tags != null) {
+				ret.setTags(tags);
+			}
 
 			populateDefaults(ret);
-
 		}
 
 		if(LOG.isDebugEnabled()) {
@@ -176,6 +183,7 @@ public class RangerDefaultAuditHandler implements RangerAccessResultProcessor {
 		if (auditEvent.getEventId() == null || auditEvent.getEventId().isEmpty()) {
 			auditEvent.setEventId(MiscUtil.generateUniqueId());
 		}
+
 		auditEvent.setSeqNum(sequenceNumber++);
 	}
 
@@ -197,5 +205,20 @@ public class RangerDefaultAuditHandler implements RangerAccessResultProcessor {
 
 	public AuthzAuditEvent createAuthzAuditEvent() {
 		return new AuthzAuditEvent();
+	}
+
+	protected final Set<String> getTags(RangerAccessRequest request) {
+		Set<String>     ret  = null;
+		List<RangerTag> tags = RangerAccessRequestUtil.getRequestTagsFromContext(request.getContext());
+
+		if (CollectionUtils.isNotEmpty(tags)) {
+			ret = new HashSet<String>();
+
+			for (RangerTag tag : tags) {
+				ret.add(tag.getType());
+			}
+		}
+
+		return ret;
 	}
 }

@@ -22,6 +22,9 @@
 
 import org.apache.ranger.plugin.util.GrantRevokeRequest;
 import org.apache.ranger.plugin.util.ServicePolicies;
+import org.apache.ranger.plugin.util.ServiceTags;
+
+import java.util.List;
 
 
 public interface RangerAdminClient {
@@ -32,4 +35,9 @@ public interface RangerAdminClient {
 	void grantAccess(GrantRevokeRequest request) throws Exception;
 
 	void revokeAccess(GrantRevokeRequest request) throws Exception;
+
+	ServiceTags getServiceTagsIfUpdated(long lastKnownVersion) throws Exception;
+
+	List<String> getTagTypes(String tagTypePattern) throws Exception;
+
 }

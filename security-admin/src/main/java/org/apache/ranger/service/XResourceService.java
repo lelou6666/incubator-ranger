@@ -52,9 +52,7 @@ import org.apache.ranger.entity.XXTrxLog;
 import org.apache.ranger.entity.XXUser;
 import org.apache.ranger.util.RangerEnumUtil;
 import org.apache.ranger.view.VXAuditMap;
-import org.apache.ranger.view.VXAuditMapList;
 import org.apache.ranger.view.VXPermMap;
-import org.apache.ranger.view.VXPermMapList;
 import org.apache.ranger.view.VXResource;
 import org.apache.ranger.view.VXResourceList;
 import org.apache.ranger.view.VXResponse;
@@ -513,7 +511,7 @@ public class XResourceService extends
 				pathList.add(fileSeparator);
 			}
 			
-			StringBuffer path = new StringBuffer();
+			StringBuilder path = new StringBuilder();
 			for (int i = 1; i < policyPathParts.length - 1; i++) {
 				path.append(fileSeparator + policyPathParts[i]);
 				pathList.add(path.toString());

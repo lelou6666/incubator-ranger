@@ -43,6 +43,7 @@ public class EmbeddedServiceDefsUtil {
 	private static final Log LOG = LogFactory.getLog(EmbeddedServiceDefsUtil.class);
 
 
+	public static final String EMBEDDED_SERVICEDEF_TAG_NAME  = "tag";
 	public static final String EMBEDDED_SERVICEDEF_HDFS_NAME  = "hdfs";
 	public static final String EMBEDDED_SERVICEDEF_HBASE_NAME = "hbase";
 	public static final String EMBEDDED_SERVICEDEF_HIVE_NAME  = "hive";
@@ -77,6 +78,8 @@ public class EmbeddedServiceDefsUtil {
 	private RangerServiceDef kafkaServiceDef = null;
 	private RangerServiceDef solrServiceDef  = null;
 
+	private RangerServiceDef tagServiceDef = null;
+
 	private Gson gsonBuilder = null;
 
 
@@ -109,6 +112,11 @@ public class EmbeddedServiceDefsUtil {
 			yarnServiceDef  = getOrCreateServiceDef(store, EMBEDDED_SERVICEDEF_YARN_NAME);
 			kafkaServiceDef = getOrCreateServiceDef(store, EMBEDDED_SERVICEDEF_KAFKA_NAME);
 			solrServiceDef  = getOrCreateServiceDef(store, EMBEDDED_SERVICEDEF_SOLR_NAME);
+
+			tagServiceDef = getOrCreateServiceDef(store, EMBEDDED_SERVICEDEF_TAG_NAME);
+
+			// Ensure that tag service def is updated with access types of all service defs
+			store.updateTagServiceDefForAccessTypes();
 		} catch(Throwable excp) {
 			LOG.fatal("EmbeddedServiceDefsUtil.init(): failed", excp);
 		}
@@ -152,6 +160,8 @@ public class EmbeddedServiceDefsUtil {
 		return getId(solrServiceDef);
 	}
 
+	public long getTagServiceDefId() { return getId(tagServiceDef); }
+
 	private long getId(RangerServiceDef serviceDef) {
 		return serviceDef == null || serviceDef.getId() == null ? -1 : serviceDef.getId().longValue();
 	}
@@ -171,11 +181,12 @@ public class EmbeddedServiceDefsUtil {
 				LOG.info("creating embedded service-def " + serviceDefName);
 				if (ret.getId() != null) {
 					store.setPopulateExistingBaseFields(true);
-					store.createServiceDef(ret);
+					ret = store.createServiceDef(ret);
 					store.setPopulateExistingBaseFields(false);
 				} else {
-					store.createServiceDef(ret);
+					ret = store.createServiceDef(ret);
 				}
+				LOG.info("created embedded service-def " + serviceDefName);
 			}
 		} catch(Exception excp) {
 			LOG.fatal("EmbeddedServiceDefsUtil.getOrCreateServiceDef(): failed to load/create serviceType " + serviceDefName, excp);

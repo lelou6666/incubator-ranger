@@ -35,4 +35,12 @@ CREATE INDEX x_policy_item_condition_IDX_type ON x_policy_item_condition(type);
 CREATE INDEX x_policy_item_user_perm_IDX_policy_item_id ON x_policy_item_user_perm(policy_item_id);
 CREATE INDEX x_policy_item_user_perm_IDX_user_id ON x_policy_item_user_perm(user_id);
 CREATE INDEX x_policy_item_group_perm_IDX_policy_item_id ON x_policy_item_group_perm(policy_item_id);
+<<<<<<< HEAD
 CREATE INDEX x_policy_item_group_perm_IDX_group_id ON x_policy_item_group_perm(group_id);
+=======
+CREATE INDEX x_policy_item_group_perm_IDX_group_id ON x_policy_item_group_perm(group_id);
+
+CREATE INDEX x_service_resource_IDX_service_id ON x_service_resource(service_id);
+CREATE INDEX x_service_resource_element_IDX_res_id ON x_service_resource_element(res_id);
+CREATE INDEX x_service_resource_element_IDX_res_def_id ON x_service_resource_element(res_def_id);
+>>>>>>> refs/remotes/apache/master

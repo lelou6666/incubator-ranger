@@ -1509,6 +1509,22 @@ public class XUserMgr extends XUserMgrBase {
 				List<RangerPolicyItem> policyItems = rangerPolicy.getPolicyItems();
 				removeUserGroupReferences(policyItems,null,vXGroup.getName());
 				rangerPolicy.setPolicyItems(policyItems);
+<<<<<<< HEAD
+=======
+
+				List<RangerPolicyItem> denyPolicyItems = rangerPolicy.getDenyPolicyItems();
+				removeUserGroupReferences(denyPolicyItems,null,vXGroup.getName());
+				rangerPolicy.setDenyPolicyItems(denyPolicyItems);
+
+				List<RangerPolicyItem> allowExceptions = rangerPolicy.getAllowExceptions();
+				removeUserGroupReferences(allowExceptions,null,vXGroup.getName());
+				rangerPolicy.setAllowExceptions(allowExceptions);
+
+				List<RangerPolicyItem> denyExceptions = rangerPolicy.getDenyExceptions();
+				removeUserGroupReferences(denyExceptions,null,vXGroup.getName());
+				rangerPolicy.setDenyExceptions(denyExceptions);
+
+>>>>>>> refs/remotes/apache/master
 				try {
 					svcStore.updatePolicy(rangerPolicy);
 				} catch (Throwable excp) {
@@ -1668,6 +1684,22 @@ public class XUserMgr extends XUserMgrBase {
 				List<RangerPolicyItem> policyItems = rangerPolicy.getPolicyItems();
 				removeUserGroupReferences(policyItems,vXUser.getName(),null);
 				rangerPolicy.setPolicyItems(policyItems);
+<<<<<<< HEAD
+=======
+
+				List<RangerPolicyItem> denyPolicyItems = rangerPolicy.getDenyPolicyItems();
+				removeUserGroupReferences(denyPolicyItems,vXUser.getName(),null);
+				rangerPolicy.setDenyPolicyItems(denyPolicyItems);
+
+				List<RangerPolicyItem> allowExceptions = rangerPolicy.getAllowExceptions();
+				removeUserGroupReferences(allowExceptions,vXUser.getName(),null);
+				rangerPolicy.setAllowExceptions(allowExceptions);
+
+				List<RangerPolicyItem> denyExceptions = rangerPolicy.getDenyExceptions();
+				removeUserGroupReferences(denyExceptions,vXUser.getName(),null);
+				rangerPolicy.setDenyExceptions(denyExceptions);
+
+>>>>>>> refs/remotes/apache/master
 				try{
 					svcStore.updatePolicy(rangerPolicy);
 				}catch(Throwable excp) {

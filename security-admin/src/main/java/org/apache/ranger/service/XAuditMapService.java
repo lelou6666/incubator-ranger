@@ -26,7 +26,10 @@ import java.util.List;
 
 import org.apache.ranger.biz.RangerBizUtil;
 import org.apache.ranger.common.AppConstants;
+<<<<<<< HEAD
 import org.apache.ranger.common.ContextUtil;
+=======
+>>>>>>> refs/remotes/apache/master
 import org.apache.ranger.common.SearchCriteria;
 import org.apache.ranger.common.SearchField;
 import org.apache.ranger.common.UserSessionBase;
@@ -40,7 +43,10 @@ import org.apache.ranger.entity.XXUser;
 import org.apache.ranger.util.RangerEnumUtil;
 import org.apache.ranger.view.VXAuditMap;
 import org.apache.ranger.view.VXAuditMapList;
+<<<<<<< HEAD
 import org.apache.ranger.view.VXResponse;
+=======
+>>>>>>> refs/remotes/apache/master
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;

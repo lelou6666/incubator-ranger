@@ -22,30 +22,31 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.ranger.plugin.conditionevaluator.RangerConditionEvaluator;
-import org.apache.ranger.plugin.model.RangerPolicy;
-import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.model.RangerPolicy.RangerPolicyItem;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
-import org.apache.ranger.plugin.policyengine.RangerAccessResult;
 
-public interface RangerPolicyItemEvaluator {
+public interface RangerPolicyItemEvaluator extends Comparable<RangerPolicyItemEvaluator> {
+	public static final int POLICY_ITEM_TYPE_ALLOW            = 0;
+	public static final int POLICY_ITEM_TYPE_DENY             = 1;
+	public static final int POLICY_ITEM_TYPE_ALLOW_EXCEPTIONS = 2;
+	public static final int POLICY_ITEM_TYPE_DENY_EXCEPTIONS  = 3;
 
 	void init();
 
-	/*
-	RangerServiceDef getServiceDef();
-
-	RangerPolicy getPolicy();
-
 	RangerPolicyItem getPolicyItem();
 
-	long getPolicyId();
-	*/
+	int getPolicyItemType();
+
+	int getPolicyItemIndex();
+
+	String getComments();
 
 	List<RangerConditionEvaluator> getConditionEvaluators();
 
+	int getEvalOrder();
 
-	void evaluate(RangerAccessRequest request, RangerAccessResult result);
+
+	boolean isMatch(RangerAccessRequest request);
 
 	boolean matchUserGroup(String user, Set<String> userGroups);
 

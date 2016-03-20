@@ -57,8 +57,11 @@ import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 import org.apache.ranger.plugin.policyengine.RangerAccessResult;
 import org.apache.ranger.plugin.service.RangerBasePlugin;
 import org.apache.ranger.plugin.util.GrantRevokeRequest;
+import org.apache.ranger.plugin.util.RangerAccessRequestUtil;
 
 import com.google.common.collect.Sets;
+
+import org.apache.ranger.plugin.util.RangerRequestedResources;
 
 public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 	private static final Log LOG = LogFactory.getLog(RangerHiveAuthorizer.class) ; 
@@ -189,7 +192,7 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 	/**
 	 * Check if user has privileges to do this action on these objects
 	 * @param hiveOpType
-	 * @param inputsHObjs
+	 * @param inputHObjs
 	 * @param outputHObjs
 	 * @param context
 	 * @throws HiveAuthzPluginException
@@ -226,6 +229,7 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 
 			List<RangerHiveAccessRequest> requests = new ArrayList<RangerHiveAccessRequest>();
 
+<<<<<<< HEAD
 			if(CollectionUtils.isEmpty(inputHObjs)) {
 				// this should happen only for SHOWDATABASES
 				if (hiveOpType == HiveOperationType.SHOWDATABASES) {
@@ -238,6 +242,9 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 					}
 				}
 			} else {
+=======
+			if(!CollectionUtils.isEmpty(inputHObjs)) {
+>>>>>>> refs/remotes/apache/master
 				for(HivePrivilegeObject hiveObj : inputHObjs) {
 					RangerHiveResource resource = getHiveResource(hiveOpType, hiveObj);
 
@@ -249,9 +256,9 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 						String   path       = hiveObj.getObjectName();
 						FsAction permission = FsAction.READ;
 
-		                if(!isURIAccessAllowed(user, groups, permission, path, getHiveConf())) {
-		    				throw new HiveAccessControlException(String.format("Permission denied: user [%s] does not have [%s] privilege on [%s]", user, permission.name(), path));
-		                }
+						if(!isURIAccessAllowed(user, groups, permission, path, getHiveConf())) {
+							throw new HiveAccessControlException(String.format("Permission denied: user [%s] does not have [%s] privilege on [%s]", user, permission.name(), path));
+						}
 
 						continue;
 					}
@@ -268,9 +275,20 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 						requests.add(request);
 					}
 				}
+			} else {
+				// this should happen only for SHOWDATABASES
+				if (hiveOpType == HiveOperationType.SHOWDATABASES) {
+					RangerHiveResource resource = new RangerHiveResource(HiveObjectType.DATABASE, null);
+					RangerHiveAccessRequest request = new RangerHiveAccessRequest(resource, user, groups, hiveOpType.name(), HiveAccessType.USE, context, sessionContext);
+					requests.add(request);
+				} else {
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("RangerHiveAuthorizer.checkPrivileges: Unexpected operation type[" + hiveOpType + "] received with empty input objects list!");
+					}
+				}
 			}
 
-			if(outputHObjs != null) {
+			if(!CollectionUtils.isEmpty(outputHObjs)) {
 				for(HivePrivilegeObject hiveObj : outputHObjs) {
 					RangerHiveResource resource = getHiveResource(hiveOpType, hiveObj);
 
@@ -303,6 +321,11 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 				}
 			}
 
+<<<<<<< HEAD
+=======
+			buildRequestContextWithAllAccessedResources(requests);
+
+>>>>>>> refs/remotes/apache/master
 			for(RangerHiveAccessRequest request : requests) {
 				if (LOG.isDebugEnabled()) {
 					LOG.debug("request: " + request);
@@ -471,6 +494,11 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 		default:
 			LOG.warn("RangerHiveAuthorizer.getHiveResource: unexpected objectType:" + objectType);
 		}
+
+		if (resource != null) {
+			resource.setServiceDef(hivePlugin == null ? null : hivePlugin.getServiceDef());
+		}
+
 		return resource;
 	}
 
@@ -504,6 +532,10 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 
 			case NONE:
 			break;
+		}
+
+		if (ret != null) {
+			ret.setServiceDef(hivePlugin == null ? null : hivePlugin.getServiceDef());
 		}
 
 		return ret;
@@ -906,7 +938,51 @@ public class RangerHiveAuthorizer extends RangerHiveAuthorizerBase {
 
 		return ret;
 	}
-	
+
+	private RangerRequestedResources buildRequestContextWithAllAccessedResources(List<RangerHiveAccessRequest> requests) {
+
+		RangerRequestedResources requestedResources = new RangerRequestedResources();
+
+		for (RangerHiveAccessRequest request : requests) {
+			// Build list of all things requested and put it in the context of each request
+			RangerAccessRequestUtil.setRequestedResourcesInContext(request.getContext(), requestedResources);
+
+			RangerHiveResource resource = (RangerHiveResource) request.getResource();
+
+			if (resource.getObjectType() == HiveObjectType.COLUMN && StringUtils.contains(resource.getColumn(), COLUMN_SEP)) {
+
+				String[] columns = StringUtils.split(resource.getColumn(), COLUMN_SEP);
+
+				// in case of multiple columns, original request is not sent to the plugin; hence service-def will not be set
+				resource.setServiceDef(hivePlugin.getServiceDef());
+
+				for (String column : columns) {
+					if (column != null) {
+						column = column.trim();
+					}
+					if (StringUtils.isBlank(column)) {
+						continue;
+					}
+
+					RangerHiveResource colResource = new RangerHiveResource(HiveObjectType.COLUMN, resource.getDatabase(), resource.getTable(), column);
+					colResource.setServiceDef(hivePlugin.getServiceDef());
+
+					requestedResources.addRequestedResource(colResource);
+
+				}
+			} else {
+				resource.setServiceDef(hivePlugin.getServiceDef());
+				requestedResources.addRequestedResource(resource);
+			}
+		}
+
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("RangerHiveAuthorizer.buildRequestContextWithAllAccessedResources() - " + requestedResources);
+		}
+
+		return requestedResources;
+	}
+
 	private String toString(HiveOperationType         hiveOpType,
 							List<HivePrivilegeObject> inputHObjs,
 							List<HivePrivilegeObject> outputHObjs,

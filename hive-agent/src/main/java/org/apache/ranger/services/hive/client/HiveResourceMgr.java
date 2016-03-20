@@ -25,6 +25,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
+import org.apache.ranger.plugin.client.HadoopException;
 import org.apache.ranger.plugin.service.ResourceLookupContext;
 import org.apache.ranger.plugin.util.TimedEventUtil;
 
@@ -38,22 +39,22 @@ public class HiveResourceMgr {
 	private static final String  COLUMN	 	  = "column";
 
 	
-	public static HashMap<String, Object> testConnection(String serviceName, Map<String, String> configs) throws Exception {
+	public static HashMap<String, Object> connectionTest(String serviceName, Map<String, String> configs) throws Exception {
 		HashMap<String, Object> ret = null;
 		
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("==> HiveResourceMgr.testConnection ServiceName: "+ serviceName + "Configs" + configs ) ;
+			LOG.debug("==> HiveResourceMgr.connectionTest ServiceName: "+ serviceName + "Configs" + configs ) ;
 		}	
 		
 		try {
-			ret = HiveClient.testConnection(serviceName, configs);
-		} catch (Exception e) {
-			LOG.error("<== HiveResourceMgr.testConnection Error: " + e) ;
+			ret = HiveClient.connectionTest(serviceName, configs);
+		} catch (HadoopException e) {
+			LOG.error("<== HiveResourceMgr.connectionTest Error: " + e) ;
 		  throw e;
 		}
 		
 		if(LOG.isDebugEnabled()) {
-			LOG.debug("<== HiveResourceMgr.testConnection Result : "+ ret  ) ;
+			LOG.debug("<== HiveResourceMgr.connectionTest Result : "+ ret  ) ;
 		}	
 		
 		return ret;
@@ -181,6 +182,7 @@ public class HiveResourceMgr {
 				 }
 			  } catch (Exception e) {
 				LOG.error("Unable to get hive resources.", e);
+				throw e;
 			}
 		}
 

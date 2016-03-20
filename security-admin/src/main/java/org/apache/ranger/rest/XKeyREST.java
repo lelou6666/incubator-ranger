@@ -36,7 +36,10 @@ import org.apache.ranger.common.RESTErrorUtil;
 import org.apache.ranger.common.SearchUtil;
 import org.apache.ranger.common.annotation.RangerAnnotationJSMgrName;
 import org.apache.ranger.security.context.RangerAPIList;
+<<<<<<< HEAD
 import org.apache.ranger.security.context.RangerPreAuthSecurityHandler;
+=======
+>>>>>>> refs/remotes/apache/master
 import org.apache.ranger.view.VXKmsKey;
 import org.apache.ranger.view.VXKmsKeyList;
 import org.codehaus.jettison.json.JSONException;

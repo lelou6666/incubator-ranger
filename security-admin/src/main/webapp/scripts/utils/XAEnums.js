@@ -100,6 +100,11 @@ define(function(require) {
 		STATUS_DELETED:{value:2, label:'Deleted', rbkey:'xa.enum.ActiveStatus.STATUS_DELETED', tt: 'lbl.ActiveStatus_STATUS_DELETED'}
 	});
 
+	XAEnums.PolicyType = mergeParams(XAEnums.PolicyType, {
+		POLICY_TYPE_ALLOW:{value:0, label:'Allow', rbkey:'xa.enum.PolicyType.POLICY_TYPE_ALLOW', tt: 'lbl.PolicyType_ALLOW'},
+		POLICY_TYPE_DENY:{value:1, label:'Deny', rbkey:'xa.enum.PolicyType.POLICY_TYPE_DENY', tt: 'lbl.PolicyType_DENY'}
+	});
+
 	XAEnums.AssetType = mergeParams(XAEnums.AssetType, {
 		ASSET_UNKNOWN:{value:0, label:'Unknown', rbkey:'xa.enum.AssetType.ASSET_UNKNOWN', tt: 'lbl.AssetType_ASSET_UNKNOWN'},
 		ASSET_HDFS:{value:1, label:'HDFS', rbkey:'xa.enum.AssetType.ASSET_HDFS', tt: 'lbl.AssetType_ASSET_HDFS'},
@@ -116,7 +121,8 @@ define(function(require) {
 		Service_HIVE:{value:2, label:'hive', rbkey:'xa.enum.AssetType.ASSET_HIVE', tt: 'lbl.AssetType_ASSET_HIVE'},
 		Service_HBASE:{value:3, label:'hbase', rbkey:'xa.enum.AssetType.ASSET_HBASE', tt: 'lbl.AssetType_ASSET_HBASE'},
 		Service_KNOX:{value:4, label:'knox', rbkey:'xa.enum.AssetType.ASSET_KNOX', tt: 'lbl.AssetType_ASSET_KNOX'},
-		Service_STORM:{value:5, label:'storm', rbkey:'xa.enum.AssetType.ASSET_STORM', tt: 'lbl.AssetType_ASSET_STORM'}
+		Service_STORM:{value:5, label:'storm', rbkey:'xa.enum.AssetType.ASSET_STORM', tt: 'lbl.AssetType_ASSET_STORM'},
+		SERVICE_TAG:{value:6, label:'tag', rbkey:'xa.enum.ServiceType.SERVICE_TAG', tt: 'lbl.ServiceType_SERVICE_TAG'}
 	});
 
 	XAEnums.AuthStatus = mergeParams(XAEnums.AuthStatus, {
@@ -240,11 +246,6 @@ define(function(require) {
 		PWD_RESET_USED:{value:1, label:'Used', rbkey:'xa.enum.PasswordResetStatus.PWD_RESET_USED', tt: 'lbl.PasswordResetStatus_PWD_RESET_USED'},
 		PWD_RESET_EXPIRED:{value:2, label:'Expired', rbkey:'xa.enum.PasswordResetStatus.PWD_RESET_EXPIRED', tt: 'lbl.PasswordResetStatus_PWD_RESET_EXPIRED'},
 		PWD_RESET_DISABLED:{value:3, label:'Disabled', rbkey:'xa.enum.PasswordResetStatus.PWD_RESET_DISABLED', tt: 'lbl.PasswordResetStatus_PWD_RESET_DISABLED'}
-	});
-
-	XAEnums.PolicyType = mergeParams(XAEnums.PolicyType, {
-		POLICY_INCLUSION:{value:0, label:'Inclusion', rbkey:'xa.enum.PolicyType.POLICY_INCLUSION', tt: 'lbl.PolicyType_POLICY_INCLUSION'},
-		POLICY_EXCLUSION:{value:1, label:'Exclusion', rbkey:'xa.enum.PolicyType.POLICY_EXCLUSION', tt: 'lbl.PolicyType_POLICY_EXCLUSION'}
 	});
 
 	XAEnums.PriorityType = mergeParams(XAEnums.PriorityType, {

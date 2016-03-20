@@ -24,7 +24,11 @@
     <parent>
         <artifactId>ranger-examples</artifactId>
         <groupId>org.apache.ranger</groupId>
+<<<<<<< HEAD
         <version>0.5.0</version>
+=======
+        <version>0.6.0</version>
+>>>>>>> refs/remotes/apache/master
     </parent>
     <dependencies>
         <dependency>

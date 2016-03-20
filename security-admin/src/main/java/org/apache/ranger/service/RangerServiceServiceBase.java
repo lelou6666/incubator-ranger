@@ -32,7 +32,6 @@ import org.apache.ranger.entity.XXService;
 import org.apache.ranger.entity.XXServiceBase;
 import org.apache.ranger.entity.XXServiceDef;
 import org.apache.ranger.plugin.model.RangerService;
-import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.util.SearchFilter;
 import org.apache.ranger.view.RangerServiceList;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +50,9 @@ public abstract class RangerServiceServiceBase<T extends XXServiceBase, V extend
 		searchFields.add(new SearchField(SearchFilter.SERVICE_NAME, "obj.name", DATA_TYPE.STRING, SEARCH_TYPE.FULL));
 		searchFields.add(new SearchField(SearchFilter.SERVICE_ID, "obj.id", DATA_TYPE.INTEGER, SEARCH_TYPE.FULL));
 		searchFields.add(new SearchField(SearchFilter.IS_ENABLED, "obj.isEnabled", DATA_TYPE.BOOLEAN, SEARCH_TYPE.FULL));
+		searchFields.add(new SearchField(SearchFilter.TAG_SERVICE_ID, "obj.tag_service", DATA_TYPE.INTEGER, SEARCH_TYPE.FULL));
+		searchFields.add(new SearchField(SearchFilter.TAG_SERVICE_NAME, "xTagSvc.name", DATA_TYPE.STRING,
+				SEARCH_TYPE.FULL, "XXServiceBase xTagSvc", "obj.tag_service = xTagSvc.id"));
 		
 		sortFields.add(new SortField(SearchFilter.CREATE_TIME, "obj.createTime"));
 		sortFields.add(new SortField(SearchFilter.UPDATE_TIME, "obj.updateTime"));
@@ -72,10 +74,28 @@ public abstract class RangerServiceServiceBase<T extends XXServiceBase, V extend
 					"No ServiceDefinition found with name :" + vObj.getType(),
 					MessageEnums.INVALID_INPUT_DATA);
 		}
+
+		Long   tagServiceId   = null;
+		String tagServiceName = vObj.getTagService();
+		if(! StringUtils.isEmpty(tagServiceName)) {
+			XXService xTagService = daoMgr.getXXService().findByName(tagServiceName);
+
+			if(xTagService == null) {
+				throw restErrorUtil.createRESTException(
+						"No Service found with name :" + tagServiceName,
+						MessageEnums.INVALID_INPUT_DATA);
+			}
+
+			tagServiceId = xTagService.getId();
+		}
+
 		xObj.setType(xServiceDef.getId());
 		xObj.setName(vObj.getName());
+		xObj.setTagService(tagServiceId);
 		xObj.setPolicyVersion(vObj.getPolicyVersion());
+		xObj.setTagVersion(vObj.getTagVersion());
 		xObj.setPolicyUpdateTime(vObj.getPolicyUpdateTime());
+		xObj.setTagUpdateTime(vObj.getTagUpdateTime());
 		xObj.setDescription(vObj.getDescription());
 		xObj.setIsEnabled(vObj.getIsEnabled());
 		return xObj;
@@ -85,13 +105,17 @@ public abstract class RangerServiceServiceBase<T extends XXServiceBase, V extend
 	@SuppressWarnings("unchecked")
 	protected RangerService mapEntityToViewBean(RangerService vObj, XXServiceBase xObj) {
 		XXServiceDef xServiceDef = daoMgr.getXXServiceDef().getById(xObj.getType());
+		XXService    xTagService = xObj.getTagService() != null ? daoMgr.getXXService().getById(xObj.getTagService()) : null;
 		vObj.setType(xServiceDef.getName());
 		vObj.setGuid(xObj.getGuid());
 		vObj.setVersion(xObj.getVersion());
 		vObj.setName(xObj.getName());
 		vObj.setDescription(xObj.getDescription());
+		vObj.setTagService(xTagService != null ? xTagService.getName() : null);
 		vObj.setPolicyVersion(xObj.getPolicyVersion());
+		vObj.setTagVersion(xObj.getTagVersion());
 		vObj.setPolicyUpdateTime(xObj.getPolicyUpdateTime());
+		vObj.setTagUpdateTime(xObj.getTagUpdateTime());
 		vObj.setIsEnabled(xObj.getIsenabled());
 		return vObj;
 	}

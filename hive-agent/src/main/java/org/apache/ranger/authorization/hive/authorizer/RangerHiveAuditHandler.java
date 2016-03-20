@@ -19,6 +19,7 @@
 
 package org.apache.ranger.authorization.hive.authorizer;
 
+<<<<<<< HEAD
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -26,12 +27,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+=======
+import java.util.*;
+>>>>>>> refs/remotes/apache/master
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveOperationType;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
-import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
-import org.apache.ranger.authorization.hadoop.constants.RangerHadoopConstants;
 import org.apache.ranger.authorization.utils.StringUtil;
 import org.apache.ranger.plugin.audit.RangerDefaultAuditHandler;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
@@ -41,7 +42,6 @@ import org.apache.ranger.plugin.policyengine.RangerAccessResult;
 import com.google.common.collect.Lists;
 
 public class RangerHiveAuditHandler extends RangerDefaultAuditHandler {
-	private static final String RangerModuleName =  RangerConfiguration.getInstance().get(RangerHadoopConstants.AUDITLOG_RANGER_MODULE_ACL_NAME_PROP , RangerHadoopConstants.DEFAULT_RANGER_MODULE_ACL_NAME) ;
 
 	Collection<AuthzAuditEvent> auditEvents  = null;
 	boolean                     deniedExists = false;
@@ -55,22 +55,11 @@ public class RangerHiveAuditHandler extends RangerDefaultAuditHandler {
 		RangerAccessResource resource     = request.getResource();
 		String               resourceType = resource != null ? resource.getLeafName() : null;
 
-		AuthzAuditEvent auditEvent = new AuthzAuditEvent();
-		auditEvent.setAclEnforcer(RangerModuleName);
-		auditEvent.setSessionId(request.getSessionId());
-		auditEvent.setResourceType("@" + resourceType); // to be consistent with earlier release
+		AuthzAuditEvent auditEvent = super.getAuthzEvents(result);
+
 		auditEvent.setAccessType(accessType);
-		auditEvent.setAction(request.getAction());
-		auditEvent.setUser(request.getUser());
-		auditEvent.setAccessResult((short)(result.getIsAllowed() ? 1 : 0));
-		auditEvent.setPolicyId(result.getPolicyId());
-		auditEvent.setClientIP(request.getClientIPAddress());
-		auditEvent.setClientType(request.getClientType());
-		auditEvent.setEventTime(request.getAccessTime());
-		auditEvent.setRepositoryType(result.getServiceType());
-		auditEvent.setRepositoryName(result.getServiceName()) ;
-		auditEvent.setRequestData(request.getRequestData());
 		auditEvent.setResourcePath(resourcePath);
+		auditEvent.setResourceType("@" + resourceType); // to be consistent with earlier release
 
 		return auditEvent;
 	}
@@ -111,8 +100,12 @@ public class RangerHiveAuditHandler extends RangerDefaultAuditHandler {
 						AuthzAuditEvent auditEvent = auditEvents.get(policyId);
 						RangerHiveAccessRequest request    = (RangerHiveAccessRequest)result.getAccessRequest();
 						RangerHiveResource resource   = (RangerHiveResource)request.getResource();
-						String resourcePath = auditEvent.getResourcePath() + "," + resource.getColumn(); 
+						String resourcePath = auditEvent.getResourcePath() + "," + resource.getColumn();
 						auditEvent.setResourcePath(resourcePath);
+						Set<String> tags = getTags(request);
+						if (tags != null) {
+							auditEvent.getTags().addAll(tags);
+						}
 					} else { // new event as this approval was due to a different policy.
 						AuthzAuditEvent auditEvent = createAuditEvent(result);
 						auditEvents.put(policyId, auditEvent);
@@ -154,7 +147,7 @@ public class RangerHiveAuditHandler extends RangerDefaultAuditHandler {
 	public void logAuditEventForDfs(String userName, String dfsCommand, boolean accessGranted, int repositoryType, String repositoryName) {
 		AuthzAuditEvent auditEvent = new AuthzAuditEvent();
 
-		auditEvent.setAclEnforcer(RangerModuleName);
+		auditEvent.setAclEnforcer(RangerDefaultAuditHandler.RangerModuleName);
 		auditEvent.setResourceType("@dfs"); // to be consistent with earlier release
 		auditEvent.setAccessType("DFS");
 		auditEvent.setAction("DFS");

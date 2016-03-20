@@ -43,4 +43,6 @@ public interface RangerAccessResource {
 	public String getAsString();
 
 	public Map<String, String> getAsMap();
+
+	public RangerAccessResource getReadOnlyCopy();
 }

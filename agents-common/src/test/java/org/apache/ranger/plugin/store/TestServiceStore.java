@@ -91,7 +91,7 @@ public class TestServiceStore {
 
 		int initSdCount = sds == null ? 0 : sds.size();
 
-		RangerServiceDef sd = new RangerServiceDef(sdName, "org.apache.ranger.services.TestService", "TestService", "test servicedef description", null, null, null, null, null, null);
+		RangerServiceDef sd = new RangerServiceDef(sdName, "org.apache.ranger.services.TestService", "TestService", "test servicedef description", null, null, null, null, null, null, null);
 
 		RangerServiceDef createdSd = svcStore.createServiceDef(sd);
 		assertNotNull("createServiceDef() failed", createdSd != null);
@@ -123,7 +123,7 @@ public class TestServiceStore {
 
 		int initServiceCount = services == null ? 0 : services.size();
 
-		RangerService svc = new RangerService(sdName, serviceName, "test service description", null);
+		RangerService svc = new RangerService(sdName, serviceName, "test service description", null, null);
 
 		RangerService createdSvc = svcStore.createService(svc);
 		assertNotNull("createService() failed", createdSvc);

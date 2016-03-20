@@ -297,24 +297,23 @@ public class StormClient {
 		return ret;
 	}
 
-	public static HashMap<String, Object> testConnection(String serviceName,
+	public static HashMap<String, Object> connectionTest(String serviceName,
 			Map<String, String> configs) {
 
-		List<String> strList = new ArrayList<String>();
 		String errMsg = errMessage;
 		boolean connectivityStatus = false;
 		HashMap<String, Object> responseData = new HashMap<String, Object>();
 
 		StormClient stormClient = getStormClient(serviceName,
 				configs);
-		strList = getStormResources(stormClient, "",null);
+		List<String> strList = getStormResources(stormClient, "",null);
 
 		if (strList != null) {
 			connectivityStatus = true;
 		}
 
 		if (connectivityStatus) {
-			String successMsg = "TestConnection Successful";
+			String successMsg = "ConnectionTest Successful";
 			BaseClient.generateResponseDataMap(connectivityStatus, successMsg,
 					successMsg, null, null, responseData);
 		} else {

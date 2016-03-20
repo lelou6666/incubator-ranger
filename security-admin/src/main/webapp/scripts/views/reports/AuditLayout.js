@@ -173,6 +173,7 @@ define(function(require) {
 					<th class="renderable cip"> </th>\
 					<th class="renderable aip" > </th>\
 					<th class="renderable aip" > </th>\
+					<th class="renderable ruser"></th>\
 				</tr>');
 		},
 		renderDateFields : function(){
@@ -211,7 +212,11 @@ define(function(require) {
 						});
 					}
 					this.addSearchForBigDataTab();
+<<<<<<< HEAD
 					this.listenTo(this.accessAuditList, "request", that.updateLastRefresh);
+=======
+					this.listenTo(this.accessAuditList, "request", that.updateLastRefresh)
+>>>>>>> refs/remotes/apache/master
 					break;
 				case "#admin":
 					this.currentTab = '#admin';
@@ -223,7 +228,11 @@ define(function(require) {
 						});
 					}
 					this.addSearchForAdminTab();
+<<<<<<< HEAD
 					this.listenTo(this.trxLogList, "request", that.updateLastRefresh);
+=======
+					this.listenTo(this.trxLogList, "request", that.updateLastRefresh)
+>>>>>>> refs/remotes/apache/master
 					break;
 				case "#loginSession":
 					this.currentTab = '#loginSession';
@@ -248,7 +257,11 @@ define(function(require) {
 						data :params
 					});
 					this.addSearchForAgentTab();
+<<<<<<< HEAD
 					this.listenTo(this.policyExportAuditList, "request", that.updateLastRefresh);
+=======
+					this.listenTo(this.policyExportAuditList, "request", that.updateLastRefresh)
+>>>>>>> refs/remotes/apache/master
 					break;	
 			}
 			var lastUpdateTime = Globalize.format(new Date(),  "MM/dd/yyyy hh:mm:ss tt");
@@ -265,8 +278,9 @@ define(function(require) {
 			                      {text : 'Result',label :'accessResult', 'multiple' : true, 'optionsArr' : XAUtils.enumToSelectLabelValuePairs(XAEnums.AccessResult)},
 			                      {text : 'Access Type',label :'accessType'},{text : 'Access Enforcer',label :'aclEnforcer'},
 			                      {text : 'Audit Type',label :'auditType'},{text : 'Session ID',label :'sessionId'},
-			                      {text : 'Client IP',label :'clientIP'},{text : 'Client Type',label :'clientType'}];
-            var searchOpt = ['Start Date','End Date','User','Service Name','Service Type','Resource Name','Access Type','Result','Access Enforcer','Client IP'];//,'Policy ID'
+			                      {text : 'Client IP',label :'clientIP'},{text : 'Client Type',label :'clientType'},
+			                      {text : 'Tags',label :'tags'}];
+            var searchOpt = ['Start Date','End Date','User','Service Name','Service Type','Resource Name','Access Type','Result','Access Enforcer','Client IP','Tags'];//,'Policy ID'
             this.clearVisualSearch(this.accessAuditList, serverAttrName);
             
 			//'Resource Type','Audit Type','Session IP','Client Type','Today',
@@ -720,6 +734,9 @@ define(function(require) {
 				onClick: function (e) {
 					var self = this;
 					var policyId = this.model.get('policyId');
+					if(policyId == -1){
+						return;
+					}
 					var	serviceDef = that.serviceDefList.findWhere({'id':this.model.get('repoType')});
 					if(_.isUndefined(serviceDef)){
 						return ;
@@ -779,7 +796,11 @@ define(function(require) {
 								if(rawValue == -1){
 									return '--';
 								}	
+<<<<<<< HEAD
 								var serviceDef = that.serviceDefList.findWhere({'id' : model.get('repoType')});
+=======
+								var serviceDef = that.serviceDefList.findWhere({'id' : model.get('repoType')})
+>>>>>>> refs/remotes/apache/master
 								if(_.isUndefined(serviceDef)){
 									return rawValue;
 								}
@@ -889,6 +910,14 @@ define(function(require) {
 					},
 					eventCount : {
 						label : 'Event Count',
+						cell: "string",
+						click : false,
+						drag : false,
+						sortable:false,
+						editable:false
+					},
+					tags : {
+						label : 'Tags',
 						cell: "string",
 						click : false,
 						drag : false,

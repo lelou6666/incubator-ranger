@@ -39,6 +39,10 @@ public class UserSessionBase implements Serializable {
 	private List<String> userRoleList = new ArrayList<String>();
 	private RangerUserPermission rangerUserPermission;
 	int clientTimeOffsetInMinute = 0;
+<<<<<<< HEAD
+=======
+	private Boolean isSSOEnabled;
+>>>>>>> refs/remotes/apache/master
 
 	public Long getUserId() {
 		if (xXPortalUser != null) {
@@ -128,6 +132,17 @@ public class UserSessionBase implements Serializable {
 
 
 
+<<<<<<< HEAD
+=======
+	public Boolean isSSOEnabled() {
+		return isSSOEnabled;
+	}
+
+	public void setSSOEnabled(Boolean isSSOEnabled) {
+		this.isSSOEnabled = isSSOEnabled;
+	}
+
+>>>>>>> refs/remotes/apache/master
 	public static class RangerUserPermission implements Serializable {
 		private static final long serialVersionUID = 1L;
 

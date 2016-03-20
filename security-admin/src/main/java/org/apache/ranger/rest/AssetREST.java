@@ -225,9 +225,13 @@ public class AssetREST {
 	@Path("/assets/testConfig")
 	@Produces({ "application/xml", "application/json" })
 	@PreAuthorize("@rangerPreAuthSecurityHandler.isAPIAccessible(\"" + RangerAPIList.TEST_CONFIG + "\")")
+<<<<<<< HEAD
 	public VXResponse testConfig(VXAsset vXAsset) {
+=======
+	public VXResponse configTest(VXAsset vXAsset) {
+>>>>>>> refs/remotes/apache/master
 		if(logger.isDebugEnabled()) {
-			logger.debug("==> AssetREST.testConfig(" + vXAsset + ")");
+			logger.debug("==> AssetREST.configTest(" + vXAsset + ")");
 		}
 
 		RangerService service = serviceUtil.toRangerService(vXAsset);
@@ -522,7 +526,7 @@ public class AssetREST {
 		boolean           isSecure    = request.isSecure();
 		String            policyCount = request.getParameter("policyCount");
 		String            agentId     = request.getParameter("agentId");
-		Long              lastKnowPolicyVersion = new Long(-1);
+		Long              lastKnowPolicyVersion = Long.valueOf(-1);
 
 		if (ipAddress == null) {  
 			ipAddress = request.getRemoteAddr();
@@ -650,6 +654,11 @@ public class AssetREST {
 				"startDate", "MM/dd/yyyy");
 		searchUtil.extractDate(request, searchCriteria, "endDate", "endDate",
 				"MM/dd/yyyy");
+<<<<<<< HEAD
+=======
+
+		searchUtil.extractString(request, searchCriteria, "tags", "tags", null);
+>>>>>>> refs/remotes/apache/master
 		
 		boolean isKeyAdmin = msBizUtil.isKeyAdmin();
 		XXServiceDef xxServiceDef = daoManager.getXXServiceDef().findByName(EmbeddedServiceDefsUtil.EMBEDDED_SERVICEDEF_KMS_NAME); 

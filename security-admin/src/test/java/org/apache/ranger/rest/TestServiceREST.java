@@ -33,6 +33,7 @@ import org.apache.ranger.admin.client.datatype.RESTResponse;
 import org.apache.ranger.biz.RangerBizUtil;
 import org.apache.ranger.biz.ServiceDBStore;
 import org.apache.ranger.biz.ServiceMgr;
+import org.apache.ranger.biz.TagDBStore;
 import org.apache.ranger.biz.XUserMgr;
 import org.apache.ranger.common.ContextUtil;
 import org.apache.ranger.common.RESTErrorUtil;
@@ -64,6 +65,7 @@ import org.apache.ranger.plugin.model.validation.RangerPolicyValidator;
 import org.apache.ranger.plugin.model.validation.RangerServiceDefValidator;
 import org.apache.ranger.plugin.model.validation.RangerServiceValidator;
 import org.apache.ranger.plugin.service.ResourceLookupContext;
+import org.apache.ranger.plugin.store.PList;
 import org.apache.ranger.plugin.util.GrantRevokeRequest;
 import org.apache.ranger.plugin.util.SearchFilter;
 import org.apache.ranger.plugin.util.ServicePolicies;
@@ -88,6 +90,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 import org.mockito.InjectMocks;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -109,6 +112,9 @@ public class TestServiceREST {
 
 	@Mock
 	ServiceDBStore svcStore;
+
+	@Mock
+	TagDBStore tagStore;
 
 	@Mock
 	RangerServiceService svcService;
@@ -510,18 +516,18 @@ public class TestServiceREST {
 		List<RangerServiceDef> serviceDefsList = new ArrayList<RangerServiceDef>();
 		RangerServiceDef serviceDef = rangerServiceDef();
 		serviceDefsList.add(serviceDef);
-		RangerServiceDefList serviceDefList = new RangerServiceDefList();
+		PList<RangerServiceDef> serviceDefList = new PList<RangerServiceDef>();
 		serviceDefList.setPageSize(0);
 		serviceDefList.setResultSize(1);
 		serviceDefList.setSortBy("asc");
 		serviceDefList.setSortType("1");
 		serviceDefList.setStartIndex(0);
 		serviceDefList.setTotalCount(10);
-		serviceDefList.setServiceDefs(serviceDefsList);
+		serviceDefList.setList(serviceDefsList);
 		Mockito.when(svcStore.getPaginatedServiceDefs(filter)).thenReturn(
 				serviceDefList);
 		Mockito.when(serviceDefService.searchRangerServiceDefs(filter))
-				.thenReturn(serviceDefList);
+				.thenReturn(new RangerServiceDefList(serviceDefsList));
 		RangerServiceDefList dbRangerServiceDef = serviceREST
 				.getServiceDefs(request);
 		Assert.assertNotNull(dbRangerServiceDef);
@@ -702,7 +708,6 @@ public class TestServiceREST {
 
 	@Test
 	public void test16createPolicyFalse() throws Exception {
-
 		RangerPolicy rangerPolicy = rangerPolicy();
 		RangerServiceDef rangerServiceDef = rangerServiceDef();
 
@@ -729,29 +734,36 @@ public class TestServiceREST {
 		rangerAccessTypeDefObj.setName("read");
 		rangerAccessTypeDefObj.setRbKeyLabel(null);
 		rangerAccessTypeDefList.add(rangerAccessTypeDefObj);
+		XXServiceDef xServiceDef = serviceDef();
+		XXService xService = xService();
+		XXServiceDefDao xServiceDefDao = Mockito.mock(XXServiceDefDao.class);
+		XXServiceDao xServiceDao = Mockito.mock(XXServiceDao.class);
 
 		Mockito.when(
 				svcStore.getServicePoliciesIfUpdated(Mockito.anyString(),
 						Mockito.anyLong())).thenReturn(servicePolicies);
 		Mockito.when(validatorFactory.getPolicyValidator(svcStore)).thenReturn(
 				policyValidator);
-		Mockito.when(bizUtil.isAdmin()).thenReturn(false);
+		Mockito.when(bizUtil.isAdmin()).thenReturn(true);
 		Mockito.when(bizUtil.getCurrentUserLoginId()).thenReturn(userName);
 		Mockito.when(userMgr.getGroupsForUser(userName)).thenReturn(
 				userGroupsList);
-
-		Mockito.when(restErrorUtil.createRESTException((String)null))
-				.thenThrow(new WebApplicationException());
-		thrown.expect(WebApplicationException.class);
+		Mockito.when(daoManager.getXXService()).thenReturn(xServiceDao);
+		Mockito.when(xServiceDao.findByName(Mockito.anyString())).thenReturn(
+				xService);
+		Mockito.when(daoManager.getXXServiceDef()).thenReturn(xServiceDefDao);
+		Mockito.when(xServiceDefDao.getById(xService.getType())).thenReturn(
+				xServiceDef);
+		Mockito.when(svcStore.createPolicy((RangerPolicy) Mockito.anyObject()))
+				.thenReturn(rangPolicy);
 
 		RangerPolicy dbRangerPolicy = serviceREST.createPolicy(rangerPolicy);
 		Assert.assertNotNull(dbRangerPolicy);
-		Mockito.verify(svcStore).getServicePoliciesIfUpdated(
-				Mockito.anyString(), Mockito.anyLong());
-		Mockito.verify(bizUtil).getCurrentUserLoginId();
-		Mockito.verify(bizUtil).isAdmin();
-		Mockito.verify(userMgr).getGroupsForUser(userName);
+		Mockito.verify(bizUtil, Mockito.times(2)).isAdmin();
 		Mockito.verify(validatorFactory).getPolicyValidator(svcStore);
+
+		Mockito.verify(daoManager).getXXService();
+		Mockito.verify(daoManager).getXXServiceDef();
 	}
 
 	@Test
@@ -769,16 +781,21 @@ public class TestServiceREST {
 		rangerAccessTypeDefObj.setName("read");
 		rangerAccessTypeDefObj.setRbKeyLabel(null);
 		rangerAccessTypeDefList.add(rangerAccessTypeDefObj);
+		XXServiceDef xServiceDef = serviceDef();
+		XXService xService = xService();
+		XXServiceDefDao xServiceDefDao = Mockito.mock(XXServiceDefDao.class);
+		XXServiceDao xServiceDao = Mockito.mock(XXServiceDao.class);
+
 		Mockito.when(validatorFactory.getPolicyValidator(svcStore)).thenReturn(
 				policyValidator);
-		Mockito.when(bizUtil.isAdmin()).thenReturn(false);
+		Mockito.when(bizUtil.isAdmin()).thenReturn(true);
 		Mockito.when(bizUtil.getCurrentUserLoginId()).thenReturn(userName);
 		Mockito.when(userMgr.getGroupsForUser(userName)).thenReturn(
 				userGroupsList);
-
-		Mockito.when(restErrorUtil.createRESTException((String)null))
-				.thenThrow(new WebApplicationException());
-		thrown.expect(WebApplicationException.class);
+		Mockito.when(daoManager.getXXService()).thenReturn(xServiceDao);
+		Mockito.when(xServiceDao.findByName(Mockito.anyString())).thenReturn(xService);
+		Mockito.when(daoManager.getXXServiceDef()).thenReturn(xServiceDefDao);
+		Mockito.when(xServiceDefDao.getById(xService.getType())).thenReturn(xServiceDef);
 		RangerPolicy dbRangerPolicy = serviceREST.updatePolicy(rangerPolicy);
 		Assert.assertNull(dbRangerPolicy);
 		Mockito.verify(validatorFactory).getPolicyValidator(svcStore);
@@ -802,16 +819,20 @@ public class TestServiceREST {
 		rangerAccessTypeDefObj.setName("read");
 		rangerAccessTypeDefObj.setRbKeyLabel(null);
 		rangerAccessTypeDefList.add(rangerAccessTypeDefObj);
+		XXServiceDef xServiceDef = serviceDef();
+		XXService xService = xService();
+		XXServiceDefDao xServiceDefDao = Mockito.mock(XXServiceDefDao.class);
+		XXServiceDao xServiceDao = Mockito.mock(XXServiceDao.class);
 		Mockito.when(validatorFactory.getPolicyValidator(svcStore)).thenReturn(
 				policyValidator);
-		Mockito.when(bizUtil.isAdmin()).thenReturn(false);
+		Mockito.when(bizUtil.isAdmin()).thenReturn(true);
 		Mockito.when(bizUtil.getCurrentUserLoginId()).thenReturn(userName);
-		Mockito.when(userMgr.getGroupsForUser(userName)).thenReturn(
-				userGroupsList);
-
-		Mockito.when(restErrorUtil.createRESTException((String)null))
-				.thenThrow(new WebApplicationException());
-		thrown.expect(WebApplicationException.class);
+		Mockito.when(userMgr.getGroupsForUser(userName)).thenReturn(userGroupsList);
+		Mockito.when(svcStore.getPolicy(Id)).thenReturn(rangerPolicy);
+		Mockito.when(daoManager.getXXService()).thenReturn(xServiceDao);
+		Mockito.when(xServiceDao.findByName(Mockito.anyString())).thenReturn(xService);
+		Mockito.when(daoManager.getXXServiceDef()).thenReturn(xServiceDefDao);
+		Mockito.when(xServiceDefDao.getById(xService.getType())).thenReturn(xServiceDef);
 		serviceREST.deletePolicy(rangerPolicy.getId());
 		Mockito.verify(validatorFactory).getPolicyValidator(svcStore);
 	}
@@ -833,16 +854,20 @@ public class TestServiceREST {
 		rangerAccessTypeDefObj.setName("read");
 		rangerAccessTypeDefObj.setRbKeyLabel(null);
 		rangerAccessTypeDefList.add(rangerAccessTypeDefObj);
+		XXServiceDef xServiceDef = serviceDef();
+		XXService xService = xService();
+		XXServiceDefDao xServiceDefDao = Mockito.mock(XXServiceDefDao.class);
+		XXServiceDao xServiceDao = Mockito.mock(XXServiceDao.class);
 		Mockito.when(validatorFactory.getPolicyValidator(svcStore)).thenReturn(
 				policyValidator);
-		Mockito.when(bizUtil.isAdmin()).thenReturn(false);
+		Mockito.when(bizUtil.isAdmin()).thenReturn(true);
 		Mockito.when(bizUtil.getCurrentUserLoginId()).thenReturn(userName);
 		Mockito.when(userMgr.getGroupsForUser(userName)).thenReturn(
 				userGroupsList);
-
-		Mockito.when(restErrorUtil.createRESTException((String)null))
-				.thenThrow(new WebApplicationException());
-		thrown.expect(WebApplicationException.class);
+		Mockito.when(daoManager.getXXService()).thenReturn(xServiceDao);
+		Mockito.when(xServiceDao.findByName(Mockito.anyString())).thenReturn(xService);
+		Mockito.when(daoManager.getXXServiceDef()).thenReturn(xServiceDefDao);
+		Mockito.when(xServiceDefDao.getById(xService.getType())).thenReturn(xServiceDef);
 		RangerPolicy dbRangerPolicy = serviceREST.getPolicy(rangerPolicy
 				.getId());
 		Assert.assertNotNull(dbRangerPolicy);
@@ -869,7 +894,8 @@ public class TestServiceREST {
 	@Test
 	public void test21countPolicies() throws Exception {
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
-		RangerPolicyList ret = Mockito.mock(RangerPolicyList.class);
+
+		PList<RangerPolicy> ret  = Mockito.mock(PList.class);
 		SearchFilter filter = new SearchFilter();
 		filter.setParam(SearchFilter.POLICY_NAME, "policyName");
 		filter.setParam(SearchFilter.SERVICE_NAME, "serviceName");
@@ -880,7 +906,11 @@ public class TestServiceREST {
 		Long data = serviceREST.countPolicies(request);
 		Assert.assertNotNull(data);
 		Mockito.verify(searchUtil).getSearchFilter(request,
+<<<<<<< HEAD
 				policyService.sortFields);	
+=======
+				policyService.sortFields);
+>>>>>>> refs/remotes/apache/master
 	}
 
 	@Test
@@ -888,7 +918,7 @@ public class TestServiceREST {
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
 		RangerPolicy rangerPolicy = rangerPolicy();
 
-		RangerPolicyList ret = Mockito.mock(RangerPolicyList.class);
+		PList<RangerPolicy> ret = Mockito.mock(PList.class);
 		SearchFilter filter = new SearchFilter();
 		filter.setParam(SearchFilter.POLICY_NAME, "policyName");
 		filter.setParam(SearchFilter.SERVICE_NAME, "serviceName");
@@ -901,14 +931,23 @@ public class TestServiceREST {
 		Assert.assertNotNull(dbRangerPolicy);
 		Mockito.verify(searchUtil).getSearchFilter(request,
 				policyService.sortFields);
+<<<<<<< HEAD
+=======
+		Mockito.verify(svcStore).getServicePolicies(Id, filter);
+>>>>>>> refs/remotes/apache/master
 	}
 
 	@Test
 	public void test23getServicePoliciesByName() throws Exception {
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
 		RangerPolicy rangerPolicy = rangerPolicy();
+<<<<<<< HEAD
 		List<RangerPolicy> ret = new ArrayList<RangerPolicy>();
 		ret.add(rangerPolicy);
+=======
+
+		List<RangerPolicy> ret  = Mockito.mock(List.class);
+>>>>>>> refs/remotes/apache/master
 		SearchFilter filter = new SearchFilter();
 		filter.setParam(SearchFilter.POLICY_NAME, "policyName");
 		filter.setParam(SearchFilter.SERVICE_NAME, "serviceName");
@@ -985,7 +1024,11 @@ public class TestServiceREST {
 		Mockito.when(userMgr.getGroupsForUser(userName)).thenReturn(
 				userGroupsList);
 
+<<<<<<< HEAD
 		Mockito.when(restErrorUtil.createRESTException((String)null))
+=======
+		Mockito.when(restErrorUtil.createRESTException(Matchers.anyInt(), Matchers.anyString(), Matchers.anyBoolean()))
+>>>>>>> refs/remotes/apache/master
 				.thenThrow(new WebApplicationException());
 		thrown.expect(WebApplicationException.class);
 	
@@ -1031,7 +1074,7 @@ public class TestServiceREST {
 	@Test
 	public void test34countServices() throws Exception {
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
-		RangerServiceList ret = Mockito.mock(RangerServiceList.class);
+		PList<RangerService> ret  = Mockito.mock(PList.class);
 		SearchFilter filter = new SearchFilter();
 		filter.setParam(SearchFilter.POLICY_NAME, "policyName");
 		filter.setParam(SearchFilter.SERVICE_NAME, "serviceName");
@@ -1055,5 +1098,338 @@ public class TestServiceREST {
 		VXResponse dbVXResponse = serviceREST.validateConfig(rangerService);
 		Assert.assertNotNull(dbVXResponse);
 		Mockito.verify(serviceMgr).validateConfig(rangerService, svcStore);
+	}
+
+	@Test
+	public void test40applyPolicy() {
+		RangerPolicy existingPolicy = rangerPolicy();
+		RangerPolicy appliedPolicy = rangerPolicy();
+
+		existingPolicy.setPolicyItems(null);
+		appliedPolicy.setPolicyItems(null);
+
+		Map<String, RangerPolicyResource> policyResources = new HashMap<String, RangerPolicyResource>();
+		RangerPolicyResource rangerPolicyResource = new RangerPolicyResource("/tmp");
+		rangerPolicyResource.setIsExcludes(true);
+		rangerPolicyResource.setIsRecursive(true);
+		policyResources.put("path", rangerPolicyResource);
+
+		existingPolicy.setResources(policyResources);
+		appliedPolicy.setResources(policyResources);
+
+		RangerPolicyItem rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("read", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("write", true));
+		rangerPolicyItem.getGroups().add("group1");
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(true);
+
+		existingPolicy.getPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getGroups().add("group1");
+		rangerPolicyItem.getGroups().add("public");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.getUsers().add("finance");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		appliedPolicy.getPolicyItems().add(rangerPolicyItem);
+
+		String existingPolicyStr = existingPolicy.toString();
+		System.out.println("existingPolicy=" + existingPolicyStr);
+
+		ServiceRESTUtil.processApplyPolicy(existingPolicy, appliedPolicy);
+
+		String resultPolicyStr = existingPolicy.toString();
+		System.out.println("resultPolicy=" + resultPolicyStr);
+
+		assert(true);
+	}
+
+	@Test
+	public void test41applyPolicy() {
+		RangerPolicy existingPolicy = rangerPolicy();
+		RangerPolicy appliedPolicy = rangerPolicy();
+
+		existingPolicy.setPolicyItems(null);
+		appliedPolicy.setPolicyItems(null);
+
+		Map<String, RangerPolicyResource> policyResources = new HashMap<String, RangerPolicyResource>();
+		RangerPolicyResource rangerPolicyResource = new RangerPolicyResource("/tmp");
+		rangerPolicyResource.setIsExcludes(true);
+		rangerPolicyResource.setIsRecursive(true);
+		policyResources.put("path", rangerPolicyResource);
+
+		existingPolicy.setResources(policyResources);
+		appliedPolicy.setResources(policyResources);
+
+		RangerPolicyItem rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("read", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("write", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("lock", true));
+		rangerPolicyItem.getGroups().add("group1");
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(true);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("read", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("write", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("lock", true));
+		rangerPolicyItem.getGroups().add("group3");
+		rangerPolicyItem.getUsers().add("user3");
+		rangerPolicyItem.setDelegateAdmin(true);
+
+		existingPolicy.getPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("lock", true));
+		rangerPolicyItem.getGroups().add("group1");
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		existingPolicy.getAllowExceptions().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		existingPolicy.getDenyPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("index", true));
+		rangerPolicyItem.getGroups().add("public");
+		rangerPolicyItem.getUsers().add("user");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		existingPolicy.getDenyPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("index", true));
+
+		rangerPolicyItem.getGroups().add("group1");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		appliedPolicy.getPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+
+		rangerPolicyItem.getGroups().add("public");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		appliedPolicy.getDenyPolicyItems().add(rangerPolicyItem);
+
+		String existingPolicyStr = existingPolicy.toString();
+		System.out.println("existingPolicy=" + existingPolicyStr);
+
+		ServiceRESTUtil.processApplyPolicy(existingPolicy, appliedPolicy);
+
+		String resultPolicyStr = existingPolicy.toString();
+		System.out.println("resultPolicy=" + resultPolicyStr);
+
+		assert(true);
+	}
+
+	@Test
+	public void test42grant() {
+		RangerPolicy existingPolicy = rangerPolicy();
+
+		existingPolicy.setPolicyItems(null);
+
+		Map<String, RangerPolicyResource> policyResources = new HashMap<String, RangerPolicyResource>();
+		RangerPolicyResource rangerPolicyResource = new RangerPolicyResource("/tmp");
+		rangerPolicyResource.setIsExcludes(true);
+		rangerPolicyResource.setIsRecursive(true);
+		policyResources.put("path", rangerPolicyResource);
+
+		existingPolicy.setResources(policyResources);
+
+		RangerPolicyItem rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("read", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("write", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("lock", true));
+		rangerPolicyItem.getGroups().add("group1");
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(true);
+
+		existingPolicy.getPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("read", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("write", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("lock", true));
+		rangerPolicyItem.getGroups().add("group3");
+		rangerPolicyItem.getUsers().add("user3");
+		rangerPolicyItem.setDelegateAdmin(true);
+
+		existingPolicy.getPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("lock", true));
+		rangerPolicyItem.getGroups().add("group1");
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		existingPolicy.getAllowExceptions().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		existingPolicy.getDenyPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("index", true));
+		rangerPolicyItem.getGroups().add("public");
+		rangerPolicyItem.getUsers().add("user");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		existingPolicy.getDenyPolicyItems().add(rangerPolicyItem);
+
+		GrantRevokeRequest grantRequestObj = new GrantRevokeRequest();
+		Map<String, String> resource = new HashMap<String, String>();
+		resource.put("path", "/tmp");
+		grantRequestObj.setResource(resource);
+
+		grantRequestObj.getUsers().add("user1");
+		grantRequestObj.getGroups().add("group1");
+
+		grantRequestObj.getAccessTypes().add("delete");
+		grantRequestObj.getAccessTypes().add("index");
+
+		grantRequestObj.setDelegateAdmin(true);
+
+		grantRequestObj.setEnableAudit(true);
+		grantRequestObj.setIsRecursive(true);
+
+		grantRequestObj.setGrantor("test42Grant");
+
+		String existingPolicyStr = existingPolicy.toString();
+		System.out.println("existingPolicy=" + existingPolicyStr);
+
+		ServiceRESTUtil.processGrantRequest(existingPolicy, grantRequestObj);
+
+		String resultPolicyStr = existingPolicy.toString();
+		System.out.println("resultPolicy=" + resultPolicyStr);
+
+		assert(true);
+	}
+
+	@Test
+	public void test43revoke() {
+		RangerPolicy existingPolicy = rangerPolicy();
+
+		existingPolicy.setPolicyItems(null);
+
+		Map<String, RangerPolicyResource> policyResources = new HashMap<String, RangerPolicyResource>();
+		RangerPolicyResource rangerPolicyResource = new RangerPolicyResource("/tmp");
+		rangerPolicyResource.setIsExcludes(true);
+		rangerPolicyResource.setIsRecursive(true);
+		policyResources.put("path", rangerPolicyResource);
+
+		existingPolicy.setResources(policyResources);
+
+		RangerPolicyItem rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("read", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("write", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("lock", true));
+		rangerPolicyItem.getGroups().add("group1");
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(true);
+
+		existingPolicy.getPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("read", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("write", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("lock", true));
+		rangerPolicyItem.getGroups().add("group3");
+		rangerPolicyItem.getUsers().add("user3");
+		rangerPolicyItem.setDelegateAdmin(true);
+
+		existingPolicy.getPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("lock", true));
+		rangerPolicyItem.getGroups().add("group1");
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user1");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		existingPolicy.getAllowExceptions().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("delete", true));
+		rangerPolicyItem.getGroups().add("group2");
+		rangerPolicyItem.getUsers().add("user2");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		existingPolicy.getDenyPolicyItems().add(rangerPolicyItem);
+
+		rangerPolicyItem = new RangerPolicyItem();
+		rangerPolicyItem.getAccesses().add(new RangerPolicyItemAccess("index", true));
+		rangerPolicyItem.getGroups().add("public");
+		rangerPolicyItem.getUsers().add("user");
+		rangerPolicyItem.setDelegateAdmin(false);
+
+		existingPolicy.getDenyPolicyItems().add(rangerPolicyItem);
+
+		GrantRevokeRequest revokeRequestObj = new GrantRevokeRequest();
+		Map<String, String> resource = new HashMap<String, String>();
+		resource.put("path", "/tmp");
+		revokeRequestObj.setResource(resource);
+
+		revokeRequestObj.getUsers().add("user1");
+		revokeRequestObj.getGroups().add("group1");
+
+		revokeRequestObj.getAccessTypes().add("delete");
+		revokeRequestObj.getAccessTypes().add("index");
+
+		revokeRequestObj.setDelegateAdmin(true);
+
+		revokeRequestObj.setEnableAudit(true);
+		revokeRequestObj.setIsRecursive(true);
+
+		revokeRequestObj.setGrantor("test43Revoke");
+
+		String existingPolicyStr = existingPolicy.toString();
+		System.out.println("existingPolicy=" + existingPolicyStr);
+
+		ServiceRESTUtil.processRevokeRequest(existingPolicy, revokeRequestObj);
+
+		String resultPolicyStr = existingPolicy.toString();
+		System.out.println("resultPolicy=" + resultPolicyStr);
+
+		assert(true);
 	}
 }

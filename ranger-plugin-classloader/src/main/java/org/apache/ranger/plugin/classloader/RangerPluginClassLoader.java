@@ -273,7 +273,11 @@ public class RangerPluginClassLoader extends URLClassLoader {
         }
     }
 
+<<<<<<< HEAD
    static class MergeEnumeration implements Enumeration<URL> {
+=======
+   static class MergeEnumeration implements Enumeration<URL> { //NOPMD
+>>>>>>> refs/remotes/apache/master
 
         Enumeration<URL>  e1 = null;
         Enumeration<URL>  e2 = null;
@@ -299,4 +303,8 @@ public class RangerPluginClassLoader extends URLClassLoader {
 			return ret;
 		}
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> refs/remotes/apache/master

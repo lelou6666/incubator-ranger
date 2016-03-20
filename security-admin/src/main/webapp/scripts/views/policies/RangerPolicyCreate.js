@@ -48,11 +48,12 @@ define(function(require){
     		};
     	},
     	breadCrumbs :function(){
-	    	
-    		if(this.model.isNew())
-    			return [XALinks.get('ServiceManager'),XALinks.get('ManagePolicies',{model : this.rangerService}),XALinks.get('PolicyCreate')];
-    		else
-    			return [XALinks.get('ServiceManager'),XALinks.get('ManagePolicies',{model : this.rangerService}),XALinks.get('PolicyEdit')];
+    		var name  = this.rangerServiceDefModel.get('name') != XAEnums.ServiceType.SERVICE_TAG.label ? 'ServiceManager' : 'TagBasedServiceManager';
+    		if(this.model.isNew()){
+    			return [XALinks.get(name),XALinks.get('ManagePolicies',{model : this.rangerService}),XALinks.get('PolicyCreate')];
+    		} else {
+    			return [XALinks.get(name),XALinks.get('ManagePolicies',{model : this.rangerService}),XALinks.get('PolicyEdit')];
+    		}
     	} ,        
 
 		/** Layout sub regions */
@@ -123,67 +124,75 @@ define(function(require){
 			XAUtil.preventNavigation(localization.tt('dialogMsg.preventNavPolicyForm'),this.rForm.$el);
 		},
 		popupCallBack : function(msg,validateObj){
-			var that = this;
 			XAUtil.alertPopup({
 				msg :msg,
-				callback : function(){
-				//	if(validateObj.auditLoggin)
-				//		that.savePolicy();
-				}
 			});
 		},
 		onSave: function(){
-			var that = this, valid = false;
 			var errors = this.form.commit({validate : false});
 			if(! _.isEmpty(errors)){
 				return;
 			}
-			var validateObj = this.form.formValidation();
+			//validate policyItems in the policy
+			var validateObj1 = this.form.formValidation(this.form.formInputList);
+			if(!this.validatePolicyItem(validateObj1)) return;
+			var	validateObj2 = this.form.formValidation(this.form.formInputAllowExceptionList);
+			if(!this.validatePolicyItem(validateObj2)) return;
+			var	validateObj3 = this.form.formValidation(this.form.formInputDenyList);
+			if(!this.validatePolicyItem(validateObj3)) return;
+			var	validateObj4 = this.form.formValidation(this.form.formInputDenyExceptionList);
+			if(!this.validatePolicyItem(validateObj4)) return;
+			
+			var userPerm = (validateObj1.userPerm || validateObj2.userPerm
+					  || validateObj3.userPerm || validateObj4.userPerm);
+			var groupPerm = (validateObj1.groupPermSet || validateObj2.groupPermSet 
+					|| validateObj3.groupPermSet || validateObj4.groupPermSet)
+			if((!validateObj1.auditLoggin) && !(groupPerm || userPerm)){
+				XAUtil.alertPopup({ msg :localization.tt('msg.yourAuditLogginIsOff') });
+				return;
+			}
+			this.savePolicy();
+		},
+		validatePolicyItem : function(validateObj){
+			var that = this, valid = false;
 			valid = (validateObj.groupSet && validateObj.permSet) || (validateObj.userSet && validateObj.userPerm);
 			if(!valid){
-				if(validateObj.groupSet && (!validateObj.permSet)){
+				if((!validateObj.groupSet && !validateObj.userSet) && (validateObj.condSet)) {
+					this.popupCallBack(localization.tt('msg.addUserOrGroupForPC'),validateObj);
+				} else if((!validateObj.groupSet && !validateObj.userSet) && (validateObj.permSet)) {
+					this.popupCallBack(localization.tt('msg.addUserOrGroup'),validateObj);
+					
+				} else if(validateObj.groupSet && (!validateObj.permSet)){
 					this.popupCallBack(localization.tt('msg.addGroupPermission'),validateObj);
-				}else if((!validateObj.groupSet) && (validateObj.permSet)) {
+				} else if((!validateObj.groupSet) && (validateObj.permSet)) {
 					this.popupCallBack(localization.tt('msg.addGroup'),validateObj);
 						
-				}else if(validateObj.userSet && (!validateObj.userPerm)){
+				} else if(validateObj.userSet && (!validateObj.userPerm)){
 					this.popupCallBack(localization.tt('msg.addUserPermission'),validateObj);
-				}else if((!validateObj.userSet) && (validateObj.userPerm)) {
+				} else if((!validateObj.userSet) && (validateObj.userPerm)) {
 					this.popupCallBack(localization.tt('msg.addUser'),validateObj);
 						
-				}else if((!validateObj.auditLoggin) && (!validateObj.groupPermSet)){
-					XAUtil.alertPopup({
-						msg :localization.tt('msg.yourAuditLogginIsOff'),
-						callback : function(){
-							/*if(!that.model.isNew()){
-								that.model.destroy({success: function(model, response) {
-									XAUtil.notifySuccess('Success', localization.tt('msg.policyDeleteMsg'));
-									App.appRouter.navigate("#!/hdfs/"+that.assetModel.id+"/policies",{trigger: true});
-								}});
-							}else{
-								XAUtil.notifyError('Error', localization.tt('msg.policyNotAddedMsg'));
-								App.appRouter.navigate("#!/hdfs/"+that.assetModel.id+"/policies",{trigger: true});
-							}*/
-						}
-					});
+				} else if((!validateObj.auditLoggin) && (!validateObj.groupPermSet)){
+					return true;
 				}else{
-					this.savePolicy();
+					return true;
 				}
-			}else{
+			} else {
 				if(validateObj.groupSet && (!validateObj.permSet)){
 					this.popupCallBack(localization.tt('msg.addGroupPermission'),validateObj);
-				}else if((!validateObj.groupSet) && (validateObj.permSet)) {
+				} else if((!validateObj.groupSet) && (validateObj.permSet)) {
 					this.popupCallBack(localization.tt('msg.addGroup'),validateObj);
 						
-				}else if(validateObj.userSet && (!validateObj.userPerm)){
+				} else if(validateObj.userSet && (!validateObj.userPerm)){
 					this.popupCallBack(localization.tt('msg.addUserPermission'),validateObj);
-				}else if((!validateObj.userSet) && (validateObj.userPerm)) {
+				} else if((!validateObj.userSet) && (validateObj.userPerm)) {
 					this.popupCallBack(localization.tt('msg.addUser'),validateObj);
 						
-				}else{
-					this.savePolicy();
+				} else {
+					return true;
 				}
 			}
+			return false;
 		},
 		savePolicy : function(){
 			var that = this;
@@ -226,7 +235,6 @@ define(function(require){
 		onDelete :function(){
 			var that = this;
 			XAUtil.confirmPopup({
-				//msg :localize.tt('msg.confirmDelete'),
 				msg :'Are you sure want to delete ?',
 				callback : function(){
 					XAUtil.blockUI();
@@ -239,11 +247,11 @@ define(function(require){
 						},
 						error: function (model, response, options) {
 							XAUtil.blockUI('unblock');
-							if ( response && response.responseJSON && response.responseJSON.msgDesc){
+							if (response && response.responseJSON && response.responseJSON.msgDesc){
 								    XAUtil.notifyError('Error', response.responseJSON.msgDesc);
-							    }else
+							} else {
 							    	XAUtil.notifyError('Error', 'Error deleting Policy!');
-							    console.log("error");
+							}
 						}
 					});
 				}
@@ -253,8 +261,6 @@ define(function(require){
 		onClose: function(){
 			XAUtil.allowNavigation();
 		}
-
 	});
-
 	return RangerPolicyCreate;
 });

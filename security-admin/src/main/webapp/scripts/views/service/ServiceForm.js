@@ -85,8 +85,7 @@ define(function(require){
 		fields: ['name', 'description', 'isEnabled', 'type','configs', '_vPassword'],
 
 		schema : function(){
-
-			var attrs = _.pick(_.result(this.rangerServiceDefModel,'schemaBase'), 'name', 'description', 'isEnabled', 'type');
+			var attrs = _.pick(_.result(this.rangerServiceDefModel,'schemaBase'), this.getSerivceBaseFieldNames());
 			var that = this;
 			var formDataType = new BackboneFormDataType();
 			return formDataType.getFormElements(this.rangerServiceDefModel.get('configs'),this.rangerServiceDefModel.get('enums'), attrs, this);
@@ -152,6 +151,7 @@ define(function(require){
 			var that = this;
 			//Set configs for service 
 			var config = {};
+			if(!_.isEmpty(this.rangerServiceDefModel.get('configs'))){
 			_.each(this.rangerServiceDefModel.get('configs'),function(obj){
 				if(!_.isNull(obj)){
 					if(obj.type == 'bool'){
@@ -166,6 +166,7 @@ define(function(require){
 			});
 			this.extraConfigColl.each(function(obj){ config[obj.get('name')] = obj.get('value');})
 			this.model.set('configs',config);
+			}
 			
 			//Set service type
 			this.model.set('type',this.rangerServiceDefModel.get('name'))
@@ -204,6 +205,10 @@ define(function(require){
 				return subType[1].substr(0, subType[0].length - 5);
 			}
 		},
+		getSerivceBaseFieldNames : function(){
+			 var fields = ['name', 'description', 'isEnabled','tagService']
+			 return this.rangerServiceDefModel.get('name') == XAEnums.ServiceType.SERVICE_TAG.label ? fields.slice(0,fields.indexOf("tagService")) : fields;
+		}
 	});
 
 	return ServiceForm;

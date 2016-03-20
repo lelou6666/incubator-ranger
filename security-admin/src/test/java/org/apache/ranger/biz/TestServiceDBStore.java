@@ -88,6 +88,7 @@ import org.apache.ranger.plugin.model.RangerServiceDef.RangerEnumElementDef;
 import org.apache.ranger.plugin.model.RangerServiceDef.RangerPolicyConditionDef;
 import org.apache.ranger.plugin.model.RangerServiceDef.RangerResourceDef;
 import org.apache.ranger.plugin.model.RangerServiceDef.RangerServiceConfigDef;
+import org.apache.ranger.plugin.store.PList;
 import org.apache.ranger.plugin.store.ServicePredicateUtil;
 import org.apache.ranger.plugin.util.SearchFilter;
 import org.apache.ranger.plugin.util.ServicePolicies;
@@ -201,6 +202,7 @@ public class TestServiceDBStore {
 
 		RangerServiceDef rangerServiceDef = new RangerServiceDef();
 		rangerServiceDef.setId(Id);
+		rangerServiceDef.setName("RangerServiceHdfs");
 		rangerServiceDef.setImplClass("RangerServiceHdfs");
 		rangerServiceDef.setLabel("HDFS Repository");
 		rangerServiceDef.setDescription("HDFS Repository");
@@ -488,6 +490,7 @@ public class TestServiceDBStore {
 		XXContextEnricherDefDao xContextEnricherDefDao = Mockito
 				.mock(XXContextEnricherDefDao.class);
 		XXEnumDefDao xEnumDefDao = Mockito.mock(XXEnumDefDao.class);
+		XXServiceDao xServiceDao = Mockito.mock(XXServiceDao.class);
 
 		RangerServiceDef rangerServiceDef = rangerServiceDef();
 		Long serviceDefId = rangerServiceDef.getId();
@@ -592,6 +595,9 @@ public class TestServiceDBStore {
 		Mockito.when(daoManager.getXXEnumDef()).thenReturn(xEnumDefDao);
 		Mockito.when(xEnumDefDao.findByServiceDefId(serviceDefId)).thenReturn(
 				enumDefList);
+
+		Mockito.when(daoManager.getXXService()).thenReturn(xServiceDao);
+		Mockito.when(xServiceDao.findByServiceDefId(serviceDefId)).thenReturn(null);
 
 		Mockito.when(serviceDefService.read(Id)).thenReturn(rangerServiceDef);
 		RangerServiceDef dbServiceDef = serviceDBStore
@@ -898,10 +904,9 @@ public class TestServiceDBStore {
 
 		Mockito.when(serviceDefService.read(Id)).thenReturn(rangerServiceDef);
 		Mockito.when(daoManager.getXXService()).thenReturn(xServiceDao);
-		Mockito.when(xServiceDao.findByServiceDefId(serviceDefId)).thenReturn(
-				xServiceList);
+		Mockito.when(xServiceDao.findByServiceDefId(serviceDefId)).thenReturn(null);
+//				xServiceList);
 
-		Mockito.when(stringUtil.isEmpty(xServiceList)).thenReturn(true);
 		Mockito.when(daoManager.getXXAccessTypeDef()).thenReturn(
 				xAccessTypeDefDao);
 		Mockito.when(xAccessTypeDefDao.findByServiceDefId(serviceDefId))
@@ -1002,6 +1007,7 @@ public class TestServiceDBStore {
 		Mockito.when(daoManager.getXXService()).thenReturn(xServiceDao);
 		Mockito.when(xServiceDao.getById(rangerService.getId())).thenReturn(
 				xService);
+		Mockito.when(xServiceDao.findByServiceDefId(serviceDefId)).thenReturn(null);
 
 		Mockito.when(svcService.update(rangerService))
 				.thenReturn(rangerService);
@@ -1025,7 +1031,7 @@ public class TestServiceDBStore {
 		Mockito.when(daoManager.getXXUser()).thenReturn(xUserDao);
 		Mockito.when(xUserDao.findByUserName(name)).thenReturn(xUser);
 		Mockito.when(!bizUtil.hasAccess(xService, null)).thenReturn(true);
-		serviceDBStore.deleteServiceDef(Id);
+		serviceDBStore.deleteServiceDef(Id, true);
 		Mockito.verify(daoManager).getXXContextEnricherDef();
 		Mockito.verify(daoManager).getXXEnumDef();
 	}
@@ -1144,13 +1150,10 @@ public class TestServiceDBStore {
 		Mockito.when(serviceDefService.searchRangerServiceDefs(filter))
 				.thenReturn(serviceDefList);
 
-		RangerServiceDefList dbServiceDefList = serviceDBStore
+		PList<RangerServiceDef> dbServiceDefList = serviceDBStore
 				.getPaginatedServiceDefs(filter);
 		Assert.assertNotNull(dbServiceDefList);
-		Assert.assertEquals(dbServiceDefList, serviceDefList);
 		Assert.assertEquals(dbServiceDefList.getList(),
-				serviceDefList.getList());
-		Assert.assertEquals(dbServiceDefList.getServiceDefs(),
 				serviceDefList.getServiceDefs());
 		Mockito.verify(serviceDefService).searchRangerServiceDefs(filter);
 	}
@@ -1207,9 +1210,12 @@ public class TestServiceDBStore {
 		Mockito.when(svcService.getPopulatedViewObject(xService)).thenReturn(
 				rangerService);
 
+<<<<<<< HEAD
 		Mockito.when(daoManager.getXXService()).thenReturn(xServiceDao);
 		Mockito.when(xServiceDao.getById(Mockito.anyLong())).thenReturn(xService2);		
 
+=======
+>>>>>>> refs/remotes/apache/master
 		Mockito.when(
 				rangerAuditFields.populateAuditFields(
 						Mockito.isA(XXServiceConfigMap.class),
@@ -1218,8 +1224,17 @@ public class TestServiceDBStore {
 		RangerServiceDef ran = new RangerServiceDef();
 		ran.setName("Test");
 		Mockito.when(serviceDefService.read(1L)).thenReturn(ran);
+<<<<<<< HEAD
 		
 		serviceDBStore.createService(rangerService);
+=======
+
+		ServiceDBStore spy = Mockito.spy(serviceDBStore);
+
+		Mockito.doNothing().when(spy).createDefaultPolicies(xService, vXUser);
+
+		spy.createService(rangerService);
+>>>>>>> refs/remotes/apache/master
 		
 		Mockito.verify(daoManager, Mockito.atLeast(1)).getXXService();
 		Mockito.verify(daoManager).getXXServiceConfigMap();
@@ -1685,12 +1700,10 @@ public class TestServiceDBStore {
 		Mockito.when(svcService.searchRangerServices(filter)).thenReturn(
 				serviceListObj);
 
-		RangerServiceList dbServiceList = serviceDBStore
+		PList<RangerService> dbServiceList = serviceDBStore
 				.getPaginatedServices(filter);
 		Assert.assertNotNull(dbServiceList);
-		Assert.assertEquals(dbServiceList, serviceListObj);
-		Assert.assertEquals(dbServiceList.getList(), serviceListObj.getList());
-		Assert.assertEquals(dbServiceList.getServices(),
+		Assert.assertEquals(dbServiceList.getList(),
 				serviceListObj.getServices());
 
 		Mockito.verify(svcService).searchRangerServices(filter);
@@ -2416,7 +2429,7 @@ public class TestServiceDBStore {
 		Mockito.when(policyService.searchRangerPolicies(filter)).thenReturn(
 				policyListObj);
 
-		RangerPolicyList dbRangerPolicyList = serviceDBStore
+		PList<RangerPolicy> dbRangerPolicyList = serviceDBStore
 				.getPaginatedPolicies(filter);
 		Assert.assertNotNull(dbRangerPolicyList);
 		Mockito.verify(policyService).searchRangerPolicies(filter);
@@ -2517,7 +2530,8 @@ public class TestServiceDBStore {
 		Mockito.when(policyService.searchRangerPolicies(filter)).thenReturn(
 				policyList);
 
-		RangerPolicyList dbRangerPolicyList = serviceDBStore
+
+		PList<RangerPolicy> dbRangerPolicyList = serviceDBStore
 				.getPaginatedServicePolicies(serviceName, filter);
 		Assert.assertNotNull(dbRangerPolicyList);
 		Mockito.verify(policyService).searchRangerPolicies(filter);
@@ -2537,7 +2551,11 @@ public class TestServiceDBStore {
 		Mockito.when(xServiceDao.getById(Id)).thenReturn(xService);
 
 		thrown.expect(Exception.class);
+<<<<<<< HEAD
 		RangerPolicyList dbRangerPolicyList = serviceDBStore
+=======
+		PList<RangerPolicy> dbRangerPolicyList = serviceDBStore
+>>>>>>> refs/remotes/apache/master
 				.getPaginatedServicePolicies(rangerService.getId(), filter);
 		Mockito.verify(daoManager).getXXService();
 	}

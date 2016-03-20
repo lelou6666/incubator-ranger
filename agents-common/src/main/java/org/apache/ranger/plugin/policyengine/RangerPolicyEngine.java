@@ -29,10 +29,9 @@ import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.model.RangerPolicy.RangerPolicyResource;
 
 public interface RangerPolicyEngine {
-	public static final String GROUP_PUBLIC   = "public";
-	public static final String ANY_ACCESS     = "_any";
-	public static final String ADMIN_ACCESS   = "_admin";
-	public static final long   UNKNOWN_POLICY = -1;
+	String GROUP_PUBLIC   = "public";
+	String ANY_ACCESS     = "_any";
+	String ADMIN_ACCESS   = "_admin";
 
 	String getServiceName();
 
@@ -55,7 +54,14 @@ public interface RangerPolicyEngine {
 
 	boolean isAccessAllowed(Map<String, RangerPolicyResource> resources, String user, Set<String> userGroups, String accessType);
 
-	RangerPolicy getExactMatchPolicy(RangerAccessResource resource);
+	List<RangerPolicy> getExactMatchPolicies(RangerAccessResource resource);
+
+	List<RangerPolicy> getExactMatchPolicies(Map<String, RangerPolicyResource> resources);
 
 	List<RangerPolicy> getAllowedPolicies(String user, Set<String> userGroups, String accessType);
+
+	boolean preCleanup();
+
+	void cleanup();
+
 }

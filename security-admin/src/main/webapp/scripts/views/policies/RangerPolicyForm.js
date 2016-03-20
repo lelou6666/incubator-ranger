@@ -66,7 +66,10 @@ define(function(require){
 			this.defaultValidator={}
 		},
 		initializeCollection: function(){
-			this.formInputList 		= XAUtil.makeCollForGroupPermission(this.model);
+			this.formInputList 		= XAUtil.makeCollForGroupPermission(this.model, 'policyItems');
+			this.formInputAllowExceptionList= XAUtil.makeCollForGroupPermission(this.model, 'allowExceptions');
+			this.formInputDenyList 		= XAUtil.makeCollForGroupPermission(this.model, 'denyPolicyItems');
+			this.formInputDenyExceptionList = XAUtil.makeCollForGroupPermission(this.model, 'denyExceptions');
 		},
 		/** all events binding here */
 		bindEvents : function(){
@@ -88,7 +91,7 @@ define(function(require){
 		getSchema : function(){
 			var attrs = {};
 			var basicSchema = ['name','isEnabled']
-			var schemaNames = ['description', 'isAuditEnabled'];
+			var schemaNames = this.getPolicyBaseFieldNames();
 			
 			var formDataType = new BackboneFormDataType();
 			attrs = formDataType.getFormElements(this.rangerServiceDefModel.get('resources'),this.rangerServiceDefModel.get('enums'), attrs, this);
@@ -116,6 +119,50 @@ define(function(require){
 			//to show error msg on below the field(only for policy name)
 			this.fields.isEnabled.$el.find('.control-label').removeClass();
 			this.fields.name.$el.find('.help-inline').removeClass('help-inline').addClass('help-block margin-left-5')
+			this.initializePlugins();
+		},
+		initializePlugins : function() {
+			var that = this;
+			this.$(".wrap-header").each(function(i, ele) {
+				var wrap = $(this).next();
+				// If next element is a wrap and hasn't .non-collapsible class
+				if (wrap.hasClass('wrap') && ! wrap.hasClass('non-collapsible')){
+					$(this).append('<a href="#" class="wrap-expand pull-right">show&nbsp;&nbsp;<i class="icon-caret-down"></i></a>').append('<a href="#" class="wrap-collapse pull-right" style="display: none">hide&nbsp;&nbsp;<i class="icon-caret-up"></i></a>');
+				}
+			});
+			// Collapse wrap
+			this.$el.on("click", "a.wrap-collapse", function() {
+				var self = $(this).hide(100, 'linear');
+				self.parent('.wrap-header').next('.wrap').slideUp(500, function() {
+					$('.wrap-expand', self.parent('.wrap-header')).show(100, 'linear');
+				});
+				return false;
+				// Expand wrap
+			}).on("click", "a.wrap-expand", function() {
+				var self = $(this).hide(100, 'linear');
+				self.parent('.wrap-header').next('.wrap').slideDown(500, function() {
+					$('.wrap-collapse', self.parent('.wrap-header')).show(100, 'linear');
+				});
+				return false;
+			});
+			
+			//Hide show wrap-header based on policyItems 
+			var parentPermsObj = { groupPermsDeny : this.formInputDenyList,  };
+			var childPermsObj = { groupPermsAllowExclude : this.formInputAllowExceptionList, groupPermsDenyExclude : this.formInputDenyExceptionList}
+			_.each(childPermsObj, function(val, name){
+				if(val.length <= 0)
+					this.$el.find('[data-customfields="'+name+'"]').parent().hide();
+			},this)
+			
+			_.each(parentPermsObj, function(val, name, i){
+				if(val.length <= 0){
+					var tmp = this.$el.find('[data-customfields="'+name+'"]').next()
+					var childPerm = tmp.find('[data-customfields^="groupPerms"]');
+					if(childPerm.parent().css('display') == 'none'){
+						this.$el.find('[data-customfields="'+name+'"]').parent().hide();
+					}
+				}
+			},this)
 		},
 		evAuditChange : function(form, fieldEditor){
 			XAUtil.checkDirtyFieldForToggle(fieldEditor.$el);
@@ -135,7 +182,13 @@ define(function(require){
 						//parentShowHide
 						this.selectedResourceTypes['sameLevel'+resourceDef.level]=key;
 					}else{
-						this.model.set(resourceDef.name, obj)
+						//single value support
+						if(! XAUtil.isSinglevValueInput(resourceDef) ){
+							this.model.set(resourceDef.name, obj)
+						}else{
+							//single value resource
+							this.model.set(resourceDef.name, obj.values)
+						}
 					}
 				},this)
 			}
@@ -144,7 +197,6 @@ define(function(require){
 			var that = this;
 			this.fields.isAuditEnabled.editor.setValue(this.model.get('isAuditEnabled'));
 			this.fields.isEnabled.editor.setValue(this.model.get('isEnabled'));
-			
 		},
 		/** all custom field rendering */
 		renderCustomFields: function(){
@@ -170,6 +222,34 @@ define(function(require){
 						userList   : that.userList,
 						model 	   : that.model,
 						accessTypes: accessType,
+						headerTitle: "",
+						rangerServiceDefModel : that.rangerServiceDefModel
+						}).render().el);
+						that.$('[data-customfields="groupPermsAllowExclude"]').html(new PermissionList({
+						collection : that.formInputAllowExceptionList,
+						groupList  : that.groupList,
+						userList   : that.userList,
+						model 	   : that.model,
+						accessTypes: accessType,
+						headerTitle: "",
+						rangerServiceDefModel : that.rangerServiceDefModel
+						}).render().el);
+						that.$('[data-customfields="groupPermsDeny"]').html(new PermissionList({
+						collection : that.formInputDenyList,
+						groupList  : that.groupList,
+						userList   : that.userList,
+						model 	   : that.model,
+						accessTypes: accessType,
+						headerTitle: "Deny",
+						rangerServiceDefModel : that.rangerServiceDefModel
+						}).render().el);
+						that.$('[data-customfields="groupPermsDenyExclude"]').html(new PermissionList({
+						collection : that.formInputDenyExceptionList,
+						groupList  : that.groupList,
+						userList   : that.userList,
+						model 	   : that.model,
+						accessTypes: accessType,
+						headerTitle: "Deny",
 						rangerServiceDefModel : that.rangerServiceDefModel
 					}).render().el);
 			});
@@ -231,15 +311,23 @@ define(function(require){
 			_.each(this.rangerServiceDefModel.get('resources'),function(obj){
 				if(!_.isNull(obj)){
 					var tmpObj =  that.model.get(obj.name);
-					if(!_.isUndefined(tmpObj) && _.isObject(tmpObj)){
-						var rPolicyResource = new RangerPolicyResource();
-						rPolicyResource.set('values',tmpObj.resource.split(','));
-						if(!_.isUndefined(tmpObj.isRecursive)){
-							rPolicyResource.set('isRecursive', tmpObj.isRecursive)
+					var rPolicyResource = new RangerPolicyResource();
+					//single value support
+					if(! XAUtil.isSinglevValueInput(obj) ){
+						if(!_.isUndefined(tmpObj) && _.isObject(tmpObj)){
+							rPolicyResource.set('values',tmpObj.resource.split(','));
+							if(!_.isUndefined(tmpObj.isRecursive)){
+								rPolicyResource.set('isRecursive', tmpObj.isRecursive)
+							}
+							if(!_.isUndefined(tmpObj.isExcludes)){
+								rPolicyResource.set('isExcludes', tmpObj.isExcludes)
+							}
+							resources[obj.name] = rPolicyResource;
+							that.model.unset(obj.name);
 						}
-						if(!_.isUndefined(tmpObj.isExcludes)){
-							rPolicyResource.set('isExcludes', tmpObj.isExcludes)
-						}
+					}else{
+						//For single value resource
+						rPolicyResource.set('values',tmpObj.split(','));
 						resources[obj.name] = rPolicyResource;
 						that.model.unset(obj.name);
 					}
@@ -252,16 +340,16 @@ define(function(require){
 			//Set UserGroups Permission
 			
 			var RangerPolicyItem = Backbone.Collection.extend();
-			var policyItemList = new RangerPolicyItem();
-			policyItemList = this.setPermissionsToColl(this.formInputList, policyItemList);
 			
-			this.model.set('policyItems', policyItemList)
-			this.model.set('service',this.rangerService.get('name'));			
+			this.model.set('policyItems', this.setPermissionsToColl(this.formInputList, new RangerPolicyItem()));
+			this.model.set('denyPolicyItems', this.setPermissionsToColl(this.formInputDenyList, new RangerPolicyItem()));
+			this.model.set('allowExceptions', this.setPermissionsToColl(this.formInputAllowExceptionList, new RangerPolicyItem()));
+			this.model.set('denyExceptions', this.setPermissionsToColl(this.formInputDenyExceptionList, new RangerPolicyItem()));
+			this.model.set('service',this.rangerService.get('name'));
 			/*//Unset attrs which are not needed 
 			_.each(this.model.attributes.resources,function(obj,key){
 				this.model.unset(key, obj.values.toString())
 			},this)*/
-			
 		},
 		setPermissionsToColl : function(list, policyItemList) {
 			list.each(function(m){
@@ -274,20 +362,20 @@ define(function(require){
 					if(!_.isUndefined(m.get('userName')) && !_.isNull(m.get('userName'))){
 						policyItem.set("users",m.get("userName").split(','));
 					}
-					if(!_.isUndefined(m.get('delegateAdmin'))){
-						policyItem.set("delegateAdmin",m.get("delegateAdmin"));
-					}
-					
-					var RangerPolicyItemAccessList = Backbone.Collection.extend();
-					var rangerPlcItemAccessList = new RangerPolicyItemAccessList(m.get('accesses'));
-					policyItem.set('accesses', rangerPlcItemAccessList)
-					
-					if(!_.isUndefined(m.get('conditions'))){
+					if(!(_.isUndefined(m.get('conditions')) && _.isEmpty(m.get('conditions')))){
 						var RangerPolicyItemConditionList = Backbone.Collection.extend();
 						var rPolicyItemCondList = new RangerPolicyItemConditionList(m.get('conditions'))
 						policyItem.set('conditions', rPolicyItemCondList)
 					}
-					policyItemList.add(policyItem)
+					if(!_.isUndefined(m.get('accesses')) && !_.isUndefined(m.get('delegateAdmin'))){
+						policyItem.set("delegateAdmin",m.get("delegateAdmin"));
+					}
+					if(!_.isUndefined(m.get('accesses'))){
+						var RangerPolicyItemAccessList = Backbone.Collection.extend();
+						var rangerPlcItemAccessList = new RangerPolicyItemAccessList(m.get('accesses'));
+						policyItem.set('accesses', rangerPlcItemAccessList)
+						policyItemList.add(policyItem)
+					}
 					
 				}
 			}, this);
@@ -513,11 +601,11 @@ define(function(require){
 				};
 			return JSON.stringify(context);
 		},
-		formValidation : function(){
-			var groupSet = false,permSet = false,groupPermSet = false;
-			var userSet=false, userPerm = false, userPermSet =false,breakFlag =false;
+		formValidation : function(coll){
+			var groupSet = false,permSet = false,groupPermSet = false,
+			userSet=false, userPerm = false, userPermSet =false,breakFlag =false, condSet = false;
 			console.log('validation called..');
-			this.formInputList.each(function(m){
+			coll.each(function(m){
 				if(_.isEmpty(m.attributes)) return;
 				if(m.has('groupName') || m.has('userName') || m.has('accesses') ){
 					if(! breakFlag){
@@ -535,12 +623,16 @@ define(function(require){
 						}
 					}
 				}
+				if(m.has('conditions') && !_.isEmpty(m.get('conditions'))){
+					condSet = m.has('conditions') ? true : false;
+				}
 			});
 			
 			var auditStatus = this.fields.isAuditEnabled.editor.getValue();
 			var obj = { groupPermSet	: groupPermSet , groupSet : groupSet,	
 						userSet 		: userSet, isUsers:userPermSet,
-						auditLoggin : auditStatus 
+						auditLoggin 	: auditStatus,
+						condSet			: condSet,
 					};
 			if(groupSet || userSet){
 				obj['permSet'] = groupSet ? permSet : false;
@@ -551,6 +643,10 @@ define(function(require){
 			}
 			return obj;
 		},
+		getPolicyBaseFieldNames : function(){
+			 var fields = ['description', 'isAuditEnabled'];
+			 return fields;
+		}
 	});
 
 	return RangerPolicyForm;

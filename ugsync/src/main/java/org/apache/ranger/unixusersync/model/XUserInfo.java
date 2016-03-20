@@ -28,7 +28,10 @@ public class XUserInfo {
 	private String 	description ;
 	
 	private List<String>  	groupNameList = new ArrayList<String>() ;
+<<<<<<< HEAD
 	private List<String>    groupIdList   = new ArrayList<String>() ;
+=======
+>>>>>>> refs/remotes/apache/master
 	
 	public String getId() {
 		return id;
@@ -56,6 +59,7 @@ public class XUserInfo {
 	public List<String> getGroupNameList() {
 		return groupNameList;
 	}
+<<<<<<< HEAD
 	
 	public List<String> getGroupIdList() {
 		return groupIdList;
@@ -64,6 +68,8 @@ public class XUserInfo {
 	public void setGroupIdList(List<String> groupIdList) {
 		this.groupIdList = groupIdList;
 	}
+=======
+>>>>>>> refs/remotes/apache/master
 
 	public List<String> getGroups() {
 		return groupNameList;

@@ -72,7 +72,7 @@ primary key (id),
 CONSTRAINT x_service_name UNIQUE (name),
 CONSTRAINT x_service_FK_added_by_id FOREIGN KEY (added_by_id) REFERENCES x_portal_user (id),
 CONSTRAINT x_service_FK_upd_by_id FOREIGN KEY (upd_by_id) REFERENCES x_portal_user (id),
-CONSTRAINT x_service_FK_type FOREIGN KEY (type) REFERENCES x_service_def (id) 
+CONSTRAINT x_service_FK_type FOREIGN KEY (type) REFERENCES x_service_def (id)
 );
 commit;
 CREATE TABLE x_policy (

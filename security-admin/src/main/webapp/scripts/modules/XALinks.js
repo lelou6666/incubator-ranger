@@ -50,7 +50,12 @@ define(function(require) {
 				title: 'h.repositoryManager'
 			},
 			ServiceManager :{
-				href : '#!/policymanager', 
+				href : '#!/policymanager/resource', 
+				text : 'h.serviceManager',
+				title: 'h.serviceManager'
+			},
+			TagBasedServiceManager :{
+				href : '#!/policymanager/tag', 
 				text : 'h.serviceManager',
 				title: 'h.serviceManager'
 			},
@@ -178,7 +183,11 @@ define(function(require) {
 				text : 'lbl.sessionDetail'
 			},
 			ServiceCreate : {
+<<<<<<< HEAD
 				href : 'javascript:void(0);',
+=======
+				href : "javascript:void(0);",
+>>>>>>> refs/remotes/apache/master
 				text : 'lbl.createService',
 				title: 'lbl.createService'
 			},

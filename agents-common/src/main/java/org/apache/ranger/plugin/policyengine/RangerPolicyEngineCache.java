@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.ranger.plugin.policyengine.RangerPolicyEngineOptions;
 import org.apache.ranger.plugin.store.ServiceStore;
 import org.apache.ranger.plugin.util.ServicePolicies;
 
@@ -79,7 +78,7 @@ public class RangerPolicyEngineCache {
 	}
 
 	private RangerPolicyEngine addPolicyEngine(ServicePolicies policies) {
-		RangerPolicyEngine ret = new RangerPolicyEngineImpl(policies, options);
+		RangerPolicyEngine ret = new RangerPolicyEngineImpl("ranger-admin", policies, options);
 
 		policyEngineCache.put(policies.getServiceName(), ret);
 

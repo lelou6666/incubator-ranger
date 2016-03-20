@@ -59,9 +59,10 @@ define(function(require) {
 	   userAccessReportAction : function(){
 		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.AccessManager.value });
 		   var view				= require('views/reports/UserAccessLayout');
-		   var RangerPolicyList 	= require('collections/RangerPolicyList');
+		   var RangerPolicyList = require('collections/RangerPolicyList');
 		   var VXGroupList		= require('collections/VXGroupList');
 		   var VXUserList		= require('collections/VXUserList');
+<<<<<<< HEAD
 		   var policyList 	= new RangerPolicyList();
 		   var that 		= this;
 		   this.groupList 	= new VXGroupList();
@@ -83,6 +84,15 @@ define(function(require) {
 					}));
 				});
 			});
+=======
+		   if(App.rContent.currentView)
+			   App.rContent.currentView.close();
+		   App.rContent.show(new view({
+			   collection : new RangerPolicyList(),
+			   groupList : new VXGroupList(),
+			   userList : new VXUserList()
+		   }));
+>>>>>>> refs/remotes/apache/master
 	   },
 	   auditReportAction : function(tab){
 		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.Audit.value });
@@ -217,24 +227,38 @@ define(function(require) {
    	   //************** Generic design Related *********************/
    	   /************************************************************/
 
-	   serviceManagerAction :function(){
+	   serviceManagerAction :function(type){
 		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.AccessManager.value });
-		   console.log('Policy Manager action called..');
+		   var XAUtil				= require('utils/XAUtils');
+		   var XAEnums				= require('utils/XAEnums');
 		   var view 				= require('views/policymanager/ServiceLayout');
 		   var RangerServiceDefList	= require('collections/RangerServiceDefList');
+		   var RangerServiceDef		= require('models/RangerServiceDef');
+		   
 		   var collection 			= new RangerServiceDefList();
 		   collection.queryParams.sortBy = 'serviceTypeId';
-		   collection.fetch({
-			   cache : false,
-			   async:false
-		   }).done(function(){
-			   if(App.rContent.currentView) App.rContent.currentView.close();
-			   //TODO FROM SERVER SIDE IT SHOULD GIVE SORTBY `ID` BY DEFAULT
-//			   collection = collection.sort()
-			   App.rContent.show(new view({
-				   collection : collection
-			   }));
-		   });
+		   
+		   if(type == 'tag'){
+			   var tagServiceDef	= new RangerServiceDef();
+			   tagServiceDef.url 	= XAUtil.getRangerServiceDef(XAEnums.ServiceType.SERVICE_TAG.label)
+			   tagServiceDef.fetch({
+				   cache : false,
+				   async:false
+			   })
+			   collection.add(tagServiceDef);
+		   }else{
+			   collection.fetch({
+				   cache : false,
+				   async:false
+			   });
+			   var coll = collection.filter(function(model){ return model.get('name') != XAEnums.ServiceType.SERVICE_TAG.label})
+			   collection.reset(coll)
+		   }
+//		   if(App.rContent.currentView) App.rContent.currentView.close();
+		   App.rContent.show(new view({
+			   collection : collection,
+			   type	: type
+		   }));
 	   },
 
 	   serviceCreateAction :function(serviceTypeId){
@@ -275,16 +299,26 @@ define(function(require) {
 		   var XAUtil			= require('utils/XAUtils');
 		   var view 			= require('views/policies/RangerPolicyTableLayout');
 		   var RangerService	= require('models/RangerService');
-		   var RangerPolicyList	= require('collections/RangerPolicyList');
+		   var RangerPolicyList 	=  require('collections/RangerPolicyList');
 		   
 		   var rangerService = new RangerService({id : serviceId});
+<<<<<<< HEAD
+=======
+
+>>>>>>> refs/remotes/apache/master
 		   rangerService.fetch({
 			  cache : false,
 			  async : false
 		   });
 		   App.rContent.show(new view({
+<<<<<<< HEAD
 			   collection : new RangerPolicyList(),
 			   rangerService : rangerService
+=======
+			   rangerService : rangerService,
+			   collection : new RangerPolicyList()
+			   
+>>>>>>> refs/remotes/apache/master
 		   }));
 	   },
 	   RangerPolicyCreateAction :function(serviceId){
@@ -330,10 +364,12 @@ define(function(require) {
 	   modulePermissionsAction :function(){
 		   MAppState.set({ 'currentTab' : XAGlobals.AppTabs.Settings.value });
 		   var view 			= require('views/permissions/ModulePermsTableLayout');
-		   var ModulePermission	= require('models/VXModuleDef');
 		   var ModulePermissionList	= require('collections/VXModuleDefList');
 
+<<<<<<< HEAD
 		   var modulePermission = new ModulePermission();
+=======
+>>>>>>> refs/remotes/apache/master
 		   App.rContent.show(new view({
 			   collection : new ModulePermissionList()
 		   }));

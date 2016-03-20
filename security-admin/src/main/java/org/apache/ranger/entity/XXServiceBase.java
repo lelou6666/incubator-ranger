@@ -70,6 +70,15 @@ public abstract class XXServiceBase extends XXDBBase {
 	protected String name;
 
 	/**
+	 * tagService of the XXService
+	 * <ul>
+	 * </ul>
+	 *
+	 */
+	@Column(name = "tag_service")
+	protected Long tagService;
+
+	/**
 	 * policyVersion of the XXService
 	 * <ul>
 	 * </ul>
@@ -87,6 +96,25 @@ public abstract class XXServiceBase extends XXDBBase {
 	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name = "policy_update_time")
 	protected Date policyUpdateTime;
+
+	/**
+	 * tagVersion of the XXService
+	 * <ul>
+	 * </ul>
+	 *
+	 */
+	@Column(name = "tag_version")
+	protected Long tagVersion;
+
+	/**
+	 * tagUpdateTime of the XXService
+	 * <ul>
+	 * </ul>
+	 *
+	 */
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name = "tag_update_time")
+	protected Date tagUpdateTime;
 
 	/**
 	 * description of the XXService
@@ -182,6 +210,25 @@ public abstract class XXServiceBase extends XXDBBase {
 	}
 
 	/**
+	 * This method sets the value to the member attribute <b> tagService</b> .
+	 * 
+	 * @param tagService
+	 *            Value to set member attribute <b> tagService</b>
+	 */
+	public void setTagService(Long tagService) {
+		this.tagService = tagService;
+	}
+
+	/**
+	 * Returns the value for the member attribute <b>tagService</b>
+	 * 
+	 * @return Long - value of member attribute <b>tagService</b> .
+	 */
+	public Long getTagService() {
+		return this.tagService;
+	}
+
+	/**
 	 * This method sets the value to the member attribute <b> policyVersion</b>
 	 * . You cannot set null to the attribute.
 	 * 
@@ -219,6 +266,46 @@ public abstract class XXServiceBase extends XXDBBase {
 	 */
 	public Date getPolicyUpdateTime() {
 		return this.policyUpdateTime;
+	}
+
+	/**
+	 * This method sets the value to the member attribute <b> tagVersion</b>
+	 * . You cannot set null to the attribute.
+	 * 
+	 * @param tagVersion
+	 *            Value to set member attribute <b> tagVersion</b>
+	 */
+	public void setTagVersion(Long tagVersion) {
+		this.tagVersion = tagVersion;
+	}
+
+	/**
+	 * Returns the value for the member attribute <b>tagVersion</b>
+	 * 
+	 * @return Long - value of member attribute <b>tagVersion</b> .
+	 */
+	public Long getTagVersion() {
+		return this.tagVersion;
+	}
+
+	/**
+	 * This method sets the value to the member attribute <b>
+	 * tagUpdateTime</b> . You cannot set null to the attribute.
+	 * 
+	 * @param tagUpdateTime
+	 *            Value to set member attribute <b> tagUpdateTime</b>
+	 */
+	public void setTagUpdateTime(Date tagUpdateTime) {
+		this.tagUpdateTime = tagUpdateTime;
+	}
+
+	/**
+	 * Returns the value for the member attribute <b>tagUpdateTime</b>
+	 * 
+	 * @return Date - value of member attribute <b>tagUpdateTime</b> .
+	 */
+	public Date getTagUpdateTime() {
+		return this.tagUpdateTime;
 	}
 
 	/**
@@ -299,6 +386,13 @@ public abstract class XXServiceBase extends XXDBBase {
 		} else if (!name.equals(other.name)) {
 			return false;
 		}
+		if (tagService == null) {
+			if (other.tagService != null) {
+				return false;
+			}
+		} else if (!tagService.equals(other.tagService)) {
+			return false;
+		}
 		if (policyUpdateTime == null) {
 			if (other.policyUpdateTime != null) {
 				return false;
@@ -311,6 +405,20 @@ public abstract class XXServiceBase extends XXDBBase {
 				return false;
 			}
 		} else if (!policyVersion.equals(other.policyVersion)) {
+			return false;
+		}
+		if (tagUpdateTime == null) {
+			if (other.tagUpdateTime != null) {
+				return false;
+			}
+		} else if (!tagUpdateTime.equals(other.tagUpdateTime)) {
+			return false;
+		}
+		if (tagVersion == null) {
+			if (other.tagVersion != null) {
+				return false;
+			}
+		} else if (!tagVersion.equals(other.tagVersion)) {
 			return false;
 		}
 		if (type == null) {
@@ -345,7 +453,8 @@ public abstract class XXServiceBase extends XXDBBase {
 	@Override
 	public String toString() {
 		return "XXServiceBase [" + super.toString() + " guid=" + guid + ", version=" + version + ", type=" + type
-				+ ", name=" + name + ", policyVersion=" + policyVersion + ", policyUpdateTime=" + policyUpdateTime
+				+ ", name=" + name + ", tagService=" + tagService + ", policyVersion=" + policyVersion + ", policyUpdateTime=" + policyUpdateTime
+				+ ", tagVersion=" + tagVersion + ", tagUpdateTime=" + tagUpdateTime
 				+ ", description=" + description + ", isEnabled=" + isEnabled + "]";
 	}
 

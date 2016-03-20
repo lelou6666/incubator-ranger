@@ -36,6 +36,8 @@ public class SearchFilter {
 	public static final String POLICY_ID       = "policyId";      // search, sort
 	public static final String IS_ENABLED      = "isEnabled";     // search
 	public static final String IS_RECURSIVE    = "isRecursive";   // search
+	public static final String TAG_SERVICE_NAME = "tagServiceName";  // search
+	public static final String TAG_SERVICE_ID  = "tagServiceId";  // search
 	public static final String USER            = "user";          // search
 	public static final String GROUP           = "group";         // search
 	public static final String RESOURCE_PREFIX = "resource:";     // search
@@ -47,7 +49,24 @@ public class SearchFilter {
 	public static final String PAGE_SIZE       = "pageSize";
 	public static final String SORT_BY         = "sortBy";
 	public static final String RESOURCE_SIGNATURE = "resourceSignature:";     // search
+<<<<<<< HEAD
 	public static final String POLICY_TYPE = "policyType";
+=======
+	public static final String POLICY_TYPE = "policyType"; // search
+
+	public static final String TAG_DEF_ID                = "tagDefId";            // search
+	public static final String TAG_DEF_GUID              = "tagDefGuid";          // search
+	public static final String TAG_TYPE                  = "tagType";             // search
+	public static final String TAG_ID                    = "tagId";               // search
+	public static final String TAG_GUID                  = "tagGuid";             // search
+	public static final String TAG_RESOURCE_ID           = "resourceId";          // search
+	public static final String TAG_RESOURCE_GUID         = "resourceGuid";        // search
+	public static final String TAG_RESOURCE_SERVICE_NAME = "resourceServiceName"; // search
+	public static final String TAG_RESOURCE_SIGNATURE    = "resourceSignature";   // search
+	public static final String TAG_MAP_ID                = "tagResourceMapId";    // search
+	public static final String TAG_MAP_GUID              = "tagResourceMapGuid";  // search
+
+>>>>>>> refs/remotes/apache/master
 	private Map<String, String> params     = null;
 	private int                 startIndex = 0;
 	private int                 maxRows    = Integer.MAX_VALUE;
@@ -77,6 +96,18 @@ public class SearchFilter {
 
 	public String getParam(String name) {
 		return params == null ? null : params.get(name);
+	}
+
+	public Long getParamAsLong(String name) {
+
+		String stringValue =  params == null ? null : params.get(name);
+		Long ret = null;
+		try {
+			ret = Long.valueOf(stringValue);
+		} catch (NumberFormatException exception) {
+			// Ignore
+		}
+		return ret;
 	}
 
 	public void setParam(String name, String value) {

@@ -598,12 +598,12 @@ table td.backgrid-filter .clear {
   background-color: #eeeeee;
 }
 
-table.table-permission tr th:last-child, table.table-permission tr td:last-child {
+/*table.table-permission tr th:last-child, table.table-permission tr td:last-child {
   border: 0;
   padding-left: 6%;
   color: transparent;
   background-color: #fff;
-}
+}*/
 
 .table-permission thead tr {
   color: #4F4F4F;
@@ -1735,9 +1735,9 @@ margin-bottom: 5px;
 }
 
 .popover-content {
-	overflow-y: auto;
+	/*overflow-y: auto;
+	max-height: 250px;*/
 	padding-right: 25px;
-	max-height: 250px;
 }
 .margin-bottom-57 {
 	margin-bottom:57px;
@@ -1839,8 +1839,79 @@ td.select-row-cell {
 #r_topNav .dropdown-menu {
 	margin:0;
 }
+<<<<<<< HEAD
+=======
+
+.table-policy-condition th,
+.table-policy-condition td {
+  border: none !important;
+  white-space: nowrap;
+  color: #444444 !important;
+}
+
+.table-policy-condition tr:nth-child(even) td, .table-policy-condition tr:nth-child(even) th  {background-color: #FFFFFF;}
+.table-policy-condition tr:nth-child(odd) td, .table-policy-condition tr:nth-child(odd) th  {background-color: #EEEEEE;}
+
+.table-policy-condition label {
+  float: left;
+  margin-right: 10px;
+}
+.label-lightblue, .label-lightgreen {text-shadow:none; display: block; margin-bottom: 2px;}
+.label-lightblue {background-color: #DEEEF9; color: #000;}
+.label-lightgreen {background-color: #E4F4D8; color: #000;}
+
+input[type="radio"], input[type="checkbox"] {margin-top: 0;}
+
+.table-policy-condition td:nth-child(3) {
+  border-left: 2px solid #fff !important;
+}
+.table-policy-condition td:nth-child(3) label {
+  float: none;
+  text-align: center;
+  margin-left: 10px;
+}
+.white-space-normal{
+  white-space: normal;
+  word-break: break-all;
+}
+.margin-top-6{
+  margin-top: 6px;
+}
+.tag-fixed-popover {
+	top: 50px !important;
+	left: 55% !important;
+	margin-left: -350px !important;
+	max-width: 700px !important;
+	max-height: 500px;
+	overflow-y: auto;
+}
+.tag-fixed-popover-wrapper {
+	position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    z-index: 99 !important;
+    background-color: rgba(0,0,0,0.5);
+}
+.table-policy-condition label {
+	font-size: 12px;
+	text-align: left;
+}
+.table-policy-condition tr[data-id=storm] td label {
+    min-width: 170px;
+}
+/* align all component 
+.table-policy-condition td label {
+    min-width: 170px;
+} */
+>>>>>>> refs/remotes/apache/master
 .pause-play-close{
 	margin-left: -5px;
     margin-top: -2px;
     font-size: 11px;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> refs/remotes/apache/master

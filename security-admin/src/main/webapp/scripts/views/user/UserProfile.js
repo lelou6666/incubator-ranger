@@ -28,8 +28,8 @@ define(function(require){
 	var XAEnums			= require('utils/XAEnums');
 	var XALinks 		= require('modules/XALinks');
 	var localization	= require('utils/XALangSupport');
+
 	var VPasswordChange	= require("models/VXPasswordChange");
-	
 	var UserProfileForm = require('views/user/UserProfileForm');
 	var UserprofileTmpl = require('hbs!tmpl/user/UserProfile_tmpl');
 
@@ -55,7 +55,6 @@ define(function(require){
 		/** ui events hash */
 		events: function() {
 			var events = {};
-			//events['change ' + this.ui.input]  = 'onInputChange';
 			events['click '+this.ui.tab+' li a']  = 'onTabChange';
 			events['click ' + this.ui.saveBtn]  = 'onSave';
 			events['click ' + this.ui.cancelBtn]  = 'onCancel';
@@ -113,7 +112,7 @@ define(function(require){
 			this.form.afterCommit();
 			if(this.showBasicFields){
 				this.saveUserDetail();
-			}else{
+			} else {
 				this.savePasswordDetail();
 			}
 		},
@@ -122,7 +121,7 @@ define(function(require){
 				wait: true,
 				success: function () {
 					XAUtil.notifySuccess('Success', "User profile updated successfully !!");
-					App.appRouter.navigate("#!/policymanager",{trigger: true});
+					App.appRouter.navigate("#!/policymanager/resource",{trigger: true});
 					Communicator.vent.trigger('ProfileBar:rerender');
 				},
 				error: function (model, response, options) {
@@ -136,7 +135,6 @@ define(function(require){
 								return;
 							}
 						}
-						
 					}
 					if ( response && response.responseJSON && response.responseJSON.msgDesc){
 						that.form.fields.name.setError(response.responseJSON.msgDesc);
@@ -144,7 +142,10 @@ define(function(require){
 					}else {
 						XAUtil.notifyError('Error', 'Error occurred while updating user profile!!');
 					}
+<<<<<<< HEAD
 					//console.log("error");
+=======
+>>>>>>> refs/remotes/apache/master
 				}
 			});
 		},
@@ -161,18 +162,19 @@ define(function(require){
 				wait: true,
 				success: function () {
 					XAUtil.notifySuccess('Success', "User profile updated successfully !!");
-					App.appRouter.navigate("#!/policymanager",{trigger: true});
+					App.appRouter.navigate("#!/policymanager/resource",{trigger: true});
 					that.clearPasswordFields();
-					console.log("success");
-					
 				},
 				error: function (msResponse, options) {
-					console.log("error occured during updated user profile: ",msResponse.response);
-					XAUtil.notifyInfo('',localization.tt('msg.myProfileError'));
+					XAUtil.notifyError('Error', 'Error occured while updating user profile');
 					if(localization.tt(msResponse.responseJSON.msgDesc) == "Invalid new password"){
 						that.form.fields.newPassword.setError(localization.tt('validationMessages.newPasswordError'));
 						that.form.fields.reEnterPassword.setError(localization.tt('validationMessages.newPasswordError'));
+<<<<<<< HEAD
 					} else if((msResponse.responseJSON.msgDesc) == "serverMsg.userMgrOldPassword"){
+=======
+					}else if((msResponse.responseJSON.msgDesc) == "serverMsg.userMgrOldPassword"){
+>>>>>>> refs/remotes/apache/master
 						that.form.fields.oldPassword.setError(localization.tt('validationMessages.oldPasswordRepeatError'));
 					} else {
 						that.form.fields.oldPassword.setError(localization.tt('validationMessages.oldPasswordError'));

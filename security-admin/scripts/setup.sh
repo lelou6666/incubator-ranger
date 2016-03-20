@@ -110,6 +110,14 @@ sqlserver_audit_file=$(get_prop 'sqlserver_audit_file' $PROPFILE)
 sqlanywhere_core_file=$(get_prop 'sqlanywhere_core_file' $PROPFILE)
 sqlanywhere_audit_file=$(get_prop 'sqlanywhere_audit_file' $PROPFILE)
 cred_keystore_filename=$(eval echo "$(get_prop 'cred_keystore_filename' $PROPFILE)")
+<<<<<<< HEAD
+=======
+sso_enabled=$(get_prop 'sso_enabled' $PROPFILE)
+sso_providerurl=$(get_prop 'sso_providerurl' $PROPFILE)
+sso_publickey=$(get_prop 'sso_publickey' $PROPFILE)
+sso_cookiename=$(get_prop 'sso_cookiename' $PROPFILE)
+sso_query_param_originalurl=$(get_prop 'sso_query_param_originalurl' $PROPFILE)
+>>>>>>> refs/remotes/apache/master
 
 DB_HOST="${db_host}"
 
@@ -649,8 +657,51 @@ update_properties() {
 			fi
 		fi
 	fi
+
+<<<<<<< HEAD
+=======
+	if [ "${sso_enabled}" == "" ]
+	then
+		sso_enabled="false"
+	fi
+
+	sso_enabled=`echo $sso_enabled | tr '[:upper:]' '[:lower:]'`
+
+	if [ "${sso_enabled}" == "true" ]
+	then
+		if [ "${sso_providerurl}" == "" ] || [ "${sso_publickey}" == "" ] || [ "${sso_cookiename}" == "" ] || [ "${sso_query_param_originalurl}" == "" ]
+		then
+			log "[E] Please provide valid values in SSO config properties!";
+			exit 1
+		fi
+		propertyName=ranger.sso.enabled
+		newPropertyValue="${sso_enabled}"
+		updatePropertyToFilePy $propertyName $newPropertyValue $to_file_ranger
+	 
+		propertyName=ranger.sso.providerurl
+		newPropertyValue="${sso_providerurl}"
+		updatePropertyToFilePy $propertyName $newPropertyValue $to_file_ranger
+	 
+		propertyName=ranger.sso.publicKey
+		newPropertyValue="${sso_publickey}"
+		updatePropertyToFilePy $propertyName $newPropertyValue $to_file_ranger
+	 
+		propertyName=ranger.sso.cookiename
+		newPropertyValue="${sso_cookiename}"
+		updatePropertyToFilePy $propertyName $newPropertyValue $to_file_ranger
+	 
+		propertyName=ranger.sso.query.param.originalurl
+		newPropertyValue="${sso_query_param_originalurl}"
+		updatePropertyToFilePy $propertyName $newPropertyValue $to_file_ranger
+	 else
+                propertyName=ranger.sso.enabled
+                newPropertyValue="false"
+                updatePropertyToFilePy $propertyName $newPropertyValue $to_file_ranger
+
+	fi
 }
 
+>>>>>>> refs/remotes/apache/master
 do_unixauth_setup() {
 
     ldap_file=$app_home/WEB-INF/classes/conf/ranger-admin-site.xml

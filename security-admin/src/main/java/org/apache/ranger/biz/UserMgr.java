@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import javax.persistence.Query;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 import org.apache.ranger.common.AppConstants;
@@ -1275,9 +1274,15 @@ public class UserMgr {
 		XXPortalUser xXPortalUser=daoManager.getXXPortalUser().findByLoginId(loginId);
 		if(xXPortalUser==null){
 			return DEFAULT_ROLE_LIST;
+<<<<<<< HEAD
 		}
 		Collection<XXPortalUserRole> xXPortalUserRoles = daoManager
 				.getXXPortalUserRole().findByUserId(xXPortalUser.getId());
+=======
+        }
+		Collection<XXPortalUserRole> xXPortalUserRoles = daoManager
+                        .getXXPortalUserRole().findByUserId(xXPortalUser.getId());
+>>>>>>> refs/remotes/apache/master
 		if(xXPortalUserRoles==null){
 			return DEFAULT_ROLE_LIST;
 		}
@@ -1288,7 +1293,11 @@ public class UserMgr {
 					roleList.add(role.getUserRole());
 				}
 			}
+<<<<<<< HEAD
 		}
+=======
+        }
+>>>>>>> refs/remotes/apache/master
 		if(roleList==null || roleList.size()==0){
 			return DEFAULT_ROLE_LIST;
 		}

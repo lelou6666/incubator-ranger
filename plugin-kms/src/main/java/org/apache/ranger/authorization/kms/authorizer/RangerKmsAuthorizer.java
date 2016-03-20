@@ -19,8 +19,11 @@
 
 package org.apache.ranger.authorization.kms.authorizer;
 
+<<<<<<< HEAD
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+=======
+>>>>>>> refs/remotes/apache/master
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,19 +40,20 @@ import org.apache.hadoop.crypto.key.kms.server.KMS.KMSOp;
 import org.apache.hadoop.crypto.key.kms.server.KMSACLsType.Type;
 import org.apache.hadoop.crypto.key.kms.server.KeyAuthorizationKeyProvider.KeyACLs;
 import org.apache.hadoop.crypto.key.kms.server.KeyAuthorizationKeyProvider.KeyOpType;
-import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authorize.AccessControlList;
 import org.apache.hadoop.security.authorize.AuthorizationException;
 import org.apache.ranger.audit.provider.MiscUtil;
+<<<<<<< HEAD
 import org.apache.ranger.authorization.utils.StringUtil;
+=======
+>>>>>>> refs/remotes/apache/master
 import org.apache.ranger.plugin.audit.RangerDefaultAuditHandler;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResult;
 import org.apache.ranger.plugin.service.RangerBasePlugin;
-import org.mortbay.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

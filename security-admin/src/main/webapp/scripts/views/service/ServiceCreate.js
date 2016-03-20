@@ -27,11 +27,11 @@ define(function(require){
 
 	var Backbone		= require('backbone');
 	var App				= require('App');
-
 	var XAUtil			= require('utils/XAUtils');
 	var XAEnums			= require('utils/XAEnums');
 	var XALinks 		= require('modules/XALinks');
 	var localization	= require('utils/XALangSupport');
+	
 	var ServiceForm		= require('views/service/ServiceForm');
 	var RangerServiceDef	= require('models/RangerServiceDef');
 	var ServiceCreateTmpl = require('hbs!tmpl/service/ServiceCreate_tmpl');
@@ -48,10 +48,19 @@ define(function(require){
 		},
         
 		breadCrumbs :function(){
+<<<<<<< HEAD
 			if(this.model.isNew())
 				return [XALinks.get('ServiceManager'), XALinks.get('ServiceCreate')];
 			else
 				return [XALinks.get('ServiceManager'), XALinks.get('ServiceEdit')];
+=======
+			var name  = this.rangerServiceDefModel.get('name') != XAEnums.ServiceType.SERVICE_TAG.label ? 'ServiceManager' : 'TagBasedServiceManager'; 
+			if(this.model.isNew()){
+				return [XALinks.get(name), XALinks.get('ServiceCreate')];
+			} else {
+				return [XALinks.get(name), XALinks.get('ServiceEdit')];
+			}
+>>>>>>> refs/remotes/apache/master
 		},        
 
 		/** Layout sub regions */
@@ -91,7 +100,6 @@ define(function(require){
 				template : require('hbs!tmpl/service/ServiceForm_tmpl')
 			});
 			this.editService = this.model.has('id') ? true : false;
-
 			this.bindEvents();
 		},
 		initializeServiceDef : function(){
@@ -100,7 +108,6 @@ define(function(require){
 			   cache : false,
 			   async : false
 			});
-
 		},
 		setupModel : function(){
 		},
@@ -134,7 +141,6 @@ define(function(require){
 			}
 			this.form.formValidation();
 			this.saveService();
-
 		},
 		saveService : function(){
 			var that = this;
@@ -147,14 +153,7 @@ define(function(require){
 					XAUtil.allowNavigation();
 					var msg = that.editService ? 'Service updated successfully' :'Service created successfully';
 					XAUtil.notifySuccess('Success', msg);
-					
-					if(that.editService){
-						App.appRouter.navigate("#!/policymanager",{trigger: true});
-						return;
-					}
-					
-					App.appRouter.navigate("#!/policymanager",{trigger: true});
-					
+					that.gotoResourceOrTagTab()
 				},
 				error: function (model, response, options) {
 					XAUtil.blockUI('unblock');
@@ -179,7 +178,7 @@ define(function(require){
 							XAUtil.blockUI('unblock');
 							XAUtil.allowNavigation();
 							XAUtil.notifySuccess('Success', 'Service delete successfully');
-							App.appRouter.navigate("#!/policymanager",{trigger: true});
+							that.gotoResourceOrTagTab()
 						},
 						error: function (model, response, options) {
 							XAUtil.blockUI('unblock');
@@ -227,7 +226,11 @@ define(function(require){
 	                            			   label: "OK",
 	                            			   callback:function(){}
 	                            		   }];
+<<<<<<< HEAD
                             	   } else {
+=======
+                            	   } else { 
+>>>>>>> refs/remotes/apache/master
                             		   		popupBtnOpts = [{label: "OK",
                             		   			callback:function(){}
                             		   		}];
@@ -249,9 +252,16 @@ define(function(require){
 					}	
 				});
 		},
+		gotoResourceOrTagTab : function(){
+			if(XAEnums.ServiceType.SERVICE_TAG.label == this.model.get('type')){
+				App.appRouter.navigate("#!/policymanager/tag",{trigger: true});
+				return;
+			}
+			App.appRouter.navigate("#!/policymanager/resource",{trigger: true});
+		},
 		onCancel : function(){
 			XAUtil.allowNavigation();
-			App.appRouter.navigate("#!/policymanager",{trigger: true});
+			this.gotoResourceOrTagTab();
 		},
 		/** on close */
 		onClose: function(){

@@ -87,9 +87,7 @@ define(function(require){
 
 			_.extend(this, _.pick(options, 'groupList','tab'));
 			this.showUsers = this.tab == 'usertab' ? true : false;
-
 			this.chgFlags = [];
-
 			if(_.isUndefined(this.groupList)){
 				this.groupList = new VXGroupList();
 			}
@@ -411,7 +409,6 @@ define(function(require){
 				
                 select : {
 					label : localization.tt("lbl.isVisible"),
-					//cell : Backgrid.SelectCell.extend({className: 'cellWidth-1'}),
 					cell: "select-row",
 				    headerCell: "select-all",
 					click : false,
@@ -437,10 +434,12 @@ define(function(require){
 							if(!_.isUndefined(rawValue)){
 								if(rawValue == XAEnums.GroupSource.XA_PORTAL_GROUP.value)
 									return '<span class="label label-success">'+XAEnums.GroupTypes.GROUP_INTERNAL.label+'</span>';
-								else
+								else {
 									return '<span class="label label-green">'+XAEnums.GroupTypes.GROUP_EXTERNAL.label+'</span>';
-							}else
+								}
+							}else {
 								return '--';
+							}
 						}
 					}),
 					click : false,
@@ -454,12 +453,14 @@ define(function(require){
 					formatter: _.extend({}, Backgrid.CellFormatter.prototype, {
 						fromRaw: function (rawValue, model) {
 							if(!_.isUndefined(rawValue)){
-								if(rawValue)
+								if(rawValue){
 									return '<span class="label label-success">'+XAEnums.VisibilityStatus.STATUS_VISIBLE.label+'</span>';
-								else
+								} else {
 									return '<span class="label label-green">'+XAEnums.VisibilityStatus.STATUS_HIDDEN.label+'</span>';
-							}else
+								}
+							}else {
 								return '--';
+							}
 						}
 					}),
 					editable:false,
@@ -469,7 +470,12 @@ define(function(require){
 			return this.groupList.constructor.getTableCols(cols, this.groupList);
 		},
 		addVisualSearch : function(){
+<<<<<<< HEAD
 			var coll,placeholder, that = this;
+=======
+			var that = this;
+			var coll,placeholder;
+>>>>>>> refs/remotes/apache/master
 			var searchOpt = [], serverAttrName = [];
 			if(this.showUsers){
 				placeholder = localization.tt('h.searchForYourUser');	
@@ -483,7 +489,7 @@ define(function(require){
 				                   {text : "User Source", label :"userSource", 'multiple' : true, 'optionsArr' : XAUtil.enumToSelectLabelValuePairs(XAEnums.UserTypes)},
 				                   {text : "User Status", label :"status", 'multiple' : true, 'optionsArr' : XAUtil.enumToSelectLabelValuePairs(XAEnums.ActiveStatus)},
 								];
-			}else{
+			} else {
 				placeholder = localization.tt('h.searchForYourGroup');
 				coll = this.groupList;
 				searchOpt = ['Group Name','Group Source', 'Visibility'];//,'Start Date','End Date','Today'];
@@ -502,9 +508,15 @@ define(function(require){
 								switch (facet) {
 									case 'Role':
 										var roles = XAUtil.hackForVSLabelValuePairs(XAEnums.UserRoles);
+<<<<<<< HEAD
 										var label  = SessionMgr.isSystemAdmin() || SessionMgr.isUser() ? XAEnums.UserRoles.ROLE_KEY_ADMIN.label : XAEnums.UserRoles.ROLE_SYS_ADMIN.label;
 										callback(_.filter(roles, function(o) { return o.label !== label; }));
 //										callback(XAUtil.hackForVSLabelValuePairs(XAEnums.UserRoles));
+=======
+										var label  = SessionMgr.isSystemAdmin() || SessionMgr.isUser() ? XAEnums.UserRoles.ROLE_KEY_ADMIN.label
+													: XAEnums.UserRoles.ROLE_SYS_ADMIN.label;
+										callback(_.filter(roles, function(o) { return o.label !== label; }));
+>>>>>>> refs/remotes/apache/master
 										break;
 									case 'User Source':
 										callback(XAUtil.hackForVSLabelValuePairs(XAEnums.UserTypes));
@@ -516,6 +528,10 @@ define(function(require){
 										callback(XAUtil.hackForVSLabelValuePairs(XAEnums.VisibilityStatus));
 										break;
 									case 'User Status':
+<<<<<<< HEAD
+=======
+//										callback(XAUtil.hackForVSLabelValuePairs(XAEnums.ActiveStatus));
+>>>>>>> refs/remotes/apache/master
 										callback(that.getActiveStatusNVList());
 										break;
 									/*case 'Start Date' :
@@ -536,10 +552,17 @@ define(function(require){
 			XAUtil.addVisualSearch(searchOpt,serverAttrName, coll,pluginAttr);
 		},
 		getActiveStatusNVList : function() {
+<<<<<<< HEAD
 	        var activeStatusList = _.filter(XAEnums.ActiveStatus, function(obj){
     	        if(obj.label != XAEnums.ActiveStatus.STATUS_DELETED.label)
         	        return obj;
             });
+=======
+			var activeStatusList = _.filter(XAEnums.ActiveStatus, function(obj){
+				if(obj.label != XAEnums.ActiveStatus.STATUS_DELETED.label)
+					return obj;
+			});
+>>>>>>> refs/remotes/apache/master
 			return _.map(activeStatusList, function(status) { return { 'label': status.label, 'value': status.label}; })
 		},
 		onShowMore : function(e){

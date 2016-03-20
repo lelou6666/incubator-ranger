@@ -40,8 +40,10 @@ import org.apache.ranger.plugin.model.RangerService;
 import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.service.RangerBaseService;
 import org.apache.ranger.plugin.service.ResourceLookupContext;
+import org.apache.ranger.plugin.store.EmbeddedServiceDefsUtil;
 import org.apache.ranger.plugin.store.ServiceStore;
 import org.apache.ranger.service.RangerServiceService;
+import org.apache.ranger.services.tag.RangerServiceTag;
 import org.apache.ranger.view.VXMessage;
 import org.apache.ranger.view.VXResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +62,9 @@ public class ServiceMgr {
 	ServiceDBStore svcDBStore;
 	
 	@Autowired
+	TagDBStore tagStore;
+
+	@Autowired
 	TimedExecutor timedExecutor;
 
 	public List<String> lookupResource(String serviceName, ResourceLookupContext context, ServiceStore svcStore) throws Exception {
@@ -77,9 +82,13 @@ public class ServiceMgr {
 		}
 
 		if(svc != null) {
-			LookupCallable callable = new LookupCallable(svc, context);
-			long time = getTimeoutValueForLookupInMilliSeconds(svc);
-			ret = timedExecutor.timedTask(callable, time, TimeUnit.MILLISECONDS);
+			if (StringUtils.equals(svc.getServiceDef().getName(), EmbeddedServiceDefsUtil.EMBEDDED_SERVICEDEF_TAG_NAME)) {
+				ret = svc.lookupResource(context);
+			} else {
+				LookupCallable callable = new LookupCallable(svc, context);
+				long time = getTimeoutValueForLookupInMilliSeconds(svc);
+				ret = timedExecutor.timedTask(callable, time, TimeUnit.MILLISECONDS);
+			}
 		}
 
 		if(LOG.isDebugEnabled()) {
@@ -114,7 +123,7 @@ public class ServiceMgr {
 						
 				HashMap<String, Object> respData = new HashMap<String, Object>();
 				if (e instanceof HadoopException) {
-					respData = ((HadoopException) e).responseData;
+					respData = ((HadoopException) e).getResponseData();
 				}
 				ret = generateResponseForTestConn(respData, msg);
 				LOG.error("==> ServiceMgr.validateConfig Error:" + e);
@@ -166,7 +175,11 @@ public class ServiceMgr {
 				if(cls != null) {
 					ret = cls.newInstance();
 
-					ret.init(serviceDef, service);	
+					ret.init(serviceDef, service);
+
+					if(ret instanceof RangerServiceTag) {
+						((RangerServiceTag)ret).setTagStore(tagStore);
+					}
 				} else {
 					LOG.warn("ServiceMgr.getRangerServiceByService(" + service + "): could not find service class '" + serviceDef.getImplClass() + "'");
 				}
@@ -219,6 +232,10 @@ public class ServiceMgr {
 							ret = (Class<RangerBaseService>)cls;
 
 							serviceTypeClassMap.put(serviceType, ret);
+
+							if(LOG.isDebugEnabled()) {
+								LOG.debug("ServiceMgr.getClassForServiceType(" + serviceType + "): service-class " + clsName + " added to cache");
+							}
 						} catch (Exception excp) {
 							LOG.warn("ServiceMgr.getClassForServiceType(" + serviceType + "): failed to find service-class '" + clsName + "'. Resource lookup will not be available", excp);
 							//Let's propagate the error

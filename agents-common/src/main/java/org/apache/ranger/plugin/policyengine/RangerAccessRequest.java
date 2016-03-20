@@ -50,6 +50,11 @@ public interface RangerAccessRequest {
 	
 	Map<String, Object> getContext();
 
+<<<<<<< HEAD
+=======
+	RangerAccessRequest getReadOnlyCopy();
+
+>>>>>>> refs/remotes/apache/master
 	ResourceMatchingScope getResourceMatchingScope();
 
 	enum ResourceMatchingScope {SELF, SELF_OR_DESCENDANTS}

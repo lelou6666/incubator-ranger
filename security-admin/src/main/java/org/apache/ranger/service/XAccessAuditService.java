@@ -89,6 +89,7 @@ public class XAccessAuditService extends XAccessAuditServiceBase<XXAccessAudit, 
 				DATA_TYPE.DATE, SEARCH_TYPE.GREATER_EQUAL_THAN));
 		searchFields.add(new SearchField("endDate", "obj.eventTime", 
 				DATA_TYPE.DATE, SEARCH_TYPE.LESS_EQUAL_THAN));
+		searchFields.add(new SearchField("tags", "obj.tags", DATA_TYPE.STRING, SEARCH_TYPE.PARTIAL));
 		sortFields.add(new SortField("eventTime", "obj.eventTime", true, SORT_ORDER.DESC));
 }
 
@@ -114,6 +115,7 @@ public class XAccessAuditService extends XAccessAuditServiceBase<XXAccessAudit, 
 		mObj.setSequenceNumber( vObj.getSequenceNumber());
 		mObj.setEventCount( vObj.getEventCount());
 		mObj.setEventDuration( vObj.getEventDuration());
+		mObj.setTags(vObj.getTags());
 		return mObj;
 	}
 
@@ -138,6 +140,7 @@ public class XAccessAuditService extends XAccessAuditServiceBase<XXAccessAudit, 
 		vObj.setSequenceNumber( mObj.getSequenceNumber());
 		vObj.setEventCount( mObj.getEventCount());
 		vObj.setEventDuration( mObj.getEventDuration());
+		vObj.setTags(mObj.getTags());
 
 		XXService xService = daoManager.getXXService().findByName(mObj.getRepoName());
 		if (xService != null) {

@@ -57,7 +57,11 @@ define(function(require){
 				lastName : {
 					type		: 'Text',
 					title		: localization.tt("lbl.lastName"),
+<<<<<<< HEAD
 					validators  : ['required',{type:'regexp',regexp:/^[a-zA-Z][a-zA-Z0-9\s_-]*[a-zA-Z0-9]+$/,message :'Last name should start with alphabets & can have underscore, hyphen, space.'}],
+=======
+					validators  : [{type:'regexp',regexp:/^[a-zA-Z][a-zA-Z0-9\s_-]*[a-zA-Z0-9]+$/,message :'Last name should start with alphabets & can have underscore, hyphen, space.'}],
+>>>>>>> refs/remotes/apache/master
 					editorAttrs : { 'placeholder' : localization.tt("lbl.lastName")}
 				},
 				emailAddress : {
@@ -72,7 +76,7 @@ define(function(require){
 					title		: localization.tt("lbl.oldPassword")+' *',
 				//	validators  : ['required'],
 					fieldAttrs : {style : 'display:none;'},
-					editorAttrs : { 'placeholder' : localization.tt("lbl.oldPassword"),'onpaste':'return false;','oncopy':'return false;','autocomplete':'off'}
+					editorAttrs : { 'placeholder' : localization.tt("lbl.oldPassword"),'oncopy':'return false;','autocomplete':'off'}
 					
 				},
 				newPassword : {
@@ -80,7 +84,7 @@ define(function(require){
 					title		: localization.tt("lbl.newPassword")+' *',
 				//	validators  : ['required'],
 					fieldAttrs : {style : 'display:none;'},
-					editorAttrs : { 'placeholder' : localization.tt("lbl.newPassword"),'onpaste':'return false;','oncopy':'return false;','autocomplete':'off'}
+					editorAttrs : { 'placeholder' : localization.tt("lbl.newPassword"),'oncopy':'return false;','autocomplete':'off'}
 					
 				},
 				reEnterPassword : {
@@ -88,7 +92,7 @@ define(function(require){
 					title		: localization.tt("lbl.reEnterPassword")+' *',
 				//	validators  : ['required'],
 					fieldAttrs : {style : 'display:none;'},
-					editorAttrs : { 'placeholder' : localization.tt("lbl.reEnterPassword"),'onpaste':'return false;','oncopy':'return false;','autocomplete':'off'}
+					editorAttrs : { 'placeholder' : localization.tt("lbl.reEnterPassword"),'oncopy':'return false;','autocomplete':'off'}
 					
 				},
 				userRoleList : {

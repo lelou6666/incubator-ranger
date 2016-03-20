@@ -34,6 +34,10 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.NamespaceDescriptor;
+<<<<<<< HEAD
+=======
+import org.apache.hadoop.hbase.ProcedureInfo;
+>>>>>>> refs/remotes/apache/master
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Append;
@@ -60,6 +64,11 @@ import org.apache.hadoop.hbase.io.FSDataInputStreamWrapper;
 import org.apache.hadoop.hbase.io.Reference;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.master.RegionPlan;
+<<<<<<< HEAD
+=======
+import org.apache.hadoop.hbase.master.procedure.MasterProcedureEnv;
+import org.apache.hadoop.hbase.procedure2.ProcedureExecutor;
+>>>>>>> refs/remotes/apache/master
 import org.apache.hadoop.hbase.protobuf.generated.AccessControlProtos;
 import org.apache.hadoop.hbase.protobuf.generated.AccessControlProtos.CheckPermissionsRequest;
 import org.apache.hadoop.hbase.protobuf.generated.AccessControlProtos.CheckPermissionsResponse;
@@ -89,7 +98,10 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.replication.ReplicationEndpoint;
+<<<<<<< HEAD
 import org.apache.hadoop.hbase.security.access.RangerAccessControlLists;
+=======
+>>>>>>> refs/remotes/apache/master
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.ranger.plugin.classloader.RangerPluginClassLoader;
@@ -3094,6 +3106,81 @@ public class RangerAuthorizationCoprocessor implements MasterObserver, RegionObs
 	}
 
 	@Override
+<<<<<<< HEAD
+=======
+	public void preAbortProcedure(ObserverContext<MasterCoprocessorEnvironment> observerContext, ProcedureExecutor<MasterProcedureEnv> procEnv, long procId) throws IOException {
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("==> RangerAuthorizationCoprocessor.preAbortProcedure()");
+		}
+
+		try {
+			activatePluginClassLoader();
+			implMasterObserver.preAbortProcedure(observerContext, procEnv, procId);
+		} finally {
+			deactivatePluginClassLoader();
+		}
+
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("<== RangerAuthorizationCoprocessor.preAbortProcedure()");
+		}
+	}
+
+	@Override
+	public void postAbortProcedure(ObserverContext<MasterCoprocessorEnvironment> observerContext) throws IOException {
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("==> RangerAuthorizationCoprocessor.postAbortProcedure()");
+		}
+
+		try {
+			activatePluginClassLoader();
+			implMasterObserver.postAbortProcedure(observerContext);
+		} finally {
+			deactivatePluginClassLoader();
+		}
+
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("<== RangerAuthorizationCoprocessor.postAbortProcedure()");
+		}
+	}
+
+	@Override
+	public void preListProcedures(ObserverContext<MasterCoprocessorEnvironment> observerContext) throws IOException {
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("==> RangerAuthorizationCoprocessor.preListProcedures()");
+		}
+
+		try {
+			activatePluginClassLoader();
+			implMasterObserver.preListProcedures(observerContext);
+		} finally {
+			deactivatePluginClassLoader();
+		}
+
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("<== RangerAuthorizationCoprocessor.preListProcedures()");
+		}
+	}
+
+	@Override
+	public void postListProcedures(ObserverContext<MasterCoprocessorEnvironment> observerContext, List<ProcedureInfo> procInfoList) throws IOException {
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("==> RangerAuthorizationCoprocessor.postListProcedures()");
+		}
+
+		try {
+			activatePluginClassLoader();
+			implMasterObserver.postListProcedures(observerContext, procInfoList);
+		} finally {
+			deactivatePluginClassLoader();
+		}
+
+		if(LOG.isDebugEnabled()) {
+			LOG.debug("<== RangerAuthorizationCoprocessor.postListProcedures()");
+		}
+	}
+
+	@Override
+>>>>>>> refs/remotes/apache/master
 	public void postAssign(ObserverContext<MasterCoprocessorEnvironment> ctx, HRegionInfo regionInfo) throws IOException {
 		if(LOG.isDebugEnabled()) {
 			LOG.debug("==> RangerAuthorizationCoprocessor.postAssign()");
@@ -3698,4 +3785,8 @@ public class RangerAuthorizationCoprocessor implements MasterObserver, RegionObs
 			rangerPluginClassLoader.deactivate();
 		}
 	}
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> refs/remotes/apache/master

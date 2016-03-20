@@ -153,6 +153,10 @@ public class SessionMgr {
 					}
 				}
 			}
+<<<<<<< HEAD
+=======
+
+>>>>>>> refs/remotes/apache/master
 			userSession = new UserSessionBase();
 			userSession.setXXPortalUser(gjUser);
 			userSession.setXXAuthSession(gjAuthSession);

@@ -227,7 +227,10 @@ define(function(require) {
 				createService					: 'Create Service',
 				editService						: 'Edit Service',
 				serviceDetails					: 'Service Details',
-				serviceName						: 'Service Name'
+				serviceName						: 'Service Name',
+				PolicyType_ALLOW				: 'Allow',
+				PolicyType_DENY					: 'Deny',
+				componentPermissions			: 'Component Permissions'
 			},
 			btn : {
 				add							: 'Add',
@@ -325,10 +328,20 @@ define(function(require) {
 				noRecordsFound			  : 'No Records Found',
 				keyDeleteMsg			  : 'Key deleted successfully',
 				rolloverSuccessfully	  : 'Key rollover successfully',
+<<<<<<< HEAD
 				userCreatedSucc           : 'User created successfully',
 				userUpdatedSucc           : 'User updated successfully',
 	            grpUpdatedSucc            : 'Group updated successfully',
 				grpCreatedSucc            : 'Group created successfully',
+=======
+				addUserOrGroup			  : 'Please select group/user for the selected permission, else group/user will not be added.',
+				addUserOrGroupForPC		  : 'Please select group/user for the added policy condition, else group/user will not be added.',
+				userCreatedSucc		      : 'User created successfully',
+				userUpdatedSucc           :     'User updated successfully',
+				grpUpdatedSucc            : 'Group updated successfully',
+				grpCreatedSucc            : 'Group created successfully',
+				
+>>>>>>> refs/remotes/apache/master
 				
 				
 			},

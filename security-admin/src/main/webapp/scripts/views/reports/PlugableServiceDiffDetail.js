@@ -25,6 +25,7 @@ define(function(require){
 	var XAEnums					 		= require('utils/XAEnums');
 	var XALinks							= require('modules/XALinks');
 	var XAUtils					 		= require('utils/XAUtils');
+	
 	var RangerPolicy					= require('models/RangerPolicy');
 	var RangerService					= require('models/RangerService');
 	var RangerServiceDef				= require('models/RangerServiceDef');
@@ -47,12 +48,17 @@ define(function(require){
         			objectId   : this.objectId,
         			objectCreatedDate : this.objectCreatedDate,
         			objectCreatedBy : this.objectCreatedBy,
-        			newPolicyItems : this.newPermList,
-					oldPolicyItems : this.oldPermList,
 					policyName	 : this.policyName,
 					policyId	 : this.policyId,
 					repositoryType : this.repositoryType,
-        			
+					newPolicyItems : this.newPolicyItems,
+					oldPolicyItems : this.oldPolicyItems,
+					newAllowExceptionPolicyItems : this.newAllowExceptionPolicyItems,
+					oldAllowExceptionPolicyItems : this.oldAllowExceptionPolicyItems,
+					newDenyPolicyItems : this.newDenyPolicyItems,
+					oldDenyPolicyItems : this.oldDenyPolicyItems,
+					newDenyExceptionPolicyItems : this.newDenyExceptionPolicyItems,
+					oldDenyExceptionPolicyItems : this.oldDenyExceptionPolicyItems,
         		};
         },
     	/** ui selector cache */
@@ -87,29 +93,16 @@ define(function(require){
 			
 		},
 		initializeServiceDef : function(){
-			var url;
-			/*if(this.action == 'update'){
-				var rangerPolicy = new RangerPolicy({'id':this.objectId})
-				rangerPolicy.fetch({
-					cache : false,
-					async : false
-				})
-				this.policyName = rangerPolicy.get('name');
-				url = XAUtils.getRangerServiceByName(rangerPolicy.get('service'))
-			}else{
-			}*/
-			var policyName = this.collection.findWhere({'attributeName':'Policy Name'});
+			var url, policyName = this.collection.findWhere({'attributeName':'Policy Name'});
 			if(this.action == 'create'){
 				this.policyName = policyName.get('newValue');
-			}else if(this.action == 'delete'){
+			} else if(this.action == 'delete'){
 				this.policyName = policyName.get('previousValue');
 			}
 			if(!_.isUndefined(this.collection.models[0]) ){
 				this.policyName = _.isUndefined(this.policyName) ? this.collection.models[0].get('objectName') : this.policyName;
 				if(this.action != 'delete'){
-					url = XAUtils.getRangerServiceByName(this.collection.models[0].get('parentObjectName'))
-					var rangerService = new RangerService()
-					rangerService.url = url;
+					var rangerService = new RangerService({ 'id' : this.collection.models[0].get('parentObjectId') })
 					rangerService.fetch({
 						cache : false,
 						async : false
@@ -195,7 +188,10 @@ define(function(require){
 				this.template = PolicyDeleteOperationDiff_tmpl;
 			}
 			//prepare data for template
-			this.newPolicyItems = null, this.oldPolicyItems = null ;
+			this.newPolicyItems = null, this.oldPolicyItems = null,
+			this.newAllowExceptionPolicyItems = null, this.oldAllowExceptionPolicyItems = null,
+			this.newDenyPolicyItems = null, this.oldDenyPolicyItems = null,
+			this.newDenyExceptionPolicyItems = null, this.oldDenyExceptionPolicyItems = null;
 			var policyStatus = this.collection.findWhere({'attributeName':'Policy Status'})
 			if(!_.isUndefined(policyStatus)){
 				if(!_.isEmpty(policyStatus.get('previousValue'))){
@@ -213,12 +209,41 @@ define(function(require){
 			}
 			var policyItems = this.collection.findWhere({'attributeName':'Policy Items'});
 			if(!_.isUndefined(policyItems)){
-				this.getPolicyItems();
+				var perms = this.getPolicyItems('Policy Items');
+				if(!_.isEmpty(perms)){
+					this.newPolicyItems = perms.newPerms;
+					this.oldPolicyItems = perms.oldPerms;
+				}
+			}
+			var policyItems = this.collection.findWhere({'attributeName':'Allow Exceptions'});
+			if(!_.isUndefined(policyItems)){
+				var perms = this.getPolicyItems('Allow Exceptions');
+				if(!_.isEmpty(perms)){
+					this.newAllowExceptionPolicyItems = perms.newPerms;
+					this.oldAllowExceptionPolicyItems = perms.oldPerms;
+				}
+			}
+			var policyItems = this.collection.findWhere({'attributeName':'DenyPolicy Items'});
+			if(!_.isUndefined(policyItems)){
+				var perms = this.getPolicyItems('DenyPolicy Items');
+				if(!_.isEmpty(perms)){
+					this.newDenyPolicyItems = perms.newPerms;
+					this.oldDenyPolicyItems = perms.oldPerms;
+				}
+			}
+			var policyItems = this.collection.findWhere({'attributeName':'Deny Exceptions'});
+			if(!_.isUndefined(policyItems)){
+				var perms = this.getPolicyItems('Deny Exceptions');
+				if(!_.isEmpty(perms)){
+					this.newDenyExceptionPolicyItems = perms.newPerms;
+					this.oldDenyExceptionPolicyItems = perms.oldPerms;
+				}
 			}
 		},
 		getPolicyResources : function() {
 			var policyResources = this.collection.findWhere({'attributeName':'Policy Resources'});
 			this.collection.remove(policyResources);
+			
 			if(!_.isUndefined(policyResources.get('newValue')) && !_.isEmpty(policyResources.get('newValue'))){
 				var resources = {} ;
 				var resourceNewValues = JSON.parse(policyResources.get('newValue'));
@@ -262,19 +287,20 @@ define(function(require){
 					if(val != oldResources[key])
 						this.collection.add({'attributeName':key, 'newValue':val.toString(),'previousValue': oldResources[key],type : "Policy Resources"}); 
 				}, this)
-			}else if(this.action == "create"){
+			} else if(this.action == "create"){
 				_.each(resources,function(val, key){ this.collection.add({'attributeName':key, 'newValue':val.toString()}); }, this)
-			}else{
+			} else{
 				_.each(oldResources,function(val, key){ this.collection.add({'attributeName':key, 'previousValue':val.toString()}); }, this)
 			}
 		},
-		getPolicyItems : function() {
+		getPolicyItems : function(itemType) {
 			var items = {};
-			var policyItems = this.collection.findWhere({'attributeName':'Policy Items'});
+			var newPolicyItems=[], oldPolicyItems =[];
+			var policyItems = this.collection.findWhere({'attributeName': itemType });
 			this.collection.remove(policyItems);
 			if(!_.isUndefined(policyItems.get('newValue')) && !_.isEmpty(policyItems.get('newValue'))){
-				this.newPolicyItems = JSON.parse(policyItems.get('newValue'));
-				_.each(this.newPolicyItems, function(obj){
+				newPolicyItems = JSON.parse(policyItems.get('newValue'));
+				_.each(newPolicyItems, function(obj){
 					if(!_.isUndefined(obj.accesses)){
 						var permissions = _.map(_.where(obj.accesses,{'isAllowed':true}), function(t) { return t.type; });
 						obj['permissions'] = permissions;
@@ -283,8 +309,8 @@ define(function(require){
 				});
 			}
 			if(!_.isUndefined(policyItems.get('previousValue')) && !_.isEmpty(policyItems.get('previousValue'))){
-				this.oldPolicyItems = JSON.parse(policyItems.get('previousValue'));
-				_.each(this.oldPolicyItems, function(obj){
+				oldPolicyItems = JSON.parse(policyItems.get('previousValue'));
+				_.each(oldPolicyItems, function(obj){
 					if(!_.isUndefined(obj.accesses)){
 						var permissions = _.map(_.where(obj.accesses,{'isAllowed':true}), function(t) { return t.type; });
 						obj['permissions'] = permissions;
@@ -292,53 +318,59 @@ define(function(require){
 					}
 				});
 			}
-			this.oldPermList =[], this.newPermList =[]
+//			this.oldPermList =[], this.newPermList =[]
 			if(this.action == "update"){
-				this.setOldeNewPermList();
-			}else{
-				this.oldPermList = this.oldPolicyItems;
-				this.newPermList = this.newPolicyItems;
+				return this.setOldeNewPermList(newPolicyItems, oldPolicyItems);
+			} else {
+				
+				return {'oldPerms' : oldPolicyItems, 'newPerms' : newPolicyItems};
+//				this.oldPermList = this.oldPolicyItems;
+//				this.newPermList = this.newPolicyItems; 
 			}
 		},
-		setOldeNewPermList : function() {
-			var found = false;
-			for(var i=0; i< this.newPolicyItems.length ;i++){
+		setOldeNewPermList : function(newPolicyItems, oldPolicyItems) {
+			var found = false, oldPerms = [], newPerms = [];
+			for(var i=0; i< newPolicyItems.length ;i++){
 				found = false;
-				for(var j=0; j< this.oldPolicyItems.length ;j++){
+				for(var j=0; j< oldPolicyItems.length ;j++){
 					if(!found)
-						if(_.intersection(this.oldPolicyItems[j].users,this.newPolicyItems[i].users).length > 0
-								|| _.intersection(this.oldPolicyItems[j].groups,this.newPolicyItems[i].groups).length > 0){
-							if(JSON.stringify(this.newPolicyItems[i]) != JSON.stringify(this.oldPolicyItems[j])){
-								this.oldPermList.push(this.oldPolicyItems[j])
-								this.newPermList.push(this.newPolicyItems[i])
+						if(_.intersection(oldPolicyItems[j].users,newPolicyItems[i].users).length > 0
+								|| _.intersection(oldPolicyItems[j].groups,newPolicyItems[i].groups).length > 0){
+							if(JSON.stringify(newPolicyItems[i]) != JSON.stringify(oldPolicyItems[j])){
+								oldPerms.push(oldPolicyItems[j]);
+								newPerms.push(newPolicyItems[i]);
 							}
 							found = true;
 						}
 				}
 				if(!found){
-					this.oldPermList.push({})
-					this.newPermList.push(this.newPolicyItems[i])
+					oldPerms.push({});
+					newPerms.push(newPolicyItems[i]);
 				}
 			}
-			for(var i=0; i< this.oldPolicyItems.length ;i++){
+			for(var i=0; i< oldPolicyItems.length ;i++){
 				found = false;
-				for(var j=0; j < this.newPolicyItems.length;j++){
-					if(!found && _.intersection(this.oldPolicyItems[i].users,this.newPolicyItems[j].users).length > 0
-							|| _.intersection(this.oldPolicyItems[i].groups,this.newPolicyItems[j].groups).length > 0){
-						if(JSON.stringify(this.oldPolicyItems[i]) != JSON.stringify(this.newPolicyItems[j])){
-							if($.inArray(this.oldPolicyItems[i], this.oldPermList) < 0){
-								this.oldPermList.push(this.oldPolicyItems[i])
-								this.newPermList.push(this.newPolicyItems[j])
+				for(var j=0; j < newPolicyItems.length;j++){
+					if(!found && _.intersection(oldPolicyItems[i].users,newPolicyItems[j].users).length > 0
+							|| _.intersection(oldPolicyItems[i].groups,newPolicyItems[j].groups).length > 0){
+						if(JSON.stringify(oldPolicyItems[i]) != JSON.stringify(newPolicyItems[j])){
+							if($.inArray(oldPolicyItems[i], oldPerms) < 0){
+								oldPerms.push(oldPolicyItems[i]);
+								newPerms.push(newPolicyItems[j]);
 							}
 						}
 						found = true;
 					}
 				}
 				if(!found){
-					this.oldPermList.push(this.oldPolicyItems[i])
-					this.newPermList.push({})
+					oldPerms.push(oldPolicyItems[i]);
+					newPerms.push({});
 				}
 			}
+<<<<<<< HEAD
+=======
+			return {'newPerms' : newPerms, 'oldPerms' : oldPerms };
+>>>>>>> refs/remotes/apache/master
 		},
 		/** all post render plugin initialization */
 		initializePlugins: function(){

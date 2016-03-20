@@ -21,8 +21,16 @@
 
 import java.io.IOException;
 import java.io.InputStream;
+<<<<<<< HEAD
 import java.util.*;
 import java.util.Map.Entry;
+=======
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+>>>>>>> refs/remotes/apache/master
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

@@ -17,7 +17,7 @@ drop procedure if exists create_user_sync;
 
 delimiter ;;
 create procedure create_user_sync() begin
-DECLARE loginID varchar(1024);
+DECLARE loginID bigint(20);
  /* check tables exist or not */
  if exists (select * from information_schema.columns where table_schema=database() and table_name = 'x_portal_user') then
  	if exists (select * from information_schema.columns where table_schema=database() and table_name = 'x_portal_user_role') then

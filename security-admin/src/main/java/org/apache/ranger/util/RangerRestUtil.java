@@ -101,12 +101,22 @@ public class RangerRestUtil {
 				userProfile.getFirstName(), gjUser.getFirstName(),
 				StringUtil.VALIDATION_NAME, "Invalid first name",
 				MessageEnums.INVALID_INPUT_DATA, null, "firstName"));
+<<<<<<< HEAD
+=======
+
+		
+>>>>>>> refs/remotes/apache/master
 		// firstName
 		if (!stringUtil.isValidName(userProfile.getFirstName())) {
 			logger.info("Invalid first name." + userProfile);
 			messageList.add(MessageEnums.INVALID_INPUT_DATA.getMessage(null,
 					"firstName"));
 		}
+<<<<<<< HEAD
+=======
+
+		
+>>>>>>> refs/remotes/apache/master
 		// create the public screen name
 		userProfile.setPublicScreenName(userProfile.getFirstName() + " "
 				+ userProfile.getLastName());

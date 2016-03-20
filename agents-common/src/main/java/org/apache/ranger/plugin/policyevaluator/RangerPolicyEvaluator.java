@@ -32,7 +32,7 @@ import org.apache.ranger.plugin.policyengine.RangerAccessResource;
 import org.apache.ranger.plugin.policyengine.RangerPolicyEngineOptions;
 
 public interface RangerPolicyEvaluator extends Comparable<RangerPolicyEvaluator> {
-	public static final String EVALUATOR_TYPE_DEFAULT   = "default";
+	public static final String EVALUATOR_TYPE_AUTO   = "auto";
 	public static final String EVALUATOR_TYPE_OPTIMIZED = "optimized";
 	public static final String EVALUATOR_TYPE_CACHED    = "cached";
 
@@ -41,6 +41,10 @@ public interface RangerPolicyEvaluator extends Comparable<RangerPolicyEvaluator>
 	RangerPolicy getPolicy();
 
 	RangerServiceDef getServiceDef();
+
+	boolean hasAllow();
+
+	boolean hasDeny();
 
 	int getEvalOrder();
 
@@ -52,7 +56,9 @@ public interface RangerPolicyEvaluator extends Comparable<RangerPolicyEvaluator>
 
 	boolean isMatch(RangerAccessResource resource);
 
-	boolean isSingleAndExactMatch(RangerAccessResource resource);
+	boolean isCompleteMatch(RangerAccessResource resource);
+
+	boolean isCompleteMatch(Map<String, RangerPolicyResource> resources);
 
 	boolean isAccessAllowed(RangerAccessResource resource, String user, Set<String> userGroups, String accessType);
 

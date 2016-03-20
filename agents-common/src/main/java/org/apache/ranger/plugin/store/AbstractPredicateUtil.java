@@ -82,13 +82,15 @@ public class AbstractPredicateUtil {
 		addPredicateForServiceType(filter.getParam(SearchFilter.SERVICE_TYPE), predicates);
 		addPredicateForServiceTypeId(filter.getParam(SearchFilter.SERVICE_TYPE_ID), predicates);
 		addPredicateForServiceName(filter.getParam(SearchFilter.SERVICE_NAME), predicates);
+		// addPredicateForServiceId(filter.getParam(SearchFilter.SERVICE_ID), predicates); // not supported
 		addPredicateForPolicyName(filter.getParam(SearchFilter.POLICY_NAME), predicates);
 		addPredicateForPolicyId(filter.getParam(SearchFilter.POLICY_ID), predicates);
 		addPredicateForIsEnabled(filter.getParam(SearchFilter.IS_ENABLED), predicates);
 		addPredicateForIsRecursive(filter.getParam(SearchFilter.IS_RECURSIVE), predicates);
+		addPredicateForTagServiceName(filter.getParam(SearchFilter.TAG_SERVICE_NAME), predicates);
+		// addPredicateForTagServiceId(filter.getParam(SearchFilter.TAG_SERVICE_ID), predicates); // not supported
 		addPredicateForUserName(filter.getParam(SearchFilter.USER), predicates);
 		addPredicateForGroupName(filter.getParam(SearchFilter.GROUP), predicates);
-		addPredicateForResourceSignature(filter.getParam(SearchFilter.RESOURCE_SIGNATURE), predicates);
 		addPredicateForResources(filter.getParamsWithPrefix(SearchFilter.RESOURCE_PREFIX, true), predicates);
 		addPredicateForPolicyResource(filter.getParam(SearchFilter.POL_RESOURCE), predicates);
 		addPredicateForPartialPolicyName(filter.getParam(SearchFilter.POLICY_NAME_PARTIAL), predicates);
@@ -222,22 +224,36 @@ public class AbstractPredicateUtil {
 	}
 
 	private Predicate addPredicateForServiceType(final String serviceType, List<Predicate> predicates) {
+<<<<<<< HEAD
 		if (StringUtils.isEmpty(serviceType)) {
+=======
+		if(StringUtils.isEmpty(serviceType)) {
+>>>>>>> refs/remotes/apache/master
 			return null;
 		}
 
 		Predicate ret = new Predicate() {
 			@Override
 			public boolean evaluate(Object object) {
+<<<<<<< HEAD
 				if (object == null) {
+=======
+				if(object == null) {
+>>>>>>> refs/remotes/apache/master
 					return false;
 				}
 
 				boolean ret = false;
 
+<<<<<<< HEAD
 				if (object instanceof RangerServiceDef) {
 					RangerServiceDef serviceDef = (RangerServiceDef) object;
 					String svcType = serviceDef.getName();
+=======
+				if(object instanceof RangerServiceDef) {
+					RangerServiceDef serviceDef = (RangerServiceDef)object;
+					String           svcType    = serviceDef.getName();
+>>>>>>> refs/remotes/apache/master
 
 					ret = StringUtils.equals(svcType, serviceType);
 				} else {
@@ -247,9 +263,17 @@ public class AbstractPredicateUtil {
 				return ret;
 			}
 		};
+<<<<<<< HEAD
 		if(predicates != null) {
 		 predicates.add(ret);
 		}
+=======
+
+		if(predicates != null) {
+			predicates.add(ret);
+		}
+
+>>>>>>> refs/remotes/apache/master
 		return ret;
 	}
 
@@ -361,27 +385,54 @@ public class AbstractPredicateUtil {
 
 	private Predicate addPredicateForPartialPolicyName(final String policyName, List<Predicate> predicates) {
 		if(StringUtils.isEmpty(policyName)) {
+<<<<<<< HEAD
 		return null;
 		}
+=======
+			return null;
+		}
+
+>>>>>>> refs/remotes/apache/master
 		Predicate ret = new Predicate() {
 			@Override
 			public boolean evaluate(Object object) {
 				if(object == null) {
 					return false;
 				}
+<<<<<<< HEAD
 				boolean ret = false;
 				if(object instanceof RangerPolicy) {
 					RangerPolicy policy = (RangerPolicy)object;
+=======
+
+				boolean ret = false;
+
+				if(object instanceof RangerPolicy) {
+					RangerPolicy policy = (RangerPolicy)object;
+
+>>>>>>> refs/remotes/apache/master
 					ret = StringUtils.containsIgnoreCase(policy.getName(), policyName);
 				} else {
 					ret = true;
 				}
+<<<<<<< HEAD
 				return ret;
 			}
 		};
 		if(predicates != null) {
 			predicates.add(ret);
 		}
+=======
+
+				return ret;
+			}
+		};
+
+		if(predicates != null) {
+			predicates.add(ret);
+		}
+
+>>>>>>> refs/remotes/apache/master
 		return ret;
 	}
 
@@ -437,11 +488,22 @@ public class AbstractPredicateUtil {
 				if(object instanceof RangerPolicy) {
 					RangerPolicy policy = (RangerPolicy)object;
 
-					for(RangerPolicyItem policyItem : policy.getPolicyItems()) {
-						if(policyItem.getUsers().contains(userName)) {
-							ret = true;
+					List<?>[] policyItemsList = new List<?>[] { policy.getPolicyItems(),
+																policy.getDenyPolicyItems(),
+																policy.getAllowExceptions(),
+																policy.getDenyExceptions()
+															  };
 
-							break;
+					for(List<?> policyItemsObj : policyItemsList) {
+						@SuppressWarnings("unchecked")
+						List<RangerPolicyItem> policyItems = (List<RangerPolicyItem>)policyItemsObj;
+
+						for(RangerPolicyItem policyItem : policyItems) {
+							if(policyItem.getUsers().contains(userName)) {
+								ret = true;
+
+								break;
+							}
 						}
 					}
 				} else {
@@ -476,11 +538,22 @@ public class AbstractPredicateUtil {
 				if(object instanceof RangerPolicy) {
 					RangerPolicy policy = (RangerPolicy)object;
 
-					for(RangerPolicyItem policyItem : policy.getPolicyItems()) {
-						if(policyItem.getGroups().contains(groupName)) {
-							ret = true;
+					List<?>[] policyItemsList = new List<?>[] { policy.getPolicyItems(),
+							policy.getDenyPolicyItems(),
+							policy.getAllowExceptions(),
+							policy.getDenyExceptions()
+						  };
 
-							break;
+					for(List<?> policyItemsObj : policyItemsList) {
+						@SuppressWarnings("unchecked")
+						List<RangerPolicyItem> policyItems = (List<RangerPolicyItem>)policyItemsObj;
+
+						for(RangerPolicyItem policyItem : policyItems) {
+							if(policyItem.getGroups().contains(groupName)) {
+								ret = true;
+
+								break;
+							}
 						}
 					}
 				} else {
@@ -599,6 +672,7 @@ public class AbstractPredicateUtil {
 	}
 
 	private Predicate addPredicateForPolicyResource(final String resourceValue, List<Predicate> predicates) {
+<<<<<<< HEAD
 		if (StringUtils.isEmpty(resourceValue)) {
 			return null;
 		}
@@ -606,11 +680,22 @@ public class AbstractPredicateUtil {
 			@Override
 			public boolean evaluate(Object object) {
 				if (object == null) {
+=======
+		if(StringUtils.isEmpty(resourceValue)) {
+			return null;
+		}
+
+		Predicate ret = new Predicate() {
+			@Override
+			public boolean evaluate(Object object) {
+				if(object == null) {
+>>>>>>> refs/remotes/apache/master
 					return false;
 				}
 
 				boolean ret = false;
 
+<<<<<<< HEAD
 				if (object instanceof RangerPolicy) {
 					RangerPolicy policy = (RangerPolicy) object;
 					Map<String, RangerPolicyResource> policyResources = policy.getResources();
@@ -622,17 +707,40 @@ public class AbstractPredicateUtil {
 							if (policyResource != null && CollectionUtils.isNotEmpty(policyResource.getValues())) {
 								for (String policyResourceVal : policyResource.getValues()) {
 									if (StringUtils.containsIgnoreCase(policyResourceVal, resourceValue)) {
+=======
+				if(object instanceof RangerPolicy) {
+					RangerPolicy                      policy          = (RangerPolicy)object;
+					Map<String, RangerPolicyResource> policyResources = policy.getResources();
+
+					if(MapUtils.isNotEmpty(policyResources)) {
+
+						for (Map.Entry<String, RangerPolicyResource> entry : policyResources.entrySet()) {
+
+							RangerPolicyResource policyResource = entry.getValue();
+
+							if (policyResource != null && CollectionUtils.isNotEmpty(policyResource.getValues())) {
+
+								for (String policyResoureValue : policyResource.getValues()) {
+									if (StringUtils.containsIgnoreCase(policyResoureValue, resourceValue)) {
+>>>>>>> refs/remotes/apache/master
 										ret = true;
 
 										break;
 									}
 								}
+<<<<<<< HEAD
 							}
 
 							if (ret) {
 								break;
 							}
 						}
+=======
+ 							}
+
+						}
+
+>>>>>>> refs/remotes/apache/master
 					}
 				} else {
 					ret = true;
@@ -642,7 +750,11 @@ public class AbstractPredicateUtil {
 			}
 		};
 
+<<<<<<< HEAD
 		if (predicates != null) {
+=======
+		if(predicates != null) {
+>>>>>>> refs/remotes/apache/master
 			predicates.add(ret);
 		}
 
@@ -696,6 +808,39 @@ public class AbstractPredicateUtil {
 		return ret;
 	}
 
+	private Predicate addPredicateForTagServiceName(final String tagServiceName, List<Predicate> predicates) {
+		if(StringUtils.isEmpty(tagServiceName)) {
+			return null;
+		}
+
+		Predicate ret = new Predicate() {
+			@Override
+			public boolean evaluate(Object object) {
+				if(object == null) {
+					return false;
+				}
+
+				boolean ret = false;
+
+				if(object instanceof RangerService) {
+					RangerService service = (RangerService)object;
+
+					ret = StringUtils.equals(tagServiceName, service.getTagService());
+				} else {
+					ret = true;
+				}
+
+				return ret;
+			}
+		};
+
+		if(ret != null) {
+			predicates.add(ret);
+		}
+
+		return ret;
+	}
+
 	private Predicate addPredicateForResourceSignature(String signature, List<Predicate> predicates) {
 
 		Predicate ret = createPredicateForResourceSignature(signature);
@@ -708,23 +853,38 @@ public class AbstractPredicateUtil {
 	}
 
 	private Predicate addPredicateForPolicyType(final String policyType, List<Predicate> predicates) {
+<<<<<<< HEAD
 		if (StringUtils.isEmpty(policyType)) {
+=======
+		if(StringUtils.isEmpty(policyType)) {
+>>>>>>> refs/remotes/apache/master
 			return null;
 		}
 
 		Predicate ret = new Predicate() {
 			@Override
 			public boolean evaluate(Object object) {
+<<<<<<< HEAD
 				if (object == null) {
+=======
+				if(object == null) {
+>>>>>>> refs/remotes/apache/master
 					return false;
 				}
 
 				boolean ret = true;
 
+<<<<<<< HEAD
 				if (object instanceof RangerPolicy) {
 					RangerPolicy policy = (RangerPolicy) object;
 
 					if (policy.getPolicyType() != null) {
+=======
+				if(object instanceof RangerPolicy) {
+					RangerPolicy policy = (RangerPolicy)object;
+
+					if(policy.getPolicyType() != null) {
+>>>>>>> refs/remotes/apache/master
 						ret = StringUtils.equalsIgnoreCase(policyType, policy.getPolicyType().toString());
 					}
 				}
@@ -733,16 +893,24 @@ public class AbstractPredicateUtil {
 			}
 		};
 
+<<<<<<< HEAD
 		if (predicates != null) {
+=======
+		if(predicates != null) {
+>>>>>>> refs/remotes/apache/master
 			predicates.add(ret);
 		}
 
 		return ret;
 	}
+<<<<<<< HEAD
 	/**
 	 * @param policySignature
 	 * @return
 	 */
+=======
+
+>>>>>>> refs/remotes/apache/master
 	public Predicate createPredicateForResourceSignature(final String policySignature) {
 
 		if (StringUtils.isEmpty(policySignature)) {

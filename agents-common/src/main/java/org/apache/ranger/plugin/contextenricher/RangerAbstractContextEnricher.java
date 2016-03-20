@@ -27,6 +27,7 @@ import java.util.Properties;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.ranger.plugin.model.RangerServiceDef;
 import org.apache.ranger.plugin.model.RangerServiceDef.RangerContextEnricherDef;
 
 
@@ -34,29 +35,75 @@ public abstract class RangerAbstractContextEnricher implements RangerContextEnri
 	private static final Log LOG = LogFactory.getLog(RangerAbstractContextEnricher.class);
 
 	protected RangerContextEnricherDef enricherDef;
-
-	private Map<String, String> options = null;
+	protected String serviceName;
+	protected String appId;
+	protected RangerServiceDef serviceDef;
 
 	@Override
-	public void setContextEnricherDef(RangerContextEnricherDef enricherDef) {
+	public void setEnricherDef(RangerContextEnricherDef enricherDef) {
 		this.enricherDef = enricherDef;
 	}
-	
+
+	@Override
+	public void setServiceName(String serviceName) {
+		this.serviceName = serviceName;
+	}
+
+	@Override
+	public void setServiceDef(RangerServiceDef serviceDef) {
+		this.serviceDef = serviceDef;
+	}
+
+	@Override
+	public void setAppId(String appId) {
+		this.appId = appId;
+	}
+
 	@Override
 	public void init() {
 		if(LOG.isDebugEnabled()) {
 			LOG.debug("==> RangerAbstractContextEnricher.init(" + enricherDef + ")");
 		}
 
-		options = enricherDef.getEnricherOptions();
-
 		if(LOG.isDebugEnabled()) {
 			LOG.debug("<== RangerAbstractContextEnricher.init(" + enricherDef + ")");
 		}
 	}
 
+	@Override
+	public boolean preCleanup() {
+		return true;
+	}
+
+	@Override
+	public void cleanup() {
+	}
+
+	@Override
+	public String getName() {
+		return enricherDef == null ? null : enricherDef.getName();
+	}
+
+	public RangerContextEnricherDef getEnricherDef() {
+		return enricherDef;
+	}
+
+	public String getServiceName() {
+		return serviceName;
+	}
+
+	public RangerServiceDef getServiceDef() {
+		return serviceDef;
+	}
+
+	public String getAppId() {
+		return appId;
+	}
+
 	public String getOption(String name) {
 		String ret = null;
+
+		Map<String, String> options = enricherDef != null ? enricherDef.getEnricherOptions() : null;
 
 		if(options != null && name != null) {
 			ret = options.get(name);
@@ -66,35 +113,45 @@ public abstract class RangerAbstractContextEnricher implements RangerContextEnri
 	}
 
 	public String getOption(String name, String defaultValue) {
-		String ret = getOption(name);
+		String ret = defaultValue;
+		String val = getOption(name);
 
-		if(StringUtils.isEmpty(ret)) {
-			ret = defaultValue;
+		if(val != null) {
+			ret = val;
 		}
 
 		return ret;
 	}
 
-	public boolean getBooleanOption(String name) {
-		String val = getOption(name);
-
-		boolean ret = StringUtils.isEmpty(val) ? false : Boolean.parseBoolean(val);
-
-		return ret;
-	}
-
 	public boolean getBooleanOption(String name, boolean defaultValue) {
-		String strVal = getOption(name);
+		boolean ret = defaultValue;
+		String  val = getOption(name);
 
-		boolean ret = StringUtils.isEmpty(strVal) ? defaultValue : Boolean.parseBoolean(strVal);
+		if(val != null) {
+			ret = Boolean.parseBoolean(val);
+		}
 
 		return ret;
 	}
 
 	public char getCharOption(String name, char defaultValue) {
-		String strVal = getOption(name);
+		char   ret = defaultValue;
+		String val = getOption(name);
 
-		char ret = StringUtils.isEmpty(strVal) ? defaultValue : strVal.charAt(0);
+		if(! StringUtils.isEmpty(val)) {
+			ret = val.charAt(0);
+		}
+
+		return ret;
+	}
+
+	public long getLongOption(String name, long defaultValue) {
+		long ret = defaultValue;
+		String  val = getOption(name);
+
+		if(val != null) {
+			ret = Long.parseLong(val);
+		}
 
 		return ret;
 	}

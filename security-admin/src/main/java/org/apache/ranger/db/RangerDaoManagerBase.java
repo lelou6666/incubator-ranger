@@ -162,6 +162,31 @@ public abstract class RangerDaoManagerBase {
 			return getXXServiceDefWithAssignedId();
 		}
 		
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG_DEF) {
+			return getXXTagDef();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG_ATTR_DEF) {
+			return getXXTagAttributeDef();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_SERVICE_RESOURCE) {
+			return getXXServiceResource();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_SERVICE_RESOURCE_ELEMENT) {
+			return getXXServiceResourceElement();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_SERVICE_RESOURCE_ELEMENT_VALUE) {
+			return getXXServiceResourceElementValue();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG) {
+			return getXXTag();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG_ATTR) {
+			return getXXTagAttribute();
+		}
+		if (classType == AppConstants.CLASS_TYPE_XA_TAG_RESOURCE_MAP) {
+			return getXXTagResourceMap();
+		}
+		
 		logger.error("No DaoManager found for classType=" + classType, new Throwable());
 		return null;
 	}
@@ -290,7 +315,32 @@ public abstract class RangerDaoManagerBase {
 		if (className.equals("XXServiceDefWithAssignedId")) {
 			return getXXServiceDefWithAssignedId();
 		}
-		
+
+		if (className.equals("XXTagDef")) {
+			return getXXTagDef();
+		}
+		if (className.equals("XXTagAttributeDef")) {
+			return getXXTagAttributeDef();
+		}
+		if (className.equals("XXServiceResource")) {
+			return getXXServiceResource();
+		}
+		if (className.equals("XXServiceResourceElement")) {
+			return getXXServiceResourceElement();
+		}
+		if (className.equals("XXServiceResourceElementValue")) {
+			return getXXServiceResourceElementValue();
+		}
+		if (className.equals("XXTag")) {
+			return getXXTag();
+		}
+		if (className.equals("XXTagAttribute")) {
+			return getXXTagAttribute();
+		}
+		if (className.equals("XXTagResourceMap")) {
+			return getXXTagResourceMap();
+		}
+
 		logger.error("No DaoManager found for className=" + className, new Throwable());
 		return null;
 	}
@@ -464,6 +514,38 @@ public abstract class RangerDaoManagerBase {
 	
 	public XXServiceDefWithAssignedIdDao getXXServiceDefWithAssignedId() {
 		return new XXServiceDefWithAssignedIdDao(this);
+	}
+
+	public XXTagDefDao getXXTagDef() {
+		return new XXTagDefDao(this);
+	}
+
+	public XXTagAttributeDefDao getXXTagAttributeDef() {
+		return new XXTagAttributeDefDao(this);
+	}
+
+	public XXServiceResourceDao getXXServiceResource() {
+		return new XXServiceResourceDao(this);
+	}
+
+	public XXServiceResourceElementDao getXXServiceResourceElement() {
+		return new XXServiceResourceElementDao(this);
+	}
+
+	public XXServiceResourceElementValueDao getXXServiceResourceElementValue() {
+		return new XXServiceResourceElementValueDao(this);
+	}
+
+	public XXTagDao getXXTag() {
+		return new XXTagDao(this);
+	}
+
+	public XXTagAttributeDao getXXTagAttribute() {
+		return new XXTagAttributeDao(this);
+	}
+
+	public XXTagResourceMapDao getXXTagResourceMap() {
+		return new XXTagResourceMapDao(this);
 	}
 
 }

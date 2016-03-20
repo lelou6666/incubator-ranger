@@ -267,7 +267,7 @@
 	 
 		render: function() {
 			var self = this;
-			this.setOptions(this.schema.options);
+//			this.setOptions(this.schema.options);
 			setTimeout(function () {
 			    self.$el.select2(self.pluginAttr);
 			},0);			
@@ -568,6 +568,298 @@
 			  },
 			});
 	  
+	// bootstrap-editable ============================================
+	  /**
+	   ********************** custom type created for tag based policies
+	  List of taglistcheck. 
+	  Internally value stored as javascript array of values.
+
+	  @class tagchecklist
+	  @extends list
+	  @final
+	  @example
+	  <a href="#" id="options" data-type="tagchecklist" data-pk="1" data-url="/post" data-title="Select options"></a>
+	  **/
+	  (function ($) {
+	      "use strict";
+	      
+	      var TagChecklist = function (options) {
+	          this.init('tagchecklist', options, TagChecklist.defaults);
+	      };
+
+	      $.fn.editableutils.inherit(TagChecklist, $.fn.editabletypes.list);
+
+	      $.extend(TagChecklist.prototype, {
+	          renderList: function() {
+	              var $label='', $div='', that = this;
+	              this.$tpl.empty();
+	              
+	              this.editModPopup = true;
+	              if(!$.isArray(this.sourceData)) {
+	                  return;
+	              }
+
+	              this.servicePerms = _.groupBy(this.sourceData,function(obj){ 
+	              	var val = obj.value; 
+	              	return val.substr(0,val.indexOf(":"));
+	              });
+	              var $selectComp = $('<select>').attr('data-id','selectComp')
+	              								 .attr('multiple','multiple')
+	              								 .attr('placeholder','Select component');
+	              var optionList = _.keys(this.servicePerms);
+	              _.each(optionList, function (val, el) {
+	            	  $selectComp.append("<option>" + val + "</option>");
+	              }); 
+	              var $table = $('<table>', {'class':'table table-policy-condition table-perms margin-top-6' });
+	              var $tbody = $('<tbody><tr><th><input type="checkbox" data-id="selectAllComponent" /> Component</th><td><strong>Permissions</strong></td></tr></tbody>');
+	              
+	              $selectComp.append($table)
+	              $('<div>').append($selectComp).appendTo(this.$tpl);
+	              $table.append($tbody).appendTo(this.$tpl);
+	              
+	              this.$tpl.find('[data-id="selectComp"]').select2({width :'600px'}).on('change',function(e){
+	            	  
+	            	  if(!_.isUndefined(e.added)){
+	            		  that.addTr(e.added.text)
+	            		  //Table header selectAll perm event
+	            		  that.addEventToThCheckbox();
+	            		  //Table data permission event
+	            		  that.addEventToTdCheckbox();
+	            		  
+	            	  }else{
+	            		  that.$tpl.find('tr[data-id="'+e.removed.text+'"]').remove()
+	            		  //uncheck selectAllCompChxbox if there is no component is selected
+	            		  if(_.isEmpty(e.val))	that.$tpl.find('[data-id="selectAllComponent"]').prop('checked',false)
+	            	  }
+	            	  
+	              });
+	              //selectall component event
+	              this.$tpl.find('[data-id="selectAllComponent"]').on('click',function(chx){
+	            	  var table = $(chx.currentTarget).parents('.table-perms')
+	            	  var selectAllInputChx = table.parents('.table-perms').find('th input')
+	            	  selectAllInputChx.splice(0,1)
+	            	  if($(chx.currentTarget).is(':checked')){
+	            		  table.find('input').prop('checked',true)
+	            		  
+        			  }else{
+        				  table.find('input').prop('checked',false)
+        			  }
+	              });
+	          },
+	         
+	         value2str: function(value) {
+	             return $.isArray(value) ? value.sort().join($.trim(this.options.separator)) : '';
+	         },  
+	         
+	         //parse separated string
+	          str2value: function(str) {
+	             var reg, value = null;
+	             if(typeof str === 'string' && str.length) {
+	                 reg = new RegExp('\\s*'+$.trim(this.options.separator)+'\\s*');
+	                 value = str.split(reg);
+	             } else if($.isArray(str)) {
+	                 value = str; 
+	             } else {
+	                 value = [str];
+	             }
+	             return value;
+	          },       
+	         
+	         //set checked on required checkboxes
+	         value2input: function(value) {
+	        	 var that = this;
+	        	 if(_.contains(value,"on")){
+						value = _.without(value,"on")
+				 }
+	        	 if(this.editModPopup){
+	        		 var selectedComp = _.map(value,function(val){
+	        			 return val.split(':')[0];
+	        		 });
+	        		 
+	        		 this.value = _.unique(selectedComp);
+	        		 this.$tpl.find('[data-id="selectComp"]').select2('val',_.unique(selectedComp))
+	        		 _.each(_.unique(selectedComp), function(compName){
+	        			 this.addTr(compName);
+	        		 },this)
+	        		 this.addEventToThCheckbox();
+	        		 this.addEventToTdCheckbox();
+	        		 _.each(value,function(val){
+	        			 this.$tpl.find('input[data-js="'+val+'"]').prop('checked',true)
+	        		 },this);
+	        		 
+	        		 //checked selectall for perticular component
+	        		 this.setSelectAllPerCompChxbox();
+	        		 //check parentSelectAllComponent
+	        		 this.setSelectAllCompChxbox();
+	        		 this.editModPopup = false;
+	        	 }
+	          },  
+	          
+	         input2value: function() {
+	        	 this.$input = this.$tpl.find('input[type="checkbox"]')
+	             var checked = [];
+	             this.$input.filter(':checked').each(function(i, el) {
+	                 checked.push($(el).val());
+	             });
+	             return checked;
+	         },            
+	            
+	         //collect text of checked boxes
+	          value2htmlFinal: function(value, element) {
+	             var html = [],
+	                 checked = $.fn.editableutils.itemsByValue(value, this.sourceData),
+	                 escape = this.options.escape;
+	                 
+	             if(checked.length) {
+	                 $.each(checked, function(i, v) {
+	                     var text = escape ? $.fn.editableutils.escape(v.text) : v.text; 
+	                     html.push(text); 
+	                 });
+	                 $(element).html(html.join('<br>'));
+	             } else {
+	                 $(element).empty(); 
+	             }
+	          },
+	          addTr : function(compName){
+        		  var $tr = $('<tr data-id="'+compName+'">'), $th = $('<th>'), $label = '<label><input type="checkbox" data-id="selectall" data-type="'+compName+'"></label>'+compName;
+        		  var $tmp = $th.append($label);
+        		  var $td = $('<td>');
+        		  var permissions = this.servicePerms[compName]
+        		  _.each(permissions, function(perm){ 
+        			  $label = $('<label>').append($('<input>', {
+        				  type: 'checkbox',
+        				  value: perm.value,
+        				  'data-js' : perm.value
+        			  }))
+        			  .append($('<span>').text(' '+perm.text));
+        			  $td.append($label)
+        		  });
+        		  $tr.append($th)
+        		  $tr.append($td)
+        		  this.$tpl.find('tbody').append($tr)
+	          },
+	          addEventToThCheckbox : function(){
+	        	  var that = this;
+	        	  this.$tpl.find('th input').on('click',function(chx){
+        			  var type = $(chx.currentTarget).attr('data-type')
+        			  var tr = $(chx.currentTarget).parents('tr[data-id="'+type+'"]')
+        			  if($(chx.currentTarget).is(':checked')){
+        				  tr.find('td input').prop('checked',true)
+        				  //to check for selectAll component level
+        				  var selectAllInputChx = tr.parents('.table-perms').find('th input'),selectAll = true;
+        				  selectAllInputChx.splice(0,1);
+        				  _.each(selectAllInputChx, function(ele){
+        					  if(!$(ele).is(':checked')){
+        						  selectAll = false;
+        						  return;
+        					  }
+        				  })
+        				  if(selectAll){
+        					  that.$tpl.find('[data-id="selectAllComponent"]').prop('checked',true)  
+        				  }
+        			  }else{
+        				  tr.find('td input').prop('checked',false)
+        				  that.$tpl.find('[data-id="selectAllComponent"]').prop('checked',false)
+        			  }
+        		  })
+	          },
+	          addEventToTdCheckbox : function(){
+	        	  var that = this;
+	        	  this.$tpl.find('td input').on('click',function(chx){
+        			  var dataJs = $(chx.currentTarget).attr('data-js').split(':')
+        			  var type = dataJs[0]
+        			  var tr = $(chx.currentTarget).parents('tr[data-id="'+type+'"]')
+        			  if($(chx.currentTarget).is(':checked')){
+        				  //to check for selectAll component level
+        				  var permInputChx = tr.find('td input'),selectAll = true;
+        				  _.each(permInputChx, function(ele){
+        					  if(!$(ele).is(':checked')){
+        						  selectAll = false;
+        						  return;
+        					  }
+        				  })
+        				  if(selectAll){
+        					  tr.find('th input').prop('checked',true)
+        					  that.setSelectAllCompChxbox();
+        				  }
+        			  }else{
+        				  tr.find('th input').prop('checked',false)
+        				  that.$tpl.find('[data-id="selectAllComponent"]').prop('checked',false)
+        			  }
+        		  })
+	          },
+	          setSelectAllCompChxbox : function(){
+	        	  var that = this;
+	        	  var selectAllComp = true,tr = this.$tpl.find('table tr');
+	        	  	 if(tr.length > 1){
+	        	  		 _.each(this.$tpl.find('table tr'), function(el, i){
+	        	  			 if(i != 0){
+	        	  				 var componentChxbox = $(el).find('th input');
+	        	  				 _.each(componentChxbox, function(ele){
+	        	  					 if(!$(ele).is(':checked')){
+	        	  						 selectAllComp  = false;
+	        	  						 return;
+	        	  					 }
+	        	  				 })
+	        	  			 }
+	        	  		 })
+	        	  	 }else{
+	        	  		selectAllComp  = false;
+	        	  	 }
+	        		 if(selectAllComp){
+	        			 that.$tpl.find('[data-id="selectAllComponent"]').prop('checked',true);
+				  	}else{
+				  	 that.$tpl.find('[data-id="selectAllComponent"]').prop('checked',false);
+				  	}
+	          },
+	          setSelectAllPerCompChxbox : function(){
+	        	  var that = this;
+	        	  _.each(this.$tpl.find('table tr'), function(el){
+        			  var componentChxbox = $(el).find('td input'), selectAll = true;
+        			  _.each(componentChxbox, function(ele){
+    					  if(!$(ele).is(':checked')){
+    						  selectAll = false;
+    						  return;
+    					  }
+    				  })
+    				  if(selectAll){
+    					  $(el).find('th input').prop('checked',true);
+    				  }else{
+    					  $(el).find('th input').prop('checked',false);
+    				  }
+        		 })
+	          }
+	      });      
+
+	      TagChecklist.defaults = $.extend({}, $.fn.editabletypes.list.defaults, {
+	          /**
+	          @property tpl 
+	          @default <div></div>
+	          **/         
+	          tpl:'<div class="editable-checklist"></div>',
+	          
+	          /**
+	          @property inputclass 
+	          @type string
+	          @default null
+	          **/         
+	          inputclass: null,        
+	          
+	          /**
+	          Separator of values when reading from `data-value` attribute
+
+	          @property separator 
+	          @type string
+	          @default ','
+	          **/         
+	          separator: ','
+	      });
+
+	      $.fn.editabletypes.tagchecklist = TagChecklist;      
+
+	  }(window.jQuery));
+
+
 	  
 	  	
 	//Scroll to top functionality on all views -- if the scroll height is > 500 px.

@@ -17,10 +17,13 @@
  * under the License.
  */
 
- package org.apache.ranger.ldapusersync.process;
+package org.apache.ranger.ldapusersync.process;
 
+<<<<<<< HEAD
 import java.util.List;
 
+=======
+>>>>>>> refs/remotes/apache/master
 public class PolicyMgrUserGroupBuilder extends org.apache.ranger.unixusersync.process.PolicyMgrUserGroupBuilder {
 	
 	public static void main(String[] args) throws Throwable {

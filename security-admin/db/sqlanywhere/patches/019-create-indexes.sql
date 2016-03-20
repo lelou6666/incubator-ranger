@@ -53,4 +53,13 @@ CREATE NONCLUSTERED INDEX x_policy_item_group_perm_IDX_policy_item_id ON dbo.x_p
 GO
 CREATE NONCLUSTERED INDEX x_policy_item_group_perm_IDX_group_id ON dbo.x_policy_item_group_perm(group_id ASC)
 GO
+<<<<<<< HEAD
+=======
+CREATE NONCLUSTERED INDEX x_service_resource_IDX_service_id ON dbo.x_service_resource(service_id ASC)
+GO
+CREATE NONCLUSTERED INDEX x_service_resource_element_IDX_res_id ON dbo.x_service_resource_element(res_id ASC)
+GO
+CREATE NONCLUSTERED INDEX x_service_resource_element_IDX_res_def_id ON dbo.x_service_resource_element(res_def_id ASC)
+GO
+>>>>>>> refs/remotes/apache/master
 exit

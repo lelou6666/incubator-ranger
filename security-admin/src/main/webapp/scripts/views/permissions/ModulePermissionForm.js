@@ -56,7 +56,6 @@ define(function(require) {
 				this.setupFieldsforEditModule();
 			}
 			Backbone.Form.prototype.initialize.call(this, options);
-
 		},
 		ui : {
 			/*selectGroups	: 'div[data-fields="selectGroups"]',
@@ -96,13 +95,15 @@ define(function(require) {
 					editorAttrs  : {'checked':'checked',disabled:true},
 					title : 'Is Allowed ?'
 					},
-
 			}
 		},
 		render: function(options) {
 			var that = this;
-
 			Backbone.Form.prototype.render.call(this, options);
+<<<<<<< HEAD
+=======
+			
+>>>>>>> refs/remotes/apache/master
 		},
 		setupFieldsforEditModule : function(){
 			var groupsNVList=[],usersNVList =[];
@@ -122,7 +123,7 @@ define(function(require) {
 			permList.unshift(localization.tt('lbl.allowAccess'));
 			permList.unshift(localization.tt('lbl.selectUser'));
 			permList.unshift(localization.tt('lbl.selectGroup'));
-			permList.push("");
+//			permList.push("");
 			return permList;
 		},
 		getPlugginAttr :function(autocomplete, options){
@@ -174,9 +175,15 @@ define(function(require) {
 									results = data.vXGroups.map(function(m, i){	return {id : m.id+"", text: m.name};	});
 								} else if(!_.isUndefined(data.vXUsers)){
 									results = data.vXUsers.map(function(m, i){	return {id : m.id+"", text: m.name};	});
+<<<<<<< HEAD
 								}
 								if(!_.isEmpty(selectedVals)){
 									results = XAUtil.filterResultByText(results, selectedVals);
+=======
+									if(!_.isEmpty(selectedVals)){
+										results = XAUtil.filterResultByText(results, selectedVals);
+									}
+>>>>>>> refs/remotes/apache/master
 								}
 							}
 							return { results : results};
@@ -202,7 +209,10 @@ define(function(require) {
 				};
 			}
 		},
+<<<<<<< HEAD
 		
+=======
+>>>>>>> refs/remotes/apache/master
 		getSelectedValues : function(options){
 			var vals = [],selectedVals = [];
 			var type = options.textKey == 'groupName' ? 'selectGroups' : 'selectUsers';
@@ -228,11 +238,11 @@ define(function(require) {
 			var selectedVals = (!_.isNull(objValsStr)) ? objValsStr.toString().split(',') : [];
 			var selectedIdList=[];
 			selectedVals = _.each(selectedVals, function(eachVal){
-								//Ignoring any non existing Group Name
-								if(_.isNumber(parseInt(eachVal))  && !_.isNaN(parseInt(eachVal))){
-									selectedIdList.push(Number(eachVal));
-								}
-							});
+				//Ignoring any non existing Group Name
+				if(_.isNumber(parseInt(eachVal))  && !_.isNaN(parseInt(eachVal))){
+					selectedIdList.push(Number(eachVal));
+				}
+			});
 			var modelPermList = options.permList;
 			var modelPerms = _.unique(_.pluck(options.permList, options.idKey));
 			if(!_.isEmpty(selectedIdList)){
@@ -240,7 +250,10 @@ define(function(require) {
 				if(_.isEqual(selectedIdList,modelPerms)) {
 					//No changes in Selected Users
 				} else {
+<<<<<<< HEAD
 
+=======
+>>>>>>> refs/remotes/apache/master
 					//look for new values -
 					//loop through each new element and check if it has any non matching ids
 					var diff = _.filter(selectedIdList, function(value){ return !_.contains(modelPerms, value); });
@@ -275,5 +288,6 @@ define(function(require) {
 
 		}
 	});
+	
 	return ModulePermissionForm;
 });

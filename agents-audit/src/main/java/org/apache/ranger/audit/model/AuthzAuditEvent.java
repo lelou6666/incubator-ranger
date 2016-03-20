@@ -20,7 +20,10 @@
 package org.apache.ranger.audit.model;
 
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.ranger.audit.dao.DaoManager;
 import org.apache.ranger.audit.entity.AuthzAuditEventDbObj;
 
@@ -105,6 +108,9 @@ public class AuthzAuditEvent extends AuditEventBase {
 
 	@SerializedName("event_dur_ms")
 	protected long eventDurationMS = 0;
+
+	@SerializedName("tags")
+	protected Set<String> tags = new HashSet<>();
 
 	public AuthzAuditEvent() {
 		super();
@@ -432,8 +438,16 @@ public class AuthzAuditEvent extends AuditEventBase {
 		return eventDurationMS;
 	}
 
+	public Set<String> getTags() {
+		return tags;
+	}
+
 	public void setEventDurationMS(long frequencyDurationMS) {
 		this.eventDurationMS = frequencyDurationMS;
+	}
+
+	public void setTags(Set<String> tags) {
+		this.tags = tags;
 	}
 
 	@Override
@@ -485,7 +499,12 @@ public class AuthzAuditEvent extends AuditEventBase {
 				.append(FIELD_SEPARATOR).append("event_count=")
 				.append(eventCount).append(FIELD_SEPARATOR)
 				.append("event_dur_ms=").append(eventDurationMS)
+				.append(FIELD_SEPARATOR)
+				.append("tags=").append("[")
+				.append(StringUtils.join(tags, ", "))
+				.append("]")
 				.append(FIELD_SEPARATOR);
+
 		return sb;
 	}
 

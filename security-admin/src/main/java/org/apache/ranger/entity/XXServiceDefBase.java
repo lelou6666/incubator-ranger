@@ -85,6 +85,15 @@ public abstract class XXServiceDefBase extends XXDBBase implements Serializable 
 	protected String description;
 
 	/**
+	 * options of the XXServiceDef
+	 * <ul>
+	 * </ul>
+	 *
+	 */
+	@Column(name = "def_options")
+	protected String defOptions;
+
+	/**
 	 * rbKeyLabel of the XXServiceDef
 	 * <ul>
 	 * </ul>
@@ -218,6 +227,25 @@ public abstract class XXServiceDefBase extends XXDBBase implements Serializable 
 	 */
 	public String getDescription() {
 		return this.description;
+	}
+
+	/**
+	 * This method sets the value to the member attribute <b> defOptions</b> .
+	 *
+	 * @param options
+	 *            Value to set member attribute <b> defOptions</b>
+	 */
+	public void setDefOptions(String options) {
+		this.defOptions = options;
+	}
+
+	/**
+	 * Returns the value for the member attribute <b>defOptions</b>
+	 *
+	 * @return String - value of member attribute <b>defOptions</b> .
+	 */
+	public String getDefOptions() {
+		return this.defOptions;
 	}
 
 	/**

@@ -199,8 +199,13 @@ define(function(require){
 				this.newConnConfig 		= this.removeUnwantedFromObject(this.newConnConfig);
 				this.previousConnConfig = this.removeUnwantedFromObject(this.previousConnConfig);
 			}else{
+<<<<<<< HEAD
 				var tmp = this.newConnConfig, tmp1 = {};;
 				_.each(tmp,function(val, name){ tmp1[name] = ""; })
+=======
+				var tmp = this.newConnConfig, tmp1 = {};
+				_.each(tmp,function(val, name){ tmp1[name] = ""; });
+>>>>>>> refs/remotes/apache/master
 				_.each(this.previousConnConfig,function(val, name){ tmp1[name]=val; });
 				this.previousConnConfig = tmp1;
 			}

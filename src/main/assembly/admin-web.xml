@@ -294,6 +294,7 @@
     		</moduleSet>
   </moduleSets> 	
 
+<<<<<<< HEAD
 <!-- 
   <profiles>
       <profile>
@@ -333,6 +334,8 @@
       
   </profiles>
    -->
+=======
+>>>>>>> refs/remotes/apache/master
   <fileSets>
 	<fileSet>
 		<outputDirectory>/ews</outputDirectory>
@@ -344,18 +347,6 @@
 		<directory>embeddedwebserver/conf</directory>
 		<fileMode>700</fileMode>
 	</fileSet>
-<!--
-	<fileSet>
-		<outputDirectory>/ews/lib</outputDirectory>
-		<directory>embeddedwebserver/lib</directory>
-	</fileSet>
-	<fileSet>
-		<outputDirectory>/unixauth-config</outputDirectory>
-		<directory>security-admin/unixauth-config</directory>
-		<fileMode>544</fileMode>
-	</fileSet>
--->
-
 	<fileSet>
 		<outputDirectory>/db</outputDirectory>
 		<directory>security-admin/db</directory>
@@ -368,6 +359,15 @@
 		<fileMode>544</fileMode>
 	</fileSet>
 
+<<<<<<< HEAD
+	<fileSet>
+		<outputDirectory>/contrib</outputDirectory>
+		<directory>security-admin/contrib</directory>
+		<fileMode>544</fileMode>
+	</fileSet>
+
+=======
+>>>>>>> refs/remotes/apache/master
 	<fileSet>
 		<outputDirectory>/</outputDirectory>
 		<directory>security-admin/scripts</directory>

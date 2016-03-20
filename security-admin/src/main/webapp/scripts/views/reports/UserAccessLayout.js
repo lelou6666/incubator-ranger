@@ -131,7 +131,11 @@ define(function(require) {'use strict';
 				this.renderTable(obj.collName, obj.serviceDefName);
 				this.getResourceLists(obj.collName,obj.serviceDefName);
 			},this);
+<<<<<<< HEAD
 			this.$el.find('[data-js="policyName"]').focus();
+=======
+			this.$el.find('[data-js="policyName"]').focus()
+>>>>>>> refs/remotes/apache/master
 		},
 		
 		getResourceLists: function(collName, serviceDefName){
@@ -140,7 +144,7 @@ define(function(require) {'use strict';
 			coll.fetch({
 				cache : false,
 				reset: true,
-				async:false,
+//				async:false,
 			}).done(function(){
 				coll.trigger('sync')
 				XAUtil.blockUI('unblock');
@@ -185,7 +189,7 @@ define(function(require) {'use strict';
 					label	: localization.tt("lbl.policyName"),
 					editable: false,
 					sortable : false
-				},	
+				},
 				isEnabled:{
 					label:localization.tt('lbl.status'),
 					cell :"html",

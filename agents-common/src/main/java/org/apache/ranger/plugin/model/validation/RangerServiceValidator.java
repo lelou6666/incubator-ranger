@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.ranger.plugin.errors.ValidationErrorCode;
 import org.apache.ranger.plugin.model.RangerService;
 import org.apache.ranger.plugin.model.RangerServiceDef;
+import org.apache.ranger.plugin.store.EmbeddedServiceDefsUtil;
 import org.apache.ranger.plugin.store.ServiceStore;
 
 import com.google.common.collect.Sets;
@@ -209,11 +210,54 @@ public class RangerServiceValidator extends RangerValidator {
 							.errorCode(error.getErrorCode())
 							.becauseOf(error.getMessage(missingParameters))
 							.build());
+<<<<<<< HEAD
+=======
+					valid = false;
+				}
+			}
+
+			String tagServiceName = service.getTagService();
+
+			if (StringUtils.isNotBlank(tagServiceName) && StringUtils.equals(type, EmbeddedServiceDefsUtil.EMBEDDED_SERVICEDEF_TAG_NAME)) {
+				failures.add(new ValidationFailureDetailsBuilder()
+						.field("tag_service")
+						.isSemanticallyIncorrect()
+						.becauseOf("tag service cannot be part of any other service")
+						.build());
+				valid = false;
+			}
+
+			boolean needToEnsureServiceType = false;
+
+			if (action == Action.UPDATE) {
+				RangerService otherService = getService(name);
+				String otherTagServiceName = otherService == null ? null : otherService.getTagService();
+
+				if (StringUtils.isNotBlank(tagServiceName)) {
+					if (!StringUtils.equals(tagServiceName, otherTagServiceName)) {
+						needToEnsureServiceType = true;
+					}
+				}
+			} else {    // action == Action.CREATE
+				if (StringUtils.isNotBlank(tagServiceName)) {
+					needToEnsureServiceType = true;
+				}
+			}
+
+			if (needToEnsureServiceType) {
+				RangerService maybeTagService = getService(tagServiceName);
+				if (maybeTagService == null || !StringUtils.equals(maybeTagService.getType(), EmbeddedServiceDefsUtil.EMBEDDED_SERVICEDEF_TAG_NAME)) {
+					failures.add(new ValidationFailureDetailsBuilder()
+							.field("tag_service")
+							.isSemanticallyIncorrect()
+							.becauseOf("tag service name does not refer to existing tag service:" + tagServiceName)
+							.build());
+>>>>>>> refs/remotes/apache/master
 					valid = false;
 				}
 			}
 		}
-		
+
 		if(LOG.isDebugEnabled()) {
 			LOG.debug("<== RangerServiceValidator.isValid(" + service + "): " + valid);
 		}

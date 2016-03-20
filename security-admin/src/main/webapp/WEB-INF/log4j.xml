@@ -84,8 +84,13 @@
 	</category>
 
 	<!--
+<<<<<<< HEAD
 	<category name="ranger.perf" additivity="false">
 		<priority value="info" />
+=======
+	<category name="org.apache.ranger.perf" additivity="false">
+		<priority value="debug" />
+>>>>>>> refs/remotes/apache/master
 		<appender-ref ref="perf_appender" />
 	</category>
 	-->

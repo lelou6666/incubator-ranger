@@ -23,9 +23,9 @@ import org.apache.ranger.plugin.model.RangerServiceDef;
 
 
 public class RangerAccessResult {
-	private String              serviceName = null;
-	private RangerServiceDef    serviceDef  = null;
-	private RangerAccessRequest request     = null;
+	private final String              serviceName;
+	private final RangerServiceDef    serviceDef;
+	private final RangerAccessRequest request;
 
 	private boolean isAccessDetermined = false;
 	private boolean  isAllowed = false;
@@ -34,7 +34,7 @@ public class RangerAccessResult {
 	private long     policyId  = -1;
 	private String   reason    = null;
 
-	public RangerAccessResult(String serviceName, RangerServiceDef serviceDef, RangerAccessRequest request) {
+	public RangerAccessResult(final String serviceName, final RangerServiceDef serviceDef, final RangerAccessRequest request) {
 		this.serviceName = serviceName;
 		this.serviceDef  = serviceDef;
 		this.request     = request;
@@ -44,6 +44,18 @@ public class RangerAccessResult {
 		this.isAudited   = false;
 		this.policyId    = -1;
 		this.reason      = null;
+	}
+
+	public void setAccessResultFrom(final RangerAccessResult other) {
+		this.isAccessDetermined = other.getIsAccessDetermined();
+		this.isAllowed   = other.getIsAllowed();
+		this.policyId    = other.getPolicyId();
+		this.reason      = other.getReason();
+	}
+
+	public void setAuditResultFrom(final RangerAccessResult other) {
+		this.isAuditedDetermined = other.getIsAuditedDetermined();
+		this.isAudited = other.getIsAudited();
 	}
 
 	/**
@@ -69,7 +81,7 @@ public class RangerAccessResult {
 
 	public boolean getIsAccessDetermined() { return isAccessDetermined; }
 
-	private void setIsAccessDetermined(boolean value) { isAccessDetermined = value; }
+	public void setIsAccessDetermined(boolean value) { isAccessDetermined = value; }
 
 	/**
 	 * @return the isAllowed
@@ -82,7 +94,10 @@ public class RangerAccessResult {
 	 * @param isAllowed the isAllowed to set
 	 */
 	public void setIsAllowed(boolean isAllowed) {
-		setIsAccessDetermined(true);
+		if(! isAllowed) {
+			setIsAccessDetermined(true);
+		}
+
 		this.isAllowed = isAllowed;
 	}
 
@@ -129,7 +144,7 @@ public class RangerAccessResult {
 	}
 
 	/**
-	 * @return the policyId
+	 * @param policyId the policyId to set
 	 */
 	public void setPolicyId(long policyId) {
 		this.policyId = policyId;

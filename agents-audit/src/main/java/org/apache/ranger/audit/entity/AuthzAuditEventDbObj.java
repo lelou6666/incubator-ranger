@@ -33,9 +33,15 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.SequenceGenerator;
 
+<<<<<<< HEAD
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ranger.audit.model.EnumRepositoryType;
+=======
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+>>>>>>> refs/remotes/apache/master
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.audit.provider.MiscUtil;
 
@@ -83,6 +89,61 @@ public class AuthzAuditEventDbObj implements Serializable {
 	private String clientType;
 	private String clientIP;
 	private String requestData;
+	private String tags;
+
+	public static void init(Properties props)
+	{
+		LOG.info("AuthzAuditEventDbObj.init()");
+
+		final String AUDIT_DB_MAX_COLUMN_VALUE = "xasecure.audit.destination.db.max.column.length";
+		MaxValueLengthAccessType = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "access_type", MaxValueLengthAccessType);
+		logMaxColumnValue("access_type", MaxValueLengthAccessType);
+
+		MaxValueLengthAclEnforcer = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "acl_enforcer", MaxValueLengthAclEnforcer);
+		logMaxColumnValue("acl_enforcer", MaxValueLengthAclEnforcer);
+
+		MaxValueLengthAction = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "action", MaxValueLengthAction);
+		logMaxColumnValue("action", MaxValueLengthAction);
+
+		MaxValueLengthAgentId = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "agent_id", MaxValueLengthAgentId);
+		logMaxColumnValue("agent_id", MaxValueLengthAgentId);
+
+		MaxValueLengthClientIp = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "client_id", MaxValueLengthClientIp);
+		logMaxColumnValue("client_id", MaxValueLengthClientIp);
+
+		MaxValueLengthClientType = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "client_type", MaxValueLengthClientType);
+		logMaxColumnValue("client_type", MaxValueLengthClientType);
+
+		MaxValueLengthRepoName = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "repo_name", MaxValueLengthRepoName);
+		logMaxColumnValue("repo_name", MaxValueLengthRepoName);
+
+		MaxValueLengthResultReason = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "result_reason", MaxValueLengthResultReason);
+		logMaxColumnValue("result_reason", MaxValueLengthResultReason);
+
+		MaxValueLengthSessionId = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "session_id", MaxValueLengthSessionId);
+		logMaxColumnValue("session_id", MaxValueLengthSessionId);
+
+		MaxValueLengthRequestUser = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "request_user", MaxValueLengthRequestUser);
+		logMaxColumnValue("request_user", MaxValueLengthRequestUser);
+
+		MaxValueLengthRequestData = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "request_data", MaxValueLengthRequestData);
+		logMaxColumnValue("request_data", MaxValueLengthRequestData);
+
+		MaxValueLengthResourcePath = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "resource_path", MaxValueLengthResourcePath);
+		logMaxColumnValue("resource_path", MaxValueLengthResourcePath);
+
+		MaxValueLengthResourceType = MiscUtil.getIntProperty(props, AUDIT_DB_MAX_COLUMN_VALUE + "." + "resource_type", MaxValueLengthResourceType);
+		logMaxColumnValue("resource_type", MaxValueLengthResourceType);
+	}
+
+	public static void logMaxColumnValue(String columnName, int configuredMaxValueLength) {
+		LOG.info("Setting max column value for column[" + columnName + "] to [" + configuredMaxValueLength + "].");
+		if (configuredMaxValueLength == 0) {
+			LOG.info("Max length of column[" + columnName + "] was 0! Column will NOT be emitted in the audit.");
+		} else if (configuredMaxValueLength < 0) {
+			LOG.info("Max length of column[" + columnName + "] was less than 0! Column value will never be truncated.");
+		}
+	}
 
 	public static void init(Properties props)
 	{
@@ -168,6 +229,7 @@ public class AuthzAuditEventDbObj implements Serializable {
 		this.clientType     = event.getClientType();
 		this.clientIP       = event.getClientIP();
 		this.requestData    = event.getRequestData();
+		this.tags           = StringUtils.join(event.getTags(), ", ");
 	}
 
 	@Id
@@ -335,6 +397,19 @@ public class AuthzAuditEventDbObj implements Serializable {
 	public void setRequestData(String requestData) {
 		this.requestData = requestData;
 	}
+<<<<<<< HEAD
+=======
+
+	@Column(name = "tags")
+	public String getTags() {
+		return this.tags;
+	}
+
+	public void setTags(String tags) {
+		this.tags = tags;
+	}
+
+>>>>>>> refs/remotes/apache/master
 	static final String TruncationMarker = "...";
 	static final int TruncationMarkerLength = TruncationMarker.length();
 
@@ -376,5 +451,8 @@ public class AuthzAuditEventDbObj implements Serializable {
 		}
 		return result;
 	}
+<<<<<<< HEAD
 
+=======
+>>>>>>> refs/remotes/apache/master
 }

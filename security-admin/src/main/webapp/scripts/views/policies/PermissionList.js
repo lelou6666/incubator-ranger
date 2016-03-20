@@ -33,10 +33,16 @@ define(function(require) {
 	var VXGroup			= require('models/VXGroup');
 	var VXGroupList			= require('collections/VXGroupList');
 	var VXUserList			= require('collections/VXUserList');
+	
 	require('bootstrap-editable');
+	require('esprima');
     	
 	var PermissionItem = Backbone.Marionette.ItemView.extend({
+<<<<<<< HEAD
         _msvName : 'PermissionItem',
+=======
+		_msvName : 'PermissionItem',
+>>>>>>> refs/remotes/apache/master
 		template : require('hbs!tmpl/policies/PermissionItem'),
 		tagName : 'tr',
 		templateHelpers : function(){
@@ -59,14 +65,14 @@ define(function(require) {
 		},
 		events : {
 			'click [data-action="delete"]'	: 'evDelete',
-			'click td'						: 'evClickTD',
+			'click [data-js="delegatedAdmin"]'	: 'evClickTD',
 			'change [data-js="selectGroups"]': 'evSelectGroup',
 			'change [data-js="selectUsers"]': 'evSelectUser',
 			'change input[class="policy-conditions"]'	: 'policyCondtionChange'
 		},
 
 		initialize : function(options) {
-			_.extend(this, _.pick(options, 'groupList','policyType','accessTypes','policyConditions','userList'));
+			_.extend(this, _.pick(options, 'groupList','accessTypes','policyConditions','userList','rangerServiceDefModel'));
 			this.setupPermissionsAndConditions();
 			
 		},
@@ -82,13 +88,16 @@ define(function(require) {
 			this.dropDownChange(this.ui.selectGroups);
 			this.dropDownChange(this.ui.selectUsers);
 			//render permissions and policy conditions
-			this.renderPerms();
+			if(this.rangerServiceDefModel.get('name') == XAEnums.ServiceType.SERVICE_TAG.label){
+				this.renderPermsForTagBasedPolicies()
+			} else {
+				this.renderPerms();
+			}
 			this.renderPolicyCondtion();
 		},
 		setupFormForEditMode : function() {
 			this.accessItems = _.map(this.accessTypes, function(perm){ 
-				if(!_.isUndefined(perm)) 
-					return {'type':perm.name,isAllowed : false}
+				if(!_.isUndefined(perm)) return {'type':perm.name, isAllowed : false}
 			});
 			if(this.model.has('editMode') && this.model.get('editMode')){
 				if(!_.isUndefined(this.model.get('groupName')) && !_.isNull(this.model.get('groupName'))){
@@ -136,7 +145,6 @@ define(function(require) {
 		dropDownChange : function($select){
 			var that = this;
 			$select.on('change',function(e){
-		//		console.log(e.currentTarget.value);
 				var name = ($(e.currentTarget).attr('data-js') == that.ui.selectGroups.attr('data-js')) ? 'group': 'user';
 				that.checkDirtyFieldForDropDown(e);
 				
@@ -146,7 +154,7 @@ define(function(require) {
 						gNameArr = _.without(that.model.get(name+'Name').split(','), e.removed.text);
 					if(!_.isEmpty(gNameArr)){
 						that.model.set(name+'Name',gNameArr.join(','));
-					}else{
+					} else {
 						that.model.unset(name+'Name');
 					}
 					that.toggleAddButton(e);
@@ -179,6 +187,7 @@ define(function(require) {
 			var tags = list.map(function(m){
 				return { id : m.id+"" , text : m.get('name')};
 			});
+			
 			$select.select2({
 				closeOnSelect : true,
 				placeholder : placeholder,
@@ -188,8 +197,6 @@ define(function(require) {
 				tags : tags, 
 				initSelection : function (element, callback) {
 					var data = [];
-					console.log(list);
-					
 					$(element.val().split(",")).each(function () {
 						var obj = _.findWhere(tags,{text:this});
 						data.push({id: obj.id, text: this})
@@ -205,14 +212,16 @@ define(function(require) {
 					results: function (data, page) { 
 						var results = [] , selectedVals = [];
 						//Get selected values of groups/users dropdown
-						selectedVals = that.getSelectdValues($select, typeGroup);
+						selectedVals = that.getSelectedValues($select, typeGroup);
 						if(data.resultSize != "0"){
-							if(typeGroup)
+							if(typeGroup){
 								results = data.vXGroups.map(function(m, i){	return {id : m.id+"", text: m.name};	});
-							else
+							} else {
 								results = data.vXUsers.map(function(m, i){	return {id : m.id+"", text: m.name};	});
-							if(!_.isEmpty(selectedVals))
+							}
+							if(!_.isEmpty(selectedVals)){
 								results = XAUtil.filterResultByText(results, selectedVals);
+							}
 							return {results : results};
 						}
 						return {results : results};
@@ -250,7 +259,6 @@ define(function(require) {
 						values = _.without(values,"-1")
 					}
 //			    	that.checkDirtyFieldForGroup(values);
-					
 					
 					var permTypeArr = [];
 					var valArr = _.map(values, function(id){
@@ -291,13 +299,96 @@ define(function(require) {
 			});
 			
 		},
+		renderPermsForTagBasedPolicies :function(){
+			var that = this;
+			this.ui.addPerms.attr('data-type','tagchecklist')
+			this.ui.addPerms.attr('title','Components Permissions')
+			this.ui.delegatedAdmin.parent('td').hide();
+			this.perms =  _.map(this.accessTypes,function(m){return {text:m.label, value:m.name};});
+
+			//create x-editable for permissions
+			this.ui.addPerms.editable({
+			    emptytext : 'Add Permissions',
+				source: this.perms,
+				value : this.permsIds,
+				placement : 'top',
+				showbuttons : 'bottom',
+				display: function(values,srcData) {
+					if(_.isNull(values) || _.isEmpty(values)){
+						$(this).empty();
+						that.model.unset('accesses');
+						that.ui.addPermissionsSpan.find('i').attr('class', 'icon-plus');
+						that.ui.addPermissionsSpan.attr('title','add');
+						return;
+					}
+					if(_.contains(values,"on")){
+						values = _.without(values,"on")
+					}
+					//To remove selectall options
+					values = _.uniq(values);
+					if(values.indexOf("selectall") >= 0){
+						values.splice(values.indexOf("selectall"), 1)
+					}
+//			    	that.checkDirtyFieldForGroup(values);
+					
+					var permTypeArr = [];
+					var valArr = _.map(values, function(id){
+						if(!_.isUndefined(id)){
+							var obj = _.findWhere(srcData,{'value' : id});
+							permTypeArr.push({permType : obj.value});
+							return "<span class='label label-info'>" + id.substr(0,id.indexOf(":")).toUpperCase() + "</span>";
+						}
+					});
+					var perms = []
+					if(that.model.has('accesses')){
+							perms = that.model.get('accesses');
+					}
+					
+					var items=[];
+					_.each(that.accessItems, function(item){ 
+						if($.inArray( item.type, values) >= 0){
+							item.isAllowed = true;
+							items.push(item) ;
+						}
+					},this);
+					// Save form data to model
+					that.model.set('accesses', items);
+					$(this).html(_.uniq(valArr).join(" "));
+					that.ui.addPermissionsSpan.find('i').attr('class', 'icon-pencil');
+					that.ui.addPermissionsSpan.attr('title','edit');
+				},
+			}).on('hide',function(e){
+					$(e.currentTarget).parent().find('.tag-fixed-popover-wrapper').remove()
+			}).on('click', function(e) {
+				e.stopPropagation();
+				e.preventDefault();
+				that.clickOnPermissions(that);
+				 //Sticky popup
+				var pop = $(this).parent('td').find('.popover')
+				pop.wrap('<div class="tag-fixed-popover-wrapper"></div>');
+				pop.addClass('tag-fixed-popover');
+				pop.find('.arrow').removeClass('arrow')
+			});
+			that.ui.addPermissionsSpan.click(function(e) {
+				e.stopPropagation();
+				that.$('a[data-js="permissions"]').editable('toggle');
+//				that.clickOnPermissions(that);
+				
+				var pop = $(this).parent('td').find('.popover')
+				pop.wrap('<div class="tag-fixed-popover-wrapper"></div>');
+				pop.addClass('tag-fixed-popover');
+				pop.find('.arrow').removeClass('arrow')
+			});
+			
+		},
 		clickOnPermissions : function(that) {
 			var selectAll = true;
 			var checklist = that.$('.editable-checklist').find('input[type="checkbox"]')
+			
 			_.each(checklist,function(checkbox){ if($(checkbox).val() != -1 && !$(checkbox).is(':checked')) selectAll = false;})
 			if(selectAll){
 				that.$('.editable-checklist').find('input[type="checkbox"][value="-1"]').prop('checked',true)
-			}else{
+			} else {
 				that.$('.editable-checklist').find('input[type="checkbox"][value="-1"]').prop('checked',false)
 			}
 			//for selectAll functionality
@@ -311,15 +402,23 @@ define(function(require) {
 			var that = this;
 			
 			if(this.policyConditions.length > 0){
-				var tmpl = _.map(this.policyConditions,function(obj){ 
+				var tmpl = _.map(this.policyConditions,function(obj){
+					if(!_.isUndefined(obj.evaluatorOptions) && !_.isUndefined(obj.evaluatorOptions['ui.isMultiline']) && Boolean(obj.evaluatorOptions['ui.isMultiline'])){
+						return '<div class="editable-address margin-bottom-5"><label style="display:block !important;"><span>'+obj.label+' : </span><i title="JavaScript Condition Examples :\ncountry_code == \'USA\', time_range >= 900 && time_range <= 1800 etc." class="icon-info-sign" style="float: right;margin-top: 6px;"></i>\
+						</label><textarea name="'+obj.name+'" placeholder="Please enter condtion.."></textarea></div>'
+					}
 					return '<div class="editable-address margin-bottom-5"><label style="display:block !important;"><span>'+obj.label+' : </span></label><input type="text" name="'+obj.name+'" ></div>'
+						
 				});
+				//to show only mutiline line policy codition 
+				this.multiLinecond = _.filter(that.policyConditions, function(m){ return (!_.isUndefined(m.evaluatorOptions['ui.isMultiline']) && m.evaluatorOptions['ui.isMultiline']) });
+				this.multiLinecond = _.isArray(this.multiLinecond) ? this.multiLinecond : [this.multiLinecond];
 				//Create new bootstrap x-editable `policyConditions` dataType for policy conditions 
 				XAUtil.customXEditableForPolicyCond(tmpl.join(''));
 				//create x-editable for policy conditions
 				this.$('#policyConditions').editable({
 					emptytext : 'Add Conditions',
-					value : this.conditions, 
+					value : this.conditions,
 					display: function(value) {
 						var continue_ = false, i = 0;
 						if(!value) {
@@ -327,26 +426,63 @@ define(function(require) {
 							return; 
 						}
 						_.each(value, function(val, name){ if(!_.isEmpty(val)) continue_ = true; });
+						
 						if(continue_){
+							//Generate html to show on UI
 							var html = _.map(value, function(val,name) {
 								var label = (i%2 == 0) ? 'label label-inverse' : 'label';
+								if(_.isEmpty(val)){
+									return ''; 
+								}
+								//Add label for policy condition
+								var pcond = _.findWhere(that.multiLinecond, { 'name': name})
+								if(!_.isUndefined(pcond) && !_.isUndefined(pcond['evaluatorOptions']) 
+										&& ! _.isUndefined(pcond['evaluatorOptions']["ui.isMultiline"]) 
+										&& ! _.isUndefined(pcond['evaluatorOptions']['engineName'])){
+									val = 	pcond['evaluatorOptions']['engineName'] + ' Condition'
+								}
 								i++;
-								return _.isEmpty(val) ? '' : '<span class="'+label+'">'+name+' : '+ val + '</span>';	
+								return '<span class="'+label+' white-space-normal" >'+name+' : '+ val + '</span>';
 							});
 							var cond = _.map(value, function(val, name) {
-								return {'type' : name, 'values' : !_.isArray(val) ?  val.split(',') : val};
+								return {'type' : name, 'values' : !_.isArray(val) ?  val.split(', ') : val};
 							});
+							
 							that.model.set('conditions', cond);
 							$(this).html(html);
 							that.ui.addConditionsSpan.find('i').attr('class', 'icon-pencil');
 							that.ui.addConditionsSpan.attr('title','edit');
-						}else{
+						} else {
 							that.model.unset('conditions');
 							$(this).empty();
 							that.ui.addConditionsSpan.find('i').attr('class', 'icon-plus');
 							that.ui.addConditionsSpan.attr('title','add');
 						}
-					}
+					},
+					validate:function(value){
+						var error = {'flag' : false};
+						_.each(value, function(val, name){
+							var tmp = _.findWhere(that.multiLinecond, { 'name' : name});
+							if(!_.isUndefined(tmp)){
+								try {
+									var t = esprima.parse(val);
+								}catch(e){
+									if(!error.flag){
+										console.log(e.message)
+										error.flag = true;
+										error.message = e.message;
+										error.fieldName = name;
+									}
+								}
+							}
+						})
+						$('.editableform').find('.editable-error-block').remove();
+						if(error.flag){
+							$('.editableform').find('.editable-error-block').remove();
+							$('.editableform').find('[name="'+error.fieldName+'"]').parent().append('<div class="editable-error-block help-block" style="display: none;"></div>')
+							return error.message;
+						}
+				    },
 				});
 				that.ui.addConditionsSpan.click(function(e) {
 					e.stopPropagation();
@@ -355,9 +491,10 @@ define(function(require) {
 				
 			}
 		},
-		getSelectdValues : function($select, typeGroup){
+		getSelectedValues : function($select, typeGroup){
 			var vals = [],selectedVals = [];
 			var name = typeGroup ? 'group' : 'user';
+<<<<<<< HEAD
 //			this.collection.each(function(m){
 //				if(!_.isUndefined(m.get(name+'Name')) && !_.isNull(m.get(name+'Name'))){
 //					vals.push.apply(vals, m.get(name+'Name').split(','));
@@ -365,6 +502,11 @@ define(function(require) {
 //			});
 			if(!_.isEmpty($select.select2('data')))
 				selectedVals = _.map($select.select2('data'),function(obj){ return obj.text});
+=======
+			if(!_.isEmpty($select.select2('data'))){
+				selectedVals = _.map($select.select2('data'),function(obj){ return obj.text; });
+			}
+>>>>>>> refs/remotes/apache/master
 			vals.push.apply(vals , selectedVals);
 			vals = $.unique(vals);
 			return vals;
@@ -379,9 +521,23 @@ define(function(require) {
 			XAUtil.checkDirtyFieldForToggle($el);
 			//Set Delegated Admin value 
 			if(!_.isUndefined($el.find('input').data('js'))){
-				this.model.set('delegateAdmin',$el.find('input').is(':checked'))
-				return;
+				this.model.set('delegateAdmin',$el.is(':checked'));
 			}
+			//select/deselect all functionality
+			if(this.checkAll($el.find('input[type="checkbox"][value!="-1"]'))){
+				$el.find('input[type="checkbox"][value="-1"]').prop('checked', true)
+			} else {
+			    $el.find('input[type="checkbox"][value="-1"]').prop('checked', false)
+			}
+
+		},
+		checkAll : function($inputs){
+			 var checkall = true;
+			 $inputs.each(function(idx, input){
+			    if(!checkall)   return;
+			 	checkall = $(input).is(':checked') ? true : false
+			 });
+			 return checkall;
 		},
 		checkDirtyFieldForCheckBox : function(perms){
 			var permList = [];
@@ -404,16 +560,16 @@ define(function(require) {
 				if( !_.isUndefined(e.added)){
 					if((grpTemp.length ) == this.groupList.length && ((usrTemp.length) == this.userList.length)){
 						$('[data-action="addGroup"]').hide();
-					}else{
+					} else {
 						$('[data-action="addGroup"]').show();
 					}
 				} 
 				if(!_.isUndefined(e.removed))
 					$('[data-action="addGroup"]').show();
-			}else{
+			} else {
 				if((grpTemp.length ) == this.groupList.length && ((usrTemp.length) == this.userList.length)){
 					$('[data-action="addGroup"]').hide();
-				}else{
+				} else {
 					$('[data-action="addGroup"]').show();
 				}
 			}
@@ -437,6 +593,7 @@ define(function(require) {
 				groupIdList = this.model.get('groupId').split(',');
 			XAUtil.checkDirtyField(groupIdList, e.val, $(e.currentTarget));
 		},
+
 	});
 
 
@@ -446,7 +603,8 @@ define(function(require) {
 		template : require('hbs!tmpl/policies/PermissionList'),
 		templateHelpers :function(){
 			return {
-				permHeaders : this.getPermHeaders()
+				permHeaders : this.getPermHeaders(),
+				headerTitle : this.headerTitle
 			};
 		},
 		getItemView : function(item){
@@ -461,26 +619,30 @@ define(function(require) {
 				'collection' 	: this.collection,
 				'groupList' 	: this.groupList,
 				'userList' 	: this.userList,
-				'policyType'	: this.policyType,
 				'accessTypes'	: this.accessTypes,
-				'policyConditions' : this.rangerServiceDefModel.get('policyConditions')
+				'policyConditions' : this.rangerServiceDefModel.get('policyConditions'),
+				'rangerServiceDefModel' : this.rangerServiceDefModel
 			};
 		},
 		events : {
 			'click [data-action="addGroup"]' : 'addNew'
 		},
 		initialize : function(options) {
-			_.extend(this, _.pick(options, 'groupList','policyType','accessTypes','rangerServiceDefModel','userList'));
+			_.extend(this, _.pick(options, 'groupList','accessTypes','rangerServiceDefModel','userList', 'headerTitle'));
 			this.listenTo(this.groupList, 'sync', this.render, this);
 			if(this.collection.length == 0)
 				this.collection.add(new Backbone.Model());
 		},
 		onRender : function(){
 		},
+
 		addNew : function(){
 			var that =this;
 			this.collection.add(new Backbone.Model());
+<<<<<<< HEAD
 
+=======
+>>>>>>> refs/remotes/apache/master
 		},
 		toggleAddButton : function(){
 			var groupNames=[], userNames=[];
@@ -494,15 +656,20 @@ define(function(require) {
 					userNames.push.apply(userNames,temp);
 				}
 			});
-			if(groupNames.length == this.groupList.length && userNames.length == this.userList.length )
+			if(groupNames.length == this.groupList.length && userNames.length == this.userList.length ){
 				this.$('button[data-action="addGroup"]').hide();
-			else
+			} else {
 				this.$('button[data-action="addGroup"]').show();
+			}
 		},
 		getPermHeaders : function(){
 			var permList = [];
-			permList.unshift(localization.tt('lbl.delegatedAdmin'));
-			permList.unshift(localization.tt('lbl.permissions'));
+			if(this.rangerServiceDefModel.get('name') != XAEnums.ServiceType.SERVICE_TAG.label){
+				permList.unshift(localization.tt('lbl.delegatedAdmin'));
+				permList.unshift(localization.tt('lbl.permissions'));
+			} else {
+				permList.unshift(localization.tt('lbl.componentPermissions'));
+			}
 			if(!_.isEmpty(this.rangerServiceDefModel.get('policyConditions'))){
 				permList.unshift(localization.tt('h.policyCondition'));
 			}

@@ -23,18 +23,17 @@
 package org.apache.ranger.security.web.authentication;
 
 import java.io.IOException;
-import java.util.Date;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 import org.apache.log4j.Logger;
 import org.apache.ranger.biz.SessionMgr;
 import org.apache.ranger.common.JSONUtil;
 import org.apache.ranger.common.PropertiesUtil;
 import org.apache.ranger.common.RangerConfigUtil;
+import org.apache.ranger.security.web.filter.RangerSSOAuthenticationFilter;
 import org.apache.ranger.view.VXResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.AuthenticationException;
@@ -129,9 +128,13 @@ public class RangerAuthenticationEntryPoint extends
 			}
 			response.sendError(ajaxReturnCode, "");
 		} else if (!(requestURL.startsWith(reqServletPath))) {
+			if(requestURL.contains(RangerSSOAuthenticationFilter.LOCAL_LOGIN_URL)){
+				if (request.getSession() != null)
+					request.getSession().setAttribute("locallogin","true");
+					request.getServletContext().setAttribute(request.getSession().getId(), "locallogin");
+			}
 			super.commence(request, response, authException);
 		}
-
 	}
 
 }

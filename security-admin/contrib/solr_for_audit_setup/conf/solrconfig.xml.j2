@@ -1681,6 +1681,7 @@
       </arr>
     </processor>
     <processor class="solr.AddSchemaFieldsUpdateProcessorFactory">
+<<<<<<< HEAD
       <str name="defaultFieldType">text_general</str>
       <lst name="typeMapping">
         <str name="valueClass">java.lang.Boolean</str>
@@ -1689,15 +1690,33 @@
       <lst name="typeMapping">
         <str name="valueClass">java.util.Date</str>
         <str name="fieldType">tdates</str>
+=======
+      <str name="defaultFieldType">key_lower_case</str>
+      <lst name="typeMapping">
+        <str name="valueClass">java.lang.Boolean</str>
+        <str name="fieldType">boolean</str>
+      </lst>
+      <lst name="typeMapping">
+        <str name="valueClass">java.util.Date</str>
+        <str name="fieldType">tdate</str>
+>>>>>>> refs/remotes/apache/master
       </lst>
       <lst name="typeMapping">
         <str name="valueClass">java.lang.Long</str>
         <str name="valueClass">java.lang.Integer</str>
+<<<<<<< HEAD
         <str name="fieldType">tlongs</str>
       </lst>
       <lst name="typeMapping">
         <str name="valueClass">java.lang.Number</str>
         <str name="fieldType">tdoubles</str>
+=======
+        <str name="fieldType">tlong</str>
+      </lst>
+      <lst name="typeMapping">
+        <str name="valueClass">java.lang.Number</str>
+        <str name="fieldType">tdouble</str>
+>>>>>>> refs/remotes/apache/master
       </lst>
     </processor>
     <processor class="solr.LogUpdateProcessorFactory"/>

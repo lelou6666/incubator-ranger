@@ -26,7 +26,6 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.ranger.audit.destination.AuditDestination;
 import org.apache.ranger.audit.model.AuditEventBase;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.audit.provider.MiscUtil;
@@ -203,6 +202,7 @@ public class SolrAuditDestination extends AuditDestination {
 		doc.addField("seq_num", auditEvent.getSeqNum());
 		doc.setField("event_count", auditEvent.getEventCount());
 		doc.setField("event_dur_ms", auditEvent.getEventDurationMS());
+		doc.setField("tags", auditEvent.getTags());
 
 		return doc;
 	}
